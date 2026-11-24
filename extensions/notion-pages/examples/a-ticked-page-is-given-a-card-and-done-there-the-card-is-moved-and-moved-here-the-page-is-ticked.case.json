@@ -1,0 +1,29 @@
+{
+  "says": "Told a checkbox that links pages, a page of the database ticked there has a card made for it, filled as the page stands. A page ticked done, which Notion's signed call says changed, has its card moved to the board's last column; a card moved out of it here has the page's tick taken off, and one moved to it has it put back. A page that is not ticked to link is left there.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "secret_n0tion", "signing.txt": "s3cret"}},
+    {"run": ["secret", "set", "notion-key", "--file", "{here}/key.txt"]},
+    {"given": {"pages/bbbbbbbb-0000-0000-0000-000000000001/title": "Fix the footer", "pages/bbbbbbbb-0000-0000-0000-000000000001/body": "It overlaps the cart.", "pages/bbbbbbbb-0000-0000-0000-000000000001/ticked": "true", "pages/bbbbbbbb-0000-0000-0000-000000000001/edited": "s1", "pages/bbbbbbbb-0000-0000-0000-000000000002/title": "Not for here", "pages/bbbbbbbb-0000-0000-0000-000000000002/edited": "s1"}},
+    {"apply": "pages", "project": "shop", "params": {"database": "{database}", "key": "notion-key", "in_property": "Factory"}, "sets_off": "keep"},
+    {"ran": ["{curl} {api}/databases/{database}", "{curl} {post} {changed}", "{curl} {api}/comments?block_id={there}&page_size=100", "{curl} {api}/pages/{there}", "{curl} {api}/comments?block_id={there}&page_size=100", "{curl} {api}/pages/{there}", "{curl} {api}/comments?block_id={there}&page_size=100", "{curl} {api}/pages/{there}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Fix the footer"},
+    {"run": ["record", "show", "shop-1"], "says": "body: It overlaps the cart."},
+    {"run": ["record", "show", "shop-1"], "says": "status: backlog"},
+    {"run": ["record", "show", "shop-links-1"], "says": "card: shop-1"},
+    {"run": ["secret", "set", "notion-signing", "--file", "{here}/signing.txt"]},
+    {"run": ["caller", "set", "notion", "--topic", "notion.called", "--secret", "notion-signing", "--header", "X-Notion-Signature", "--prefix", "sha256="]},
+    {"given": {"pages/bbbbbbbb-0000-0000-0000-000000000001/done": "true", "pages/bbbbbbbb-0000-0000-0000-000000000001/edited": "s2"}},
+    {"call": "notion", "signed": "s3cret", "header": "X-Notion-Signature", "prefix": "sha256=", "body": {"type": "page.properties_updated", "entity": {"id": "{there}", "type": "page"}, "data": {"parent": {"id": "{database}", "type": "database"}}}, "sets_off": "keep"},
+    {"ran": ["{curl} {api}/comments?block_id={there}&page_size=100", "{curl} {api}/pages/{there}"]},
+    {"run": ["record", "show", "shop-1"], "says": "status: done"},
+    {"run": ["board", "move", "shop-1", "review"], "sets_off": "keep"},
+    {"ran": ["{curl} {api}/comments?block_id={there}&page_size=100", "{curl} {api}/pages/{there}", "{curl} {patch} {\"properties\":{\"Done\":{\"checkbox\":false}}} {api}/pages/{there}"]},
+    {"run": ["board", "move", "shop-1", "done"], "sets_off": "keep"},
+    {"ran": ["{curl} {api}/comments?block_id={there}&page_size=100", "{curl} {api}/pages/{there}", "{curl} {patch} {\"properties\":{\"Done\":{\"checkbox\":true}}} {api}/pages/{there}"]},
+    {"holds": {"pages/bbbbbbbb-0000-0000-0000-000000000001": {"title": "Fix the footer", "body": "It overlaps the cart.", "ticked": "true", "done": "true", "edited": "t2"}}},
+    {"holds": {"pages/bbbbbbbb-0000-0000-0000-000000000002": {"title": "Not for here", "edited": "s1"}}}
+  ]
+}

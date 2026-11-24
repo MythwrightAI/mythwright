@@ -1,0 +1,29 @@
+{
+  "says": "A card linked by a row of `links` has a page made for it in the Notion database, with the card's title as its title, its body in the database's text property and the card in the property that marks it. Its title changed here goes out; the title and the body changed in Notion, when Notion is next asked what changed, come into the card. What crossed is what the two agree on: read again, nothing is sent back either way.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "secret_n0tion"}},
+    {"run": ["secret", "set", "notion-key", "--file", "{here}/key.txt"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "pages", "project": "shop", "params": {"database": "{database}", "key": "notion-key"}, "sets_off": "look"},
+    {"ran": ["{curl} {api}/databases/{database}", "{curl} {post} {changed}"]},
+    {"holds": {"acted": {"as": "secret_n0tion"}}},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["{curl} {post} {\"filter\":{\"property\":\"Card\",\"rich_text\":{\"equals\":\"shop-1\"}},\"page_size\":1} {marked}", "{curl} {post} {\"parent\":{\"database_id\":\"{database}\"},\"properties\":{\"Name\":{\"title\":[{\"text\":{\"content\":\"Add a cart\"}}]},\"Description\":{\"rich_text\":[{\"text\":{\"content\":\"Customers need one.\"}}]},\"Card\":{\"rich_text\":[{\"text\":{\"content\":\"shop-1\"}}]}}} {api}/pages", "{curl} {api}/comments?block_id={made}&page_size=100", "{curl} {api}/pages/{made}"]},
+    {"holds": {"pages/aaaaaaaa-0000-0000-0000-000000000001": {"title": "Add a cart", "body": "Customers need one.", "card": "shop-1", "edited": "t1"}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "page: {made}"},
+    {"run": ["board", "set", "shop-1", "title=Add a basket"], "sets_off": "keep"},
+    {"ran": ["{curl} {api}/comments?block_id={made}&page_size=100", "{curl} {api}/pages/{made}", "{curl} {patch} {\"properties\":{\"Name\":{\"title\":[{\"text\":{\"content\":\"Add a basket\"}}]}}} {api}/pages/{made}"]},
+    {"holds": {"pages/aaaaaaaa-0000-0000-0000-000000000001": {"title": "Add a basket", "body": "Customers need one.", "card": "shop-1", "edited": "t2"}}},
+    {"given": {"pages/aaaaaaaa-0000-0000-0000-000000000001/title": "Add a trolley", "pages/aaaaaaaa-0000-0000-0000-000000000001/body": "Customers need one.\nAnd a way to empty it.", "pages/aaaaaaaa-0000-0000-0000-000000000001/edited": "s9"}},
+    {"run": ["emit", "notion.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["{curl} {post} {changed}", "{curl} {api}/comments?block_id={made}&page_size=100", "{curl} {api}/pages/{made}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Add a trolley"},
+    {"run": ["record", "show", "shop-1"], "says": "body: Customers need one.\nAnd a way to empty it."},
+    {"run": ["emit", "notion.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["{curl} {post} {changed}", "{curl} {api}/comments?block_id={made}&page_size=100", "{curl} {api}/pages/{made}"]},
+    {"holds": {"pages/aaaaaaaa-0000-0000-0000-000000000001": {"title": "Add a trolley", "body": "Customers need one.\nAnd a way to empty it.", "card": "shop-1", "edited": "s9"}}}
+  ]
+}
