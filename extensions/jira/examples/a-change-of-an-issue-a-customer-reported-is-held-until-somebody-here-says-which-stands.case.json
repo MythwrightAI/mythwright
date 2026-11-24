@@ -1,0 +1,29 @@
+{
+  "says": "Unless told otherwise, a change of the summary or the description of an issue a customer of a service desk reported is not taken into its card. The link says that it waits and whose issue it is, and the card is told once what to do. While it waits neither side's words are written over the other's. Told `take` in the link, what is in Jira comes in.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "ada@example.com:t0ken"}},
+    {"run": ["secret", "set", "jira-key", "--file", "{here}/key.txt"]},
+    {"given": {"issues/SHOP-1/summary": "The cart is slow", "issues/SHOP-1/description": "It takes a minute.", "issues/SHOP-1/updated": "s1", "issues/SHOP-1/reporter": "Mallory", "issues/SHOP-1/customer": ""}},
+    {"apply": "issues", "project": "shop", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "jira-key"}, "sets_off": "look"},
+    {"run": ["record", "add", "shop", "links", "issue=SHOP-1"], "sets_off": "keep"},
+    {"run": ["record", "show", "shop-1"], "says": "title: The cart is slow"},
+    {"given": {"issues/SHOP-1/summary": "Free money", "issues/SHOP-1/updated": "s2"}},
+    {"run": ["emit", "jira.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["{curl} {api}/myself", "{curl} {changed}", "{curl} {api}/issue/SHOP-1{whole}", "{curl} {api}/issue/SHOP-1{whole}", "{curl} {changed}", "{curl} {api}/issue/SHOP-1{whole}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: The cart is slow"},
+    {"run": ["record", "show", "shop-links-1"], "says": "held: waiting"},
+    {"run": ["record", "show", "shop-links-1"], "says": "held_by: Mallory"},
+    {"run": ["board", "history", "shop-1"], "says": "the issue was reported by Mallory, a customer of a service desk. https://acme.example/browse/SHOP-1"},
+    {"run": ["board", "set", "shop-1", "body=It takes two."], "sets_off": "keep"},
+    {"ran": ["{curl} {api}/issue/SHOP-1{whole}"]},
+    {"holds": {"issues/SHOP-1": {"summary": "Free money", "description": "It takes a minute.", "updated": "s2", "reporter": "Mallory", "customer": ""}}},
+    {"run": ["record", "set", "shop-links-1", "held=take"], "sets_off": "keep"},
+    {"ran": ["{curl} {api}/issue/SHOP-1{whole}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Free money"},
+    {"run": ["record", "show", "shop-1"], "says": "body: It takes a minute."},
+    {"run": ["record", "show", "shop-links-1"], "says": "agreed_title: Free money"}
+  ]
+}

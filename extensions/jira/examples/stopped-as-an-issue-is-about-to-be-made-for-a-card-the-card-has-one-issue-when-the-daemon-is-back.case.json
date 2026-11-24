@@ -1,0 +1,17 @@
+{
+  "says": "A daemon stopped as the step that makes an issue for a card begins has not asked the program, and cannot say so afterwards: back, the step is not done twice, the issue is looked for by the card's label, found not to be there, and made. The card has one issue, and its link says which.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "ada@example.com:t0ken"}},
+    {"run": ["secret", "set", "jira-key", "--file", "{here}/key.txt"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "jira-key"}, "sets_off": "look"},
+    {"ran": ["{curl} {api}/myself", "{curl} {changed}"]},
+    {"stopped_at": "open", "of": "issues", "by": {"run": ["record", "add", "shop", "links", "card=shop-1"]}, "sets_off": "keep"},
+    {"holds": {"issues/SHOP-1": {"summary": "Add a cart", "description": "Customers need one.", "labels": "card-shop-1\n", "updated": "t1"}, "issues/SHOP-2": {}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "issue: SHOP-1"},
+    {"run": ["record", "show", "shop-links-1"], "says": "agreed_title: Add a cart"}
+  ]
+}

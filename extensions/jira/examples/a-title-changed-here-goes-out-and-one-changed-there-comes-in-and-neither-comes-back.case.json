@@ -1,0 +1,30 @@
+{
+  "says": "A card linked by a row of `links` has an issue made for it in the Jira project, with the card's title as its summary, its body as its description and a label that marks it. Its title changed here goes out as the issue's summary; the summary changed in Jira, when Jira is next asked what changed, comes into the card. What crossed is what the two agree on: asked again what changed, nothing is sent back either way.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "ada@example.com:t0ken"}},
+    {"run": ["secret", "set", "jira-key", "--file", "{here}/key.txt"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "jira-key"}, "sets_off": "look"},
+    {"ran": ["{curl} {api}/myself", "{curl} {changed}"]},
+    {"holds": {"acted": {"as": "ada@example.com:t0ken"}}},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["{curl} {marked}shop-1%22&fields=summary&maxResults=1", "{curl} {post} {\"fields\":{\"project\":{\"key\":\"SHOP\"},\"issuetype\":{\"name\":\"Task\"},\"summary\":\"Add a cart\",\"description\":\"Customers need one.\",\"labels\":[\"card-shop-1\"]}} {api}/issue", "{curl} {api}/issue/SHOP-1{whole}"]},
+    {"holds": {"issues/SHOP-1": {"summary": "Add a cart", "description": "Customers need one.", "labels": "card-shop-1\n", "updated": "t1"}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "issue: SHOP-1"},
+    {"run": ["record", "show", "shop-links-1"], "says": "url: https://acme.example/browse/SHOP-1"},
+    {"run": ["board", "set", "shop-1", "title=Add a basket"], "sets_off": "keep"},
+    {"ran": ["{curl} {api}/issue/SHOP-1{whole}", "{curl} {put} {\"fields\":{\"summary\":\"Add a basket\"}} {api}/issue/SHOP-1"]},
+    {"holds": {"issues/SHOP-1": {"summary": "Add a basket", "description": "Customers need one.", "labels": "card-shop-1\n", "updated": "t2"}}},
+    {"given": {"issues/SHOP-1/summary": "Add a trolley", "issues/SHOP-1/description": "Customers need one.\r\nAnd a way to empty it.", "issues/SHOP-1/updated": "s9"}},
+    {"run": ["emit", "jira.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["{curl} {changed}", "{curl} {api}/issue/SHOP-1{whole}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Add a trolley"},
+    {"run": ["record", "show", "shop-1"], "says": "body: Customers need one.\nAnd a way to empty it."},
+    {"run": ["emit", "jira.look", "project=shop"], "sets_off": "look"},
+    {"ran": ["{curl} {changed}"]},
+    {"holds": {"issues/SHOP-1": {"summary": "Add a trolley", "description": "Customers need one.\r\nAnd a way to empty it.", "labels": "card-shop-1\n", "updated": "s9"}}}
+  ]
+}

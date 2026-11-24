@@ -1,0 +1,1288 @@
+# The cards of a project kept in step with the issues of a Jira project
+# they are linked with, a ticket at a time.
+#
+# Nothing in the application knows this service or how it is reached.
+# Everything about it is in this file: the actions below say each way the
+# program is run, the blueprints after them do those actions, and the
+# application is told only that a package brought actions and blueprints.
+# It is `github/issues` of the package beside this one, done for Jira:
+# the same table of links, the same blocks that say what crosses
+# (`sides.cross`, `sides.owed`), and the same care where the daemon is
+# stopped in the middle of something that cannot be done twice.
+extension: jira
+title: Jira
+description: Keep the cards of a project that are linked with an issue of a Jira project in step with it.
+
+# The program its actions run: curl, asking Jira's own web API. Atlassian's
+# command line (`acli`) and the one most people use with Jira (`jira`) both
+# hand an issue's description and what was said on it back in Atlassian's
+# document format, a tree that a package's expressions cannot read back
+# into words; the second version of Jira's API takes them and gives them
+# as text, so that is what is asked, and curl is what asks it on any
+# device. It needs curl 8.3 or later, which reads the key from the
+# environment (`--variable`) and writes it into a header itself
+# (`--expand-header`), so that the key is in no argument.
+program: curl
+install: "Install curl 8.3 or later (https://curl.se), and hand it a key the factory keeps: your account's address and an API token of Atlassian's, as `you@example.com:token` (`key`)."
+
+# Each way the program is run. The application runs it itself, with these
+# arguments and no shell. What is written on a card reaches Jira inside the
+# body of a request, as JSON the program is handed as one argument after
+# `--data-binary`, so that none of it can be taken for an option. The key
+# is read from the variable `JIRA_KEY`, which the blueprint fills from a
+# secret the factory keeps, and is in no argument.
+actions:
+  account:
+    description: See that Jira can be reached at the site and takes the key the program is handed.
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site, as https://acme.atlassian.net." }
+    refuse:
+      - when: ${ !matches(with.site, "^https://[^ /]+$") }
+        says: "`site` is the address of your Jira site, as https://acme.atlassian.net, with nothing after its name; it is `${ with.site }`."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["${ with.site }/rest/api/2/myself"]
+    answer: json
+    fails:
+      - when: ${ code == 2 && contains(stderr, "is unknown") }
+        says: "The program `curl` on this device is older than 8.3, which came with what this asks of it (`--variable`, `--expand-header`). Install a newer one, and do this again."
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is your account's address and an API token of Atlassian's, as `you@example.com:token`, that the token is still good, and set it again."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }. See that it is the address of your site, and that this device can reach it."
+      - when: ${ code == 0 && (answer == null || answer.accountId == null) }
+        says: "Jira did not say who the key is in a way this understands. See what ${ with.site }/rest/api/2/myself answers."
+    out:
+      name: ${ answer.displayName ?? "" }
+    repeatable: true
+
+  changed:
+    description: List the issues of a Jira project that changed last, each with its key, when it changed and its labels. What a factory that Jira cannot reach asks on a timer.
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      project: { type: string, required: true, description: "The key of the Jira project, as SHOP." }
+    refuse:
+      - when: ${ !matches(with.project, "^[A-Z][A-Z0-9_]*$") }
+        says: "`project` is the key of a Jira project, capital letters and digits as SHOP; it is `${ with.project }`."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["${ with.site }/rest/api/2/search/jql?jql=project%3D${ with.project }%20ORDER%20BY%20updated%20DESC&fields=updated,labels&maxResults=30"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "400") }
+        says: "Jira has no project ${ with.project } that the key's account may see."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+      - when: ${ code == 0 && (answer == null || answer.issues == null) }
+        says: "Jira did not say which issues changed in a way this understands, so nothing was looked at."
+    out:
+      issues: ${ answer.issues }
+    repeatable: true
+
+  find:
+    description: Find the issue of a Jira project that was made for a card, by the label that marks it.
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      project: { type: string, required: true, description: "The key of the Jira project." }
+      card: { type: string, required: true, description: "The card." }
+    refuse:
+      - when: ${ !matches(with.card, "^[a-z0-9][a-z0-9:_-]*$") }
+        says: "`${ with.card }` is not a card's id, so no issue can carry its mark."
+      - when: ${ !matches(with.project, "^[A-Z][A-Z0-9_]*$") }
+        says: "`project` is the key of a Jira project, capital letters and digits as SHOP; it is `${ with.project }`."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["${ with.site }/rest/api/2/search/jql?jql=project%3D${ with.project }%20AND%20labels%3D%22card-${ with.card }%22&fields=summary&maxResults=1"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+      - when: ${ code == 0 && (answer == null || answer.issues == null) }
+        says: "Jira did not say which issues there are in a way this understands, so none was made for ${ with.card }."
+    out:
+      found: ${ len(answer.issues) > 0 }
+      issue: ${ answer.issues[0].key }
+      url: ${ len(answer.issues) > 0 ? with.site + "/browse/" + answer.issues[0].key : null }
+    repeatable: true
+
+  issue:
+    description: Read an issue as it is now, with what was said on it, and whether it and each thing said were written by somebody of the site's own and not a customer of a service desk.
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      issue: { type: string, required: true, description: "The issue's key, as SHOP-12." }
+    refuse:
+      - when: ${ !matches(with.issue, "^[A-Z][A-Z0-9_]*-[0-9]+$") }
+        says: "`${ with.issue }` is not the key of an issue of Jira's."
+    # Only somebody the site has given leave to edit a project's issues can
+    # change one. A customer of a service desk can report one and say
+    # something on it, and is nobody else the site knows: an issue is
+    # trusted as it stands unless a customer reported it, and a thing
+    # said unless a customer said it.
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["${ with.site }/rest/api/2/issue/${ with.issue }?fields=summary,description,status,labels,updated,reporter,comment"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Jira has no issue ${ with.issue } that the key's account may see."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+      - when: ${ code == 0 && (answer == null || answer.key == null) }
+        says: "Jira did not say what issue ${ with.issue } is in a way this understands, so nothing was done with it."
+    out:
+      issue: ${ answer.key }
+      url: ${ with.site + "/browse/" + answer.key }
+      title: ${ answer.fields.summary ?? "" }
+      # The ends of lines as they are written here, where somebody wrote
+      # in Jira's own editor: an expression's text has no word for the
+      # first of the two, so it is written here, where the manifest's
+      # double quotes say it.
+      body: "${ replace(answer.fields.description ?? '', '\r\n', '\n') }"
+      closed: ${ answer.fields.status.statusCategory.key == "done" }
+      labels: ${ answer.fields.labels ?? [] }
+      stamp: ${ answer.fields.updated ?? "" }
+      author: ${ answer.fields.reporter.displayName ?? "" }
+      trusted: ${ (answer.fields.reporter.accountType ?? "") != "customer" }
+      said: ${ answer.fields.comment.comments ?? [] }
+    repeatable: true
+
+  open:
+    description: Make an issue in a Jira project for a card, with the card's title and body and a label by which it is found again. It does not look whether the card has one already; `find` does.
+    makes: { what: an issue, named: title }
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      project: { type: string, required: true, description: "The key of the Jira project." }
+      type: { type: string, default: Task, description: "The kind of issue it is made as, by its name in the project." }
+      card: { type: string, required: true, description: "The card it is made for." }
+      title: { type: string, required: true, description: "The issue's summary." }
+      body: { type: string, default: "", description: "Its description." }
+    refuse:
+      - when: ${ trim(with.title) == "" }
+        says: "An issue needs a summary."
+      - when: ${ !matches(with.card, "^[a-z0-9][a-z0-9:_-]*$") }
+        says: "`${ with.card }` is not a card's id, so no issue can carry its mark."
+      - when: ${ !matches(with.project, "^[A-Z][A-Z0-9_]*$") }
+        says: "`project` is the key of a Jira project, capital letters and digits as SHOP; it is `${ with.project }`."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["--request", "POST", "--header", "Content-Type: application/json", "--data-binary"]
+      - ['{"fields":{"project":{"key":${ json(with.project) }},"issuetype":{"name":${ json(with.type) }},"summary":${ json(trim(with.title)) },"description":${ json(with.body) },"labels":[${ json("card-" + with.card) }]}}']
+      - ["${ with.site }/rest/api/2/issue"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stdout, "issuetype") }
+        says: "The Jira project ${ with.project } has no kind of issue called ${ with.type }. Say another with `type`."
+      - when: ${ code == 22 }
+        says: "Jira would not make the issue: ${ stdout }"
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+      - when: ${ code == 0 && (answer == null || answer.key == null) }
+        says: "Jira did not say which issue it made. Look in the project ${ with.project } for one with the label card-${ with.card }."
+    out:
+      issue: ${ answer.key }
+      url: ${ with.site + "/browse/" + answer.key }
+
+  edit:
+    description: Give an issue another summary, another description, or both. What is not sent is left as it is there.
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      issue: { type: string, required: true, description: "The issue's key." }
+      sends: { type: list, required: true, description: "Which of `title` and `body` are sent." }
+      title: { type: string, default: "", description: "Its summary from now, where that is sent." }
+      body: { type: string, default: "", description: "Its description from now, where that is sent." }
+    refuse:
+      - when: ${ "title" in with.sends && trim(with.title) == "" }
+        says: "An issue needs a summary, and the card it is linked with has no title."
+      - when: ${ !matches(with.issue, "^[A-Z][A-Z0-9_]*-[0-9]+$") }
+        says: "`${ with.issue }` is not the key of an issue of Jira's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["--request", "PUT", "--header", "Content-Type: application/json", "--data-binary"]
+      - when: ${ "title" in with.sends && "body" in with.sends }
+        args: ['{"fields":{"summary":${ json(trim(with.title)) },"description":${ json(with.body) }}}']
+      - when: ${ "title" in with.sends && !("body" in with.sends) }
+        args: ['{"fields":{"summary":${ json(trim(with.title)) }}}']
+      - when: ${ "body" in with.sends && !("title" in with.sends) }
+        args: ['{"fields":{"description":${ json(with.body) }}}']
+      - ["${ with.site }/rest/api/2/issue/${ with.issue }"]
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Jira has no issue ${ with.issue } that the key's account may see."
+      - when: ${ code == 22 }
+        says: "Jira would not change issue ${ with.issue }: ${ stdout }"
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+    repeatable: true
+
+  transitions:
+    description: List the ways an issue can be moved on from where it is in its workflow, each with the status it comes to.
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      issue: { type: string, required: true, description: "The issue's key." }
+    refuse:
+      - when: ${ !matches(with.issue, "^[A-Z][A-Z0-9_]*-[0-9]+$") }
+        says: "`${ with.issue }` is not the key of an issue of Jira's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["${ with.site }/rest/api/2/issue/${ with.issue }/transitions"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Jira has no issue ${ with.issue } that the key's account may see."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+      - when: ${ code == 0 && (answer == null || answer.transitions == null) }
+        says: "Jira did not say where issue ${ with.issue } can be moved in a way this understands."
+    out:
+      transitions: ${ answer.transitions }
+    repeatable: true
+
+  close:
+    description: Move an issue to a status its workflow counts as done, by the first way there from where it is.
+    first: transitions
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      issue: { type: string, required: true, description: "The issue's key." }
+    refuse:
+      - when: ${ len(where(first.transitions, "to.statusCategory.key", "done")) == 0 }
+        says: "Issue ${ with.issue } cannot be moved from where it is to a status its workflow counts as done, so it was not closed. Move it in Jira, or give its workflow a way there."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["--request", "POST", "--header", "Content-Type: application/json", "--data-binary"]
+      - ['{"transition":{"id":${ json(where(first.transitions, "to.statusCategory.key", "done")[0].id) }}}']
+      - ["${ with.site }/rest/api/2/issue/${ with.issue }/transitions"]
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 }
+        says: "Jira would not move issue ${ with.issue } on: ${ stdout }"
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+    repeatable: true
+
+  reopen:
+    description: Move an issue back to a status its workflow counts as not begun, by the first way there from where it is.
+    first: transitions
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      issue: { type: string, required: true, description: "The issue's key." }
+    refuse:
+      - when: ${ len(where(first.transitions, "to.statusCategory.key", "new")) == 0 }
+        says: "Issue ${ with.issue } cannot be moved from where it is to a status its workflow counts as not begun, so it was not opened again. Move it in Jira, or give its workflow a way there."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["--request", "POST", "--header", "Content-Type: application/json", "--data-binary"]
+      - ['{"transition":{"id":${ json(where(first.transitions, "to.statusCategory.key", "new")[0].id) }}}']
+      - ["${ with.site }/rest/api/2/issue/${ with.issue }/transitions"]
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 }
+        says: "Jira would not move issue ${ with.issue } back: ${ stdout }"
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+    repeatable: true
+
+  said-find:
+    description: Find whether something was said on an issue from here, by the mark it carries.
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      issue: { type: string, required: true, description: "The issue's key." }
+      mark: { type: int, required: true, description: "What marks the thing said: the number of the event here that said it." }
+    refuse:
+      - when: ${ !matches(with.issue, "^[A-Z][A-Z0-9_]*-[0-9]+$") }
+        says: "`${ with.issue }` is not the key of an issue of Jira's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["${ with.site }/rest/api/2/issue/${ with.issue }/comment?maxResults=100&orderBy=-created"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Jira has no issue ${ with.issue } that the key's account may see."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+      - when: ${ code == 0 && (answer == null || answer.comments == null) }
+        says: "Jira did not say what was said on issue ${ with.issue } in a way this understands, so nothing was said there."
+    out:
+      found: ${ contains(json(answer.comments), "{anchor:said-" + string(with.mark) + "}") }
+    repeatable: true
+
+  say:
+    description: Say something on an issue, with a mark by which it is found again, which Jira shows as nothing. It does not look whether it was said already; `said-find` does.
+    with:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      issue: { type: string, required: true, description: "The issue's key." }
+      mark: { type: int, required: true, description: "What marks the thing said: the number of the event here that said it." }
+      body: { type: string, required: true, description: "What is said." }
+    refuse:
+      - when: ${ trim(with.body) == "" }
+        says: "There is nothing to say."
+      - when: ${ !matches(with.issue, "^[A-Z][A-Z0-9_]*-[0-9]+$") }
+        says: "`${ with.issue }` is not the key of an issue of Jira's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%JIRA_KEY", "--expand-header", "Authorization: Basic {{JIRA_KEY:b64}}", "--header", "Accept: application/json"]
+      - ["--request", "POST", "--header", "Content-Type: application/json", "--data-binary"]
+      - ['{"body":${ json(with.body + "\n\n{anchor:said-" + string(with.mark) + "}") }}']
+      - ["${ with.site }/rest/api/2/issue/${ with.issue }/comment"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Jira did not take the key the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Jira has no issue ${ with.issue } that the key's account may see."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Jira could not be reached at ${ with.site }."
+      - when: ${ code == 0 && (answer == null || answer.id == null) }
+        says: "Jira did not say where what it said on issue ${ with.issue } is."
+    out:
+      url: ${ with.site + "/browse/" + with.issue + "?focusedCommentId=" + string(answer.id) }
+
+blueprints:
+  issues: |
+    # Keeps the cards of one project that are linked with an issue of a
+    # Jira project in step with it, a ticket at a time. It is
+    # `github/issues`, done for Jira: what is said there of how it does
+    # what it does is so here, but where this says otherwise.
+    #
+    # Nothing crosses unless it is linked. A link is a row of the
+    # project's table `links`, which names a card, an issue's key, or
+    # both: a row that names a card has an issue made for it; one that
+    # names an issue has a card made for it; one that names both ties two
+    # tickets that were there already. Whoever adds a row has made a
+    # ticket public, so adding one takes what running the program takes
+    # (`extensions:jira`). A card is linked for somebody who labels it,
+    # and an issue for whoever labels it in Jira, only where this was
+    # told a label for that (`out_label`, `in_label`).
+    #
+    # Of a linked ticket the title (Jira's summary), the body (its
+    # description), and whether it is done are kept the same on both
+    # sides. Which side moved is told by what the two last agreed on,
+    # which the link keeps (`sides.cross`), so what was sent never comes
+    # back as a change. What is said on the issue is said on the card,
+    # once each, and never as public. What is said on the card stays here
+    # unless whoever said it marked it public and holds what linking
+    # takes; then it is said on the issue, once.
+    #
+    # Whose changes of an issue's summary and description are taken, and
+    # whose words there may answer what an agent asked, is said once
+    # (`takes_in`): everyone's; those of the site's own people, unless a
+    # customer of a service desk reported the issue or said the thing,
+    # which it is unless said; or nobody's.
+    #
+    # What changed in Jira is heard as it happens where Jira can reach
+    # this factory: a caller says `jira.called` (the package's page says
+    # how one is described). Where it cannot, apply this with `timer`,
+    # and it asks once a minute. Either way an issue is read as it is at
+    # that moment, and nothing a call says of it is taken but its key.
+    #
+    # Nothing here removes anything, on the board or in Jira; a link that
+    # is taken away stops its ticket being kept in step, and leaves both
+    # as they are. What it does is said in a channel of the project,
+    # which it makes sure of as it is applied; nothing it does rests on
+    # that being said.
+    blueprint: jira/issues
+    version: 1
+    description: Keep the cards of this project that are linked with an issue of a Jira project in step with it, a ticket at a time.
+    permissions: [extensions:jira, board, records, projects, channels:write, blueprints, emit, secrets]
+
+    params:
+      site: { type: string, required: true, description: "The address of the Jira site, as https://acme.atlassian.net." }
+      jira_project: { type: string, required: true, description: "The key of the Jira project whose issues are kept in step with this project's cards, as SHOP." }
+      key: { type: string, required: true, description: "A secret the factory keeps that the program acts as in Jira: an account's address and an API token of Atlassian's, as `you@example.com:token`. Best an account of its own, with leave to browse, make, change and comment on the project's issues and nothing else." }
+      issue_type: { type: string, default: Task, description: "The kind of issue one made for a card is, by its name in the Jira project." }
+      channel: { type: string, default: "", description: "Where to say that a ticket was linked, or that something could not be done. Left empty, the channel called what the project is." }
+      out_label: { type: string, default: "", description: "A label that links a card: a card given it has an issue made for it, where whoever labelled it holds `extensions:jira`. Left empty, a card is linked only by a row of `links`." }
+      in_label: { type: string, default: "", description: "A label in Jira that links an issue: an issue that has it has a card made for it. Left empty, an issue is linked only by a row of `links`." }
+      closed: { type: string, default: "", description: "The column a card is put in when its issue is done, and whose cards have their issue moved to done. Left empty, the board's last." }
+      reopened: { type: string, default: "", description: "The column a card is put in when its issue is moved back to not begun, or made for an issue that is not done. Left empty, the board's first." }
+      prefer: { type: string, default: here, description: "Which side is taken where a ticket changed on both since they last agreed: `here` or `there`." }
+      takes_in: { type: string, default: trusted, description: "Whose changes of an issue's summary or description in Jira are taken into its card once the two are linked, and whose words there may answer what an agent asked on the card: `everyone`; `trusted`, unless a customer of a service desk reported the issue or said the thing, a change of an issue a customer reported being held until somebody here says which stands; or `nobody`, so that the card's words are changed only here." }
+      timer: { type: bool, default: false, description: "Whether to ask Jira once a minute what changed, for a factory Jira cannot reach." }
+
+    env:
+      JIRA_KEY: { secret: "${params.key}" }
+
+    state:
+      channel: ""  # where it says things
+      closed: ""  # the column of a card whose issue is done
+      reopened: ""  # the column of a card whose issue is not begun
+
+    steps:
+      project:
+        description: It keeps one project's tickets.
+        do: fail
+        when: ${ instance.project == null }
+        with: { message: "This keeps one project's cards in step with the issues of a Jira project, so it is applied to a project: --project <project>." }
+
+      sided:
+        description: Which side is taken is one of two words.
+        do: fail
+        when: ${ !(params.prefer in ["here", "there"]) }
+        with: { message: "`prefer` is which side is taken where a ticket changed on both, `here` or `there`; it is `${params.prefer}`." }
+
+      taken:
+        description: Whose changes there are taken is one of three words.
+        do: fail
+        when: ${ !(params.takes_in in ["everyone", "trusted", "nobody"]) }
+        with: { message: "`takes_in` is whose changes of an issue in Jira are taken into its card, `everyone`, `trusted` or `nobody`; it is `${params.takes_in}`." }
+
+      reports:
+        description: The channel it reports in is there, made now where it was not.
+        do: channel.ensure
+        with: { name: "${params.channel}", otherwise: "${instance.project}", project: "${instance.project}" }
+
+      said_in:
+        do: set
+        with: { channel: "${steps.reports.out.id}" }
+
+      account:
+        description: Jira is reached and takes the key. Said now, and not when the first ticket is linked.
+        do: jira.account
+        timeout: 1m
+        with: { site: "${params.site}" }
+
+      board:
+        description: The project's board, whose first and last columns are where a card begins and ends unless another is said.
+        do: board.list
+
+      ends:
+        when: ${ params.closed != "" }
+        do: set
+        with: { closed: "${params.closed}" }
+
+      ends_last:
+        when: ${ params.closed == "" }
+        do: set
+        with: { closed: "${steps.board.out.last}" }
+
+      begins:
+        when: ${ params.reopened != "" }
+        do: set
+        with: { reopened: "${params.reopened}" }
+
+      begins_first:
+        when: ${ params.reopened == "" }
+        do: set
+        with: { reopened: "${steps.board.out.first}" }
+
+      links:
+        description: "The tickets that are linked, a row each. Adding one makes a ticket public, so it takes what running the program takes."
+        do: collection.ensure
+        with:
+          name: links
+          takes: extensions:jira
+          fields:
+            # The card, the issue's key, or both.
+            card: { type: record, of: board }
+            issue: { type: text }
+            url: { type: text }
+            # What the two last agreed on: what tells which side moved.
+            agreed_title: { type: text, quiet: true, hidden: true }
+            agreed_body: { type: text, quiet: true, hidden: true }
+            agreed_closed: { type: flag, quiet: true, hidden: true }
+            # What was said there and has been said here, by its id there.
+            came: { type: list, quiet: true, hidden: true }
+            # When the issue had last changed as the two were brought
+            # together, as Jira says it.
+            seen: { type: text, quiet: true, hidden: true }
+            # `bringing`, while a card is being made for the issue.
+            state: { type: text, quiet: true }
+            # A change of the issue's summary or description that is not
+            # taken waits, and meanwhile neither side's words are written
+            # over the other's. Somebody here says which stands: `take`,
+            # what is in Jira; or `keep`, what is on the card.
+            held: { type: choice, of: [waiting, take, keep] }
+            held_by: { type: text, quiet: true }
+
+      asks:
+        description: Asked on a timer, for a factory Jira cannot reach.
+        when: ${params.timer}
+        spawn: jira/issues-timer
+        as: timer
+        with: { site: "${params.site}", jira_project: "${params.jira_project}", key: "${params.key}" }
+
+      asks_not:
+        when: ${ !params.timer }
+        do: stop
+        with: { instance: timer, missing_ok: true }
+
+    on:
+      # A row of `links` was added or changed by somebody: what it names
+      # says what is owed.
+      linked:
+        event: record.*
+        for: { project: "${instance.project}", collection: links }
+        when: ${ event.topic in ["record.created", "record.updated"] && event.data.through == null }
+        turn: "${event.data.id}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.id}" }
+
+          out:
+            description: It names a card and no issue. One is made.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") != "" && (steps.link.out.data.issue ?? "") == "" }
+            do: emit
+            with: { topic: jira.out, project: "${instance.project}", link: "${event.data.id}" }
+
+          in:
+            description: It names an issue and no card. One is made.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") == "" && (steps.link.out.data.issue ?? "") != "" }
+            do: emit
+            with: { topic: jira.in, project: "${instance.project}", link: "${event.data.id}" }
+
+          both:
+            description: It names both. They are brought together.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") != "" && (steps.link.out.data.issue ?? "") != "" }
+            do: emit
+            with: { topic: jira.due, project: "${instance.project}", link: "${event.data.id}" }
+
+      # A card's title or body was changed, by anything but this.
+      reworded:
+        event: board.item.updated
+        for: { project: "${instance.project}" }
+        when: ${ event.data.reworded && event.data.through != "jira/issues" }
+        steps:
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", issue: { said: true } } }
+
+          due:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with: { topic: jira.due, project: "${instance.project}", link: "${item}" }
+
+      # A card came to the column of the closed, or left it.
+      moved:
+        event: board.item.moved
+        for: { project: "${instance.project}" }
+        when: ${ event.data.to == state.closed || event.data.from == state.closed }
+        steps:
+          mine:
+            description: What this moved is not looked at again.
+            when: ${ event.data.through == "jira/issues" }
+            do: end
+
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", issue: { said: true } } }
+
+          due:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with: { topic: jira.due, project: "${instance.project}", link: "${item}" }
+
+      # A card was added, or its labels changed, where a label links.
+      added:
+        event: board.item.created
+        for: { project: "${instance.project}" }
+        when: ${ params.out_label != "" && event.data.through != "jira/issues" }
+        steps:
+          labelled:
+            do: emit
+            with: { topic: jira.labelled, project: "${instance.project}", card: "${event.data.id}", actor: "${event.source.actor}" }
+
+      relabelled:
+        event: board.item.updated
+        for: { project: "${instance.project}" }
+        when: ${ params.out_label != "" && "labels" in event.data.changed && event.data.through != "jira/issues" }
+        steps:
+          labelled:
+            do: emit
+            with: { topic: jira.labelled, project: "${instance.project}", card: "${event.data.id}", actor: "${event.source.actor}" }
+
+      # A card that may have the label that links. Linked here, it is
+      # linked as whoever applied this, for whoever labelled it: so they
+      # are asked for what linking takes.
+      labelled:
+        event: jira.labelled
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.card}"
+        steps:
+          card:
+            allow_failure: true
+            do: board.get
+            with: { id: "${event.data.card}" }
+
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.card}" } }
+
+          may:
+            description: Whether whoever labelled it holds what making a ticket public takes, now.
+            when: ${ steps.card.ok && params.out_label in steps.card.out.labels && steps.link.out.those[0] == null }
+            allow_failure: true
+            do: actor.holds
+            with: { actor: "${event.data.actor}", scope: "extensions:jira" }
+
+          add:
+            when: ${ steps.may.out.holds == true }
+            do: record.add
+            with: { collection: links, fields: { card: "${event.data.card}" } }
+
+          out:
+            when: ${steps.add.ok}
+            do: emit
+            with: { topic: jira.out, project: "${instance.project}", link: "${steps.add.out.id}" }
+
+          left:
+            description: Labelled by somebody who may not make a ticket public, it stays here, and that is said.
+            when: ${ steps.may.out.holds == false }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${event.data.card} has the label ${params.out_label}, and was not linked with an issue in Jira: whoever labelled it does not hold `extensions:jira`, which making a ticket public takes. Somebody who does can link it with a row of the project's `links`."
+
+      # Something was said on a card and marked public, by somebody and
+      # not by a blueprint.
+      said:
+        event: record.commented
+        for: { project: "${instance.project}", collection: board }
+        when: ${ event.data.public == true && event.data.through == null }
+        steps:
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", issue: { said: true } } }
+
+          say:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with:
+              topic: jira.said
+              project: "${instance.project}"
+              link: "${item}"
+              card: "${event.data.id}"
+              body: "${event.data.body}"
+              mark: "${event.seq}"
+              actor: "${event.source.actor}"
+
+      # Jira said something happened to an issue of the Jira project. Of
+      # what it says only which issue is taken: the issue is read as it is.
+      called:
+        event: jira.called
+        outside: true
+        when: ${ event.data.issue.fields.project.key == params.jira_project }
+        steps:
+          heard:
+            do: emit
+            with: { topic: jira.heard, project: "${instance.project}", issue: "${event.data.issue.key}" }
+
+      # When this starts, is applied again, or the daemon comes back, it
+      # looks once: what changed while nothing was listening, and what
+      # carried the label before anybody was told it links, is seen then.
+      first:
+        event: instance.active
+        scope: own
+        when: ${ event.source.instance == instance.id }
+        steps:
+          look:
+            do: emit
+            with: { topic: jira.look, project: "${instance.project}" }
+
+      started:
+        event: system.started
+        steps:
+          look:
+            do: emit
+            with: { topic: jira.look, project: "${instance.project}" }
+
+      # Asked what changed: as this starts, on a timer, or by anybody who
+      # says so.
+      look:
+        event: jira.look
+        for: { project: "${instance.project}" }
+        steps:
+          changed:
+            do: jira.changed
+            timeout: 2m
+            with: { site: "${params.site}", project: "${params.jira_project}" }
+
+          heard:
+            for_each: ${steps.changed.out.issues}
+            do: emit
+            with:
+              topic: jira.heard
+              project: "${instance.project}"
+              issue: "${item.key}"
+              stamp: "${item.fields.updated}"
+              labels: "${item.fields.labels}"
+
+      # An issue may have changed.
+      heard:
+        event: jira.heard
+        for: { project: "${instance.project}" }
+        turn: "issue-${event.data.issue}"
+        steps:
+          linked:
+            do: rows.read
+            with: { collection: links, saying: { issue: "${event.data.issue}" } }
+
+          news:
+            description: Its link, unless the link has seen it as it now is.
+            do: rows.read
+            with:
+              collection: links
+              saying: { issue: "${event.data.issue}", card: { said: true }, seen: { not: "${ event.data.stamp ?? '' }" } }
+
+          due:
+            for_each: ${steps.news.out.those}
+            do: emit
+            with: { topic: jira.due, project: "${instance.project}", link: "${item}" }
+
+          called:
+            description: Linked with nothing, and a label links. Heard of with no word of its labels, the issue as it is now says whether it has the label.
+            when: ${ params.in_label != "" && steps.linked.out.those[0] == null && event.data.labels == null }
+            allow_failure: true
+            timeout: 2m
+            do: jira.issue
+            with: { site: "${params.site}", issue: "${event.data.issue}" }
+
+          listed:
+            description: Listed with the label among those it has now, it is read as it is all the same, and that says whether it has it.
+            when: ${ params.in_label != "" && steps.linked.out.those[0] == null && params.in_label in (event.data.labels ?? []) }
+            allow_failure: true
+            timeout: 2m
+            do: jira.issue
+            with: { site: "${params.site}", issue: "${event.data.issue}" }
+
+          add:
+            when: ${ params.in_label in (steps.called.out.labels ?? steps.listed.out.labels ?? []) }
+            do: record.add
+            with: { collection: links, fields: { issue: "${event.data.issue}", url: "${ steps.called.out.url ?? steps.listed.out.url }" } }
+
+          in:
+            when: ${steps.add.ok}
+            do: emit
+            with: { topic: jira.in, project: "${instance.project}", link: "${steps.add.out.id}" }
+
+      # A link names a card and no issue: one is made for it, unless one
+      # that carries the card's label is there already. An issue that was
+      # made is said by Jira as it is made, and is not looked for again
+      # then: Jira's search may not list an issue made a moment before.
+      make:
+        event: jira.out
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${steps.link.failed}
+            do: end
+
+          made:
+            when: ${ (steps.link.out.data.issue ?? "") != "" }
+            do: end
+
+          card:
+            do: board.get
+            with: { id: "${steps.link.out.data.card}" }
+
+          found:
+            description: An issue that carries the card's label was made for it before, by a run the daemon stopped in.
+            allow_failure: true
+            timeout: 2m
+            do: jira.find
+            with: { site: "${params.site}", project: "${params.jira_project}", card: "${steps.link.out.data.card}" }
+
+          open:
+            when: ${ steps.found.ok && !steps.found.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: jira.open
+            with: { site: "${params.site}", project: "${params.jira_project}", type: "${params.issue_type}", card: "${steps.link.out.data.card}", title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+
+          there:
+            description: Making it failed, or the daemon stopped in that step, which is not done twice and says so as a failure whether or not the issue had been made. It is looked for by its label.
+            when: ${steps.open.failed}
+            allow_failure: true
+            timeout: 2m
+            do: jira.find
+            with: { site: "${params.site}", project: "${params.jira_project}", card: "${steps.link.out.data.card}" }
+
+          again:
+            description: Not there, though making it was tried: it was not made, and is made now.
+            when: ${ steps.open.failed && steps.there.ok && !steps.there.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: jira.open
+            with: { site: "${params.site}", project: "${params.jira_project}", type: "${params.issue_type}", card: "${steps.link.out.data.card}", title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+
+          keep:
+            description: The link says which issue it is, and what the two agree on.
+            when: ${ (steps.again.out.issue ?? steps.open.out.issue ?? steps.there.out.issue ?? steps.found.out.issue ?? "") != "" }
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                issue: "${ steps.again.out.issue ?? steps.open.out.issue ?? steps.there.out.issue ?? steps.found.out.issue }"
+                url: "${ steps.again.out.url ?? steps.open.out.url ?? steps.there.out.url ?? steps.found.out.url }"
+                agreed_title: "${steps.card.out.title}"
+                agreed_body: "${steps.card.out.body}"
+                agreed_closed: false
+
+          told:
+            when: ${steps.keep.ok}
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card} is linked with an issue in Jira: ${ steps.again.out.url ?? steps.open.out.url ?? steps.there.out.url ?? steps.found.out.url }"
+
+          due:
+            description: And is brought together with it, a card that is closed already included.
+            when: ${steps.keep.ok}
+            do: emit
+            with: { topic: jira.due, project: "${instance.project}", link: "${event.data.link}" }
+
+          trouble:
+            description: Said only where no issue is there for it in the end.
+            when: ${ !steps.keep.ok }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card}: no issue was made for it in Jira: ${ steps.found.error ?? steps.again.error ?? steps.there.error ?? steps.open.error }"
+
+      # A link names an issue and no card: one is made for it. That a
+      # card is being made is written first. A daemon that stops as the
+      # card is added cannot say afterwards whether it was, and a link
+      # found so is left for a person and not given a second card.
+      bring:
+        event: jira.in
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${steps.link.failed}
+            do: end
+
+          brought:
+            when: ${ (steps.link.out.data.card ?? "") != "" }
+            do: end
+
+          half:
+            when: ${ steps.link.out.data.state == "bringing" }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "The link ${event.data.link} with issue ${steps.link.out.data.issue} was left half made: a card may have been added for it as the daemon stopped. Name that card in the link, or empty the link's `state` to have one made."
+
+          left:
+            when: ${ steps.link.out.data.state == "bringing" }
+            do: end
+
+          issue:
+            allow_failure: true
+            timeout: 2m
+            do: jira.issue
+            with: { site: "${params.site}", issue: "${steps.link.out.data.issue}" }
+
+          trouble:
+            when: ${steps.issue.failed}
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "No card was made for issue ${steps.link.out.data.issue} in Jira: ${steps.issue.error}"
+
+          unread:
+            when: ${steps.issue.failed}
+            do: end
+
+          bringing:
+            do: record.update
+            with: { id: "${event.data.link}", fields: { state: bringing } }
+
+          open:
+            when: ${ !steps.issue.out.closed }
+            do: board.add
+            with: { title: "${steps.issue.out.title}", body: "${steps.issue.out.body}", status: "${state.reopened}" }
+
+          shut:
+            when: ${steps.issue.out.closed}
+            do: board.add
+            with: { title: "${steps.issue.out.title}", body: "${steps.issue.out.body}", status: "${state.closed}" }
+
+          keep:
+            description: The link says which card it is, and what the two agree on.
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                card: "${ steps.open.out.id ?? steps.shut.out.id }"
+                url: "${steps.issue.out.url}"
+                state: ""
+                agreed_title: "${steps.issue.out.title}"
+                agreed_body: "${steps.issue.out.body}"
+                agreed_closed: "${steps.issue.out.closed}"
+
+          told:
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${ steps.open.out.id ?? steps.shut.out.id } was made for an issue in Jira: ${steps.issue.out.url}"
+
+          due:
+            description: And what was said on the issue is said on the card.
+            do: emit
+            with: { topic: jira.due, project: "${instance.project}", link: "${event.data.link}" }
+
+      # A linked ticket is brought together: what moved on either side
+      # since the two last agreed crosses, and what was said on the issue
+      # is said on the card.
+      keep:
+        event: jira.due
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            description: A link that was taken away keeps nothing in step.
+            when: ${steps.link.failed}
+            do: end
+
+          half:
+            when: ${ (steps.link.out.data.card ?? "") == "" || (steps.link.out.data.issue ?? "") == "" }
+            do: end
+
+          card:
+            allow_failure: true
+            do: board.get
+            with: { id: "${steps.link.out.data.card}" }
+
+          off:
+            description: A card that was taken off the board is not put back, and its issue is left as it is.
+            when: ${steps.card.failed}
+            do: end
+
+          there:
+            description: The issue as it is now.
+            allow_failure: true
+            timeout: 2m
+            do: jira.issue
+            with: { site: "${params.site}", issue: "${steps.link.out.data.issue}" }
+
+          trouble:
+            when: ${steps.there.failed}
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card} was not brought together with its issue in Jira: ${steps.there.error}"
+
+          unread:
+            when: ${steps.there.failed}
+            do: end
+
+          words:
+            description: Which of the title and the body moved, on which side, and whether what moved there is taken, by whose changes are and who reported the issue.
+            do: sides.cross
+            with:
+              here: { title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+              there: { title: "${steps.there.out.title}", body: "${steps.there.out.body}" }
+              last: { title: "${steps.link.out.data.agreed_title}", body: "${steps.link.out.data.agreed_body}" }
+              prefer: "${params.prefer}"
+              takes: "${params.takes_in}"
+              trusted: "${steps.there.out.trusted}"
+              held: "${ steps.link.out.data.held ?? '' }"
+
+          edit:
+            description: What moved here is said there, and what did not is left as it is there.
+            when: ${ steps.words.out.came in ["out", "both"] }
+            timeout: 2m
+            do: jira.edit
+            with:
+              site: "${params.site}"
+              issue: "${steps.link.out.data.issue}"
+              sends: "${steps.words.out.sends}"
+              title: "${ steps.words.out.goes.title ?? '' }"
+              body: "${ steps.words.out.goes.body ?? '' }"
+
+          take_title:
+            description: What moved there, and is taken, is said here.
+            when: ${ "title" in steps.words.out.takes }
+            do: board.update
+            with: { id: "${steps.link.out.data.card}", title: "${steps.words.out.comes.title}" }
+
+          take_body:
+            when: ${ "body" in steps.words.out.takes }
+            do: board.update
+            with: { id: "${steps.link.out.data.card}", body: "${ steps.words.out.comes.body ?? '' }" }
+
+          agree:
+            description: What the two agree on, with nothing held, as one write.
+            when: ${ steps.words.out.holds == null }
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                agreed_title: "${steps.words.out.agreed.title}"
+                agreed_body: "${ steps.words.out.agreed.body ?? '' }"
+                held: "${steps.words.out.holds}"
+                held_by: ""
+
+          hold:
+            description: A change there that is not taken is held, with who reported the issue.
+            when: ${ steps.words.out.holds == "waiting" }
+            do: record.update
+            with: { id: "${event.data.link}", fields: { held: waiting, held_by: "${steps.there.out.author}" } }
+
+          tell:
+            description: Said on the card once, as it comes to be held, and never as public.
+            when: ${steps.words.out.newly}
+            do: record.comment
+            with:
+              id: "${steps.link.out.data.card}"
+              body: "The summary or the description of this card's issue in Jira was changed, and was not taken: the issue was reported by ${steps.there.out.author}, a customer of a service desk. ${steps.there.out.url}\n\nUntil somebody says which stands, the card's title and body and the issue's are kept apart. In the link ${event.data.link}, set `held` to `take` to have what is in Jira come in, or to `keep` to have the card's put back over it."
+
+          shut:
+            description: Whether it is done, the same way. A card is done by being in the column that was said.
+            do: sides.cross
+            with:
+              here: { closed: "${ steps.card.out.status == state.closed }" }
+              there: { closed: "${steps.there.out.closed}" }
+              last: { closed: "${steps.link.out.data.agreed_closed}" }
+              prefer: "${params.prefer}"
+
+          close:
+            when: ${ steps.shut.out.goes.closed == true }
+            timeout: 2m
+            do: jira.close
+            with: { site: "${params.site}", issue: "${steps.link.out.data.issue}" }
+
+          reopen:
+            when: ${ steps.shut.out.goes.closed == false }
+            timeout: 2m
+            do: jira.reopen
+            with: { site: "${params.site}", issue: "${steps.link.out.data.issue}" }
+
+          closed:
+            when: ${ steps.shut.out.comes.closed == true }
+            do: board.move
+            with: { id: "${steps.link.out.data.card}", to: "${state.closed}", note: "its issue in Jira was done" }
+
+          reopened:
+            when: ${ steps.shut.out.comes.closed == false }
+            do: board.move
+            with: { id: "${steps.link.out.data.card}", to: "${state.reopened}", note: "its issue in Jira was moved back" }
+
+          agreed:
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields: { agreed_closed: "${steps.shut.out.agreed.closed}", seen: "${steps.there.out.stamp}", url: "${steps.there.out.url}" }
+
+          owed:
+            description: What was said on the issue and has not been said on the card.
+            do: sides.owed
+            with:
+              things: "${steps.there.out.said}"
+              had: "${ steps.link.out.data.came ?? [] }"
+
+          hear:
+            description: Each is said on the card, with who said it there and whether they are a customer of a service desk, never as public, and then kept as said. What was said from here carries its mark, and is kept as said and not said back. Whether it may answer what an agent asked on the card goes by whose words are taken.
+            for_each: ${steps.owed.out.those}
+            task:
+              said:
+                when: ${ item.author.accountType != "customer" && !("{anchor:said-" in item.body) }
+                do: record.comment
+                with:
+                  id: "${steps.link.out.data.card}"
+                  body: "${item.author.displayName} said in Jira:\n\n${item.body}\n\n${params.site}/browse/${steps.link.out.data.issue}?focusedCommentId=${item.id}"
+
+              said_by_a_customer:
+                when: ${ item.author.accountType == "customer" }
+                do: record.comment
+                with:
+                  id: "${steps.link.out.data.card}"
+                  body: "${item.author.displayName}, a customer of a service desk, said in Jira:\n\n${item.body}\n\n${params.site}/browse/${steps.link.out.data.issue}?focusedCommentId=${item.id}"
+
+              kept:
+                do: record.update
+                with: { id: "${event.data.link}", fields: { came: "${item.kept}" } }
+
+              anybodys:
+                when: ${ params.takes_in == "everyone" && !("{anchor:said-" in item.body) }
+                do: emit
+                with: { topic: jira.answered, project: "${instance.project}", card: "${steps.link.out.data.card}", by: "${item.author.accountId}", body: "${item.body}" }
+
+              somebodys:
+                when: ${ params.takes_in == "trusted" && item.author.accountType != "customer" && !("{anchor:said-" in item.body) }
+                do: emit
+                with: { topic: jira.answered, project: "${instance.project}", card: "${steps.link.out.data.card}", by: "${item.author.accountId}", body: "${item.body}" }
+
+      # Something said on an issue by somebody whose words are taken:
+      # whether it answers what an agent asked on the card is asked of
+      # the board, as it is of what a person says on the card.
+      answered:
+        event: jira.answered
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.card}"
+        steps:
+          what:
+            description: Whether it answers what was asked on the card.
+            do: board.said
+            with: { id: "${event.data.card}", by: "jira:${event.data.by}" }
+
+          taken:
+            when: ${ steps.what.out.came == "answer" }
+            do: board.update
+            with: { id: "${event.data.card}", fields: { question: "" } }
+
+          answer:
+            when: ${ steps.what.out.came == "answer" }
+            do: emit
+            with:
+              topic: card.answered
+              card: "${event.data.card}"
+              project: "${instance.project}"
+              asker: "${steps.what.out.asker}"
+              body: "${event.data.body}"
+
+      # Something said on a linked card and marked public is said on its
+      # issue, once, for whoever said it: so they are asked for what
+      # making something public takes.
+      say:
+        event: jira.said
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${steps.link.failed}
+            do: end
+
+          may:
+            description: Whether whoever said it holds what making something public takes, now.
+            allow_failure: true
+            do: actor.holds
+            with: { actor: "${event.data.actor}", scope: "extensions:jira" }
+
+          kept_here:
+            when: ${ !(steps.may.out.holds ?? false) }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "Something said on ${event.data.card} was marked public and was not said on its issue in Jira: whoever said it does not hold `extensions:jira`, which making something public takes."
+
+          not:
+            when: ${ !(steps.may.out.holds ?? false) }
+            do: end
+
+          found:
+            description: Said there before, by a run the daemon stopped in, it carries the mark.
+            allow_failure: true
+            timeout: 2m
+            do: jira.said-find
+            with: { site: "${params.site}", issue: "${steps.link.out.data.issue}", mark: "${event.data.mark}" }
+
+          say:
+            when: ${ steps.found.ok && !steps.found.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: jira.say
+            with:
+              site: "${params.site}"
+              issue: "${steps.link.out.data.issue}"
+              mark: "${event.data.mark}"
+              body: "${steps.may.out.name} said:\n\n${event.data.body}"
+
+          there:
+            description: Looked for again by its mark, whether saying it went well or not. A step the daemon stopped in is not done twice, and says so as a failure, whether or not it had been said.
+            when: ${ steps.say.ok || steps.say.failed }
+            allow_failure: true
+            timeout: 2m
+            do: jira.said-find
+            with: { site: "${params.site}", issue: "${steps.link.out.data.issue}", mark: "${event.data.mark}" }
+
+          again:
+            description: Not there, though saying it was tried: it was not said, and is said now.
+            when: ${ steps.say.failed && steps.there.ok && !steps.there.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: jira.say
+            with:
+              site: "${params.site}"
+              issue: "${steps.link.out.data.issue}"
+              mark: "${event.data.mark}"
+              body: "${steps.may.out.name} said:\n\n${event.data.body}"
+
+          trouble:
+            description: Said only where nothing on the issue carries the mark in the end.
+            when: ${ !(steps.found.out.found ?? false) && !(steps.there.out.found ?? false) && !steps.again.ok }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "What was said publicly on ${event.data.card} was not said on its issue in Jira: ${ steps.found.error ?? steps.again.error ?? steps.say.error ?? steps.there.error }"
+
+  issues-timer: |
+    # Asks Jira once a minute which issues of the Jira project changed,
+    # for a factory that Jira cannot reach, and has `jira/issues` look
+    # when any did. It is started by `jira/issues` where that was applied
+    # with `timer`, and stopped by it where it was not.
+    blueprint: jira/issues-timer
+    version: 1
+    description: Ask Jira once a minute which issues of a Jira project changed, and have what keeps them in step look.
+    permissions: [extensions:jira, emit, secrets]
+
+    params:
+      site: { type: string, required: true, description: "The address of the Jira site." }
+      jira_project: { type: string, required: true, description: "The key of the Jira project." }
+      key: { type: string, required: true, description: "A secret the factory keeps that the program acts as in Jira." }
+
+    env:
+      JIRA_KEY: { secret: "${params.key}" }
+
+    on:
+      asked:
+        poll:
+          every: 1m
+          do: jira.changed
+          with: { site: "${params.site}", project: "${params.jira_project}" }
+        steps:
+          look:
+            do: emit
+            with: { topic: jira.look, project: "${instance.project}" }

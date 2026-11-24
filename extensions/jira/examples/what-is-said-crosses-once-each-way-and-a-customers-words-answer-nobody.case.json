@@ -1,0 +1,29 @@
+{
+  "says": "Something said on a linked issue is said on its card once, with who said it in Jira and where, and never as public; a customer of a service desk is said to be one. Something said on the card stays here unless it is marked public, and then it is said on the issue once, with a mark Jira shows as nothing, and is not brought back as something said there.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "ada@example.com:t0ken"}},
+    {"run": ["secret", "set", "jira-key", "--file", "{here}/key.txt"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "jira-key"}, "sets_off": "look"},
+    {"ran": ["{curl} {api}/myself", "{curl} {changed}"]},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["{curl} {marked}shop-1%22&fields=summary&maxResults=1", "{curl} {post} {\"fields\":{\"project\":{\"key\":\"SHOP\"},\"issuetype\":{\"name\":\"Task\"},\"summary\":\"Add a cart\",\"description\":\"Customers need one.\",\"labels\":[\"card-shop-1\"]}} {api}/issue", "{curl} {api}/issue/SHOP-1{whole}"]},
+    {"given": {"comments/SHOP-1/1": "Bo\nIs this still wanted?", "comments/SHOP-1/2": "Cy customer\nPlease hurry.", "issues/SHOP-1/updated": "s2"}},
+    {"run": ["emit", "jira.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["{curl} {changed}", "{curl} {api}/issue/SHOP-1{whole}"]},
+    {"run": ["board", "history", "shop-1"], "says": "Bo said in Jira:\n\nIs this still wanted?\n\nhttps://acme.example/browse/SHOP-1?focusedCommentId=1001"},
+    {"run": ["board", "history", "shop-1"], "says": "Cy, a customer of a service desk, said in Jira:\n\nPlease hurry."},
+    {"run": ["record", "show", "shop-links-1"], "says": "came: 1001, 1002"},
+    {"run": ["record", "comment", "shop-1", "Between", "us:", "the", "supplier", "is", "late."]},
+    {"run": ["record", "comment", "shop-1", "--public", "Shipping", "on", "Friday."], "sets_off": "say"},
+    {"ran": ["{curl} {api}/issue/SHOP-1/comment?maxResults=100&orderBy=-created", "{curl} {post} {\"body\":\"Ada said:\\n\\nShipping on Friday.\\n\\n{anchor:said-{any}}\"} {api}/issue/SHOP-1/comment", "{curl} {api}/issue/SHOP-1/comment?maxResults=100&orderBy=-created"]},
+    {"run": ["emit", "jira.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["{curl} {changed}", "{curl} {api}/issue/SHOP-1{whole}"]},
+    {"run": ["record", "show", "shop-links-1"], "says": "came: 1001, 1002, 1003"},
+    {"run": ["emit", "jira.look", "project=shop"], "sets_off": "look"},
+    {"ran": ["{curl} {changed}"]}
+  ]
+}

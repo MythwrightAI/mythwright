@@ -1,0 +1,9 @@
+{
+  "curl": "--silent --show-error --fail-with-body --variable %JIRA_KEY --expand-header Authorization: Basic {{JIRA_KEY:b64}} --header Accept: application/json",
+  "post": "--request POST --header Content-Type: application/json --data-binary",
+  "put": "--request PUT --header Content-Type: application/json --data-binary",
+  "api": "https://acme.example/rest/api/2",
+  "whole": "?fields=summary,description,status,labels,updated,reporter,comment",
+  "changed": "https://acme.example/rest/api/2/search/jql?jql=project%3DSHOP%20ORDER%20BY%20updated%20DESC&fields=updated,labels&maxResults=30",
+  "marked": "https://acme.example/rest/api/2/search/jql?jql=project%3DSHOP%20AND%20labels%3D%22card-"
+}

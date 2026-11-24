@@ -8,7 +8,7 @@
 #
 #   apply std/rolling --param 'devices=["builder-1","builder-2"]' \
 #                     --param run="systemctl --user restart worker" \
-#                     --param check="curl -fsS localhost:8080/health"
+#                     --param check="wget -qO- localhost:8080/health"
 #
 # A device's own name, or `local`, means the device the blueprint runs on.
 blueprint: std/rolling
