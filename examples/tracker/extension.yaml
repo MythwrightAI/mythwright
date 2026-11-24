@@ -1,0 +1,572 @@
+# A package for a tracker nobody ships one for: somebody's own, reached by
+# a command of their own. It is what *A tracker of one's own* in
+# `docs/extensions.md` walks through, and is held by the cases beside it,
+# which the application's tests play as they play the packages that ship.
+#
+# Copy the folder, call the package and its program what yours are, and
+# change each action's `args` and `out` to what your command takes and
+# prints. The blueprint is the shape of the packages that ship and keep a
+# tracker in step (*Keeping a tracker in step*, in the same guide), cut to
+# what every tracker has: a ticket's title, its body and whether it is
+# closed, kept the same as a card's. What those do besides (labels that
+# link, what is said on a ticket, whose changes are taken) is added from
+# there, an action and a handler at a time.
+extension: tracker
+title: Our tracker
+description: Keep the cards of a project that are linked with a ticket of our own tracker in step with it.
+
+# The command its actions run: one of your own, found on the daemon's
+# path. This one is made up. It prints JSON where it is told `--json`,
+# takes what a ticket says after the `=` of an option, so that nothing
+# written on a card can be taken for an option, and reads the key it acts
+# as from `TRACKER_TOKEN`, never from an argument.
+program: tracker
+install: "Put our tracker's command on the daemon's path, as `tracker`."
+
+actions:
+  account:
+    description: See that the tracker can be reached and takes the key.
+    args: ["whoami"]
+    fails:
+      - when: ${ code != 0 }
+        says: "The tracker would not say who this is: ${ trim(stderr) }"
+    out:
+      name: ${ trim(stdout) }
+    repeatable: true
+
+  changed:
+    description: List the tickets that changed last, each with its id and when it changed.
+    args: ["changed", "--json"]
+    answer: json
+    fails:
+      - when: ${ code == 0 && answer == null }
+        says: "The tracker did not say which tickets changed in a way this understands."
+    out:
+      tickets: ${ answer }
+    repeatable: true
+
+  find:
+    description: Find the ticket that was made for a card, by the card it says it was made for.
+    with:
+      card: { type: string, required: true, description: "The card." }
+    args: ["find", "--mark=${ with.card }", "--json"]
+    answer: json
+    fails:
+      - when: ${ code == 0 && answer == null }
+        says: "The tracker did not say which tickets there are in a way this understands, so none was made for ${ with.card }."
+    out:
+      found: ${ answer.id != null }
+      ticket: ${ answer.id }
+      url: ${ answer.url }
+    repeatable: true
+
+  ticket:
+    description: Read a ticket as it is now.
+    with:
+      ticket: { type: string, required: true, description: "The ticket's id." }
+    args: ["show", "${ with.ticket }", "--json"]
+    answer: json
+    fails:
+      - when: ${ code == 0 && (answer == null || answer.id == null) }
+        says: "The tracker did not say what ticket ${ with.ticket } is in a way this understands."
+    out:
+      ticket: ${ answer.id }
+      url: ${ answer.url }
+      title: ${ answer.title ?? "" }
+      body: ${ answer.body ?? "" }
+      closed: ${ answer.closed == true }
+      stamp: ${ answer.stamp ?? "" }
+    repeatable: true
+
+  open:
+    description: Make a ticket for a card, with the card's title and body and the card it is made for. It does not look whether the card has one already; `find` does.
+    makes: { what: a ticket, named: title }
+    with:
+      card: { type: string, required: true, description: "The card it is made for." }
+      title: { type: string, required: true, description: "The ticket's title." }
+      body: { type: string, default: "", description: "What it says under the title." }
+    refuse:
+      - when: ${ trim(with.title) == "" }
+        says: "A ticket needs a title."
+    args: ["new", "--mark=${ with.card }", "--title=${ trim(with.title) }", "--body=${ with.body }", "--json"]
+    answer: json
+    fails:
+      - when: ${ code == 0 && (answer == null || answer.id == null) }
+        says: "The tracker did not say which ticket it made."
+    out:
+      ticket: ${ answer.id }
+      url: ${ answer.url }
+
+  edit:
+    description: Give a ticket another title, another body, or both. What is not sent is left as it is there.
+    with:
+      ticket: { type: string, required: true, description: "The ticket's id." }
+      sends: { type: list, required: true, description: "Which of `title` and `body` are sent." }
+      title: { type: string, default: "", description: "Its title from now, where that is sent." }
+      body: { type: string, default: "", description: "Its body from now, where that is sent." }
+    args:
+      - ["edit", "${ with.ticket }"]
+      - when: ${ "title" in with.sends }
+        args: ["--title=${ trim(with.title) }"]
+      - when: ${ "body" in with.sends }
+        args: ["--body=${ with.body }"]
+    repeatable: true
+
+  close:
+    description: Close a ticket. One that is closed stays closed.
+    with:
+      ticket: { type: string, required: true, description: "The ticket's id." }
+    args: ["close", "${ with.ticket }"]
+    repeatable: true
+
+  reopen:
+    description: Open a ticket again. One that is open stays open.
+    with:
+      ticket: { type: string, required: true, description: "The ticket's id." }
+    args: ["reopen", "${ with.ticket }"]
+    repeatable: true
+
+blueprints:
+  tickets: |
+    # Keeps the cards of one project that are linked with a ticket of our
+    # tracker in step with it: its title, its body and whether it is
+    # closed. A link is a row of the project's table `links` that names a
+    # card, a ticket or both.
+    blueprint: tracker/tickets
+    version: 1
+    description: Keep the cards of this project that are linked with a ticket of our tracker in step with it.
+    permissions: [extensions:tracker, board, records, projects, channels:write, blueprints, emit, secrets]
+
+    params:
+      key: { type: string, default: "", description: "A secret the factory keeps that our tracker's command acts as. Left empty, it acts as whoever runs the daemon." }
+      channel: { type: string, default: "", description: "Where to say what could not be done. Left empty, the channel called what the project is." }
+      prefer: { type: string, default: here, description: "Which side is taken where a ticket changed on both since they last agreed: `here` or `there`." }
+      takes_in: { type: string, default: everyone, description: "Whose changes of a ticket's title or body are taken into its card: `everyone`, or `nobody`." }
+      timer: { type: bool, default: false, description: "Whether to ask the tracker once a minute what changed." }
+
+    env:
+      TRACKER_TOKEN: { secret: "${params.key}" }
+
+    state:
+      channel: ""  # where it says things
+      closed: ""  # the board's last column
+      reopened: ""  # the board's first column
+
+    steps:
+      project:
+        description: It keeps one project's tickets.
+        do: fail
+        when: ${ instance.project == null }
+        with: { message: "This keeps one project's cards in step with our tracker's tickets, so it is applied to a project: --project <project>." }
+
+      reports:
+        description: The channel it reports in is there, made now where it was not.
+        do: channel.ensure
+        with: { name: "${params.channel}", otherwise: "${instance.project}", project: "${instance.project}" }
+
+      said_in:
+        do: set
+        with: { channel: "${steps.reports.out.id}" }
+
+      account:
+        description: The tracker is reached and takes the key.
+        do: tracker.account
+        timeout: 1m
+
+      board:
+        description: The project's board, whose first and last columns are where a card begins and ends.
+        do: board.list
+
+      ends:
+        do: set
+        with: { closed: "${steps.board.out.last}", reopened: "${steps.board.out.first}" }
+
+      links:
+        description: "The tickets that are linked, a row each. Adding one makes a ticket public, so it takes what running the command takes."
+        do: collection.ensure
+        with:
+          name: links
+          takes: extensions:tracker
+          fields:
+            card: { type: record, of: board }
+            ticket: { type: text }
+            url: { type: text }
+            agreed_title: { type: text, quiet: true, hidden: true }
+            agreed_body: { type: text, quiet: true, hidden: true }
+            agreed_closed: { type: flag, quiet: true, hidden: true }
+            seen: { type: text, quiet: true, hidden: true }
+            state: { type: text, quiet: true }
+
+      asks:
+        description: Asked on a timer.
+        when: ${params.timer}
+        spawn: tracker/tickets-timer
+        as: timer
+        with: { key: "${params.key}" }
+
+      asks_not:
+        when: ${ !params.timer }
+        do: stop
+        with: { instance: timer, missing_ok: true }
+
+    on:
+      # A row of `links` was added or changed by somebody.
+      linked:
+        event: record.*
+        for: { project: "${instance.project}", collection: links }
+        when: ${ event.topic in ["record.created", "record.updated"] && event.data.through == null }
+        turn: "${event.data.id}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.id}" }
+
+          out:
+            description: It names a card and no ticket. One is made.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") != "" && (steps.link.out.data.ticket ?? "") == "" }
+            do: emit
+            with: { topic: tracker.out, project: "${instance.project}", link: "${event.data.id}" }
+
+          in:
+            description: It names a ticket and no card. One is made.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") == "" && (steps.link.out.data.ticket ?? "") != "" }
+            do: emit
+            with: { topic: tracker.in, project: "${instance.project}", link: "${event.data.id}" }
+
+          both:
+            description: It names both. They are brought together.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") != "" && (steps.link.out.data.ticket ?? "") != "" }
+            do: emit
+            with: { topic: tracker.due, project: "${instance.project}", link: "${event.data.id}" }
+
+      # A card's title or body was changed, by anything but this.
+      reworded:
+        event: board.item.updated
+        for: { project: "${instance.project}" }
+        when: ${ event.data.reworded && event.data.through != "tracker/tickets" }
+        steps:
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", ticket: { said: true } } }
+
+          due:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with: { topic: tracker.due, project: "${instance.project}", link: "${item}" }
+
+      # A card came to the last column, or left it.
+      moved:
+        event: board.item.moved
+        for: { project: "${instance.project}" }
+        when: ${ event.data.to == state.closed || event.data.from == state.closed }
+        steps:
+          mine:
+            when: ${ event.data.through == "tracker/tickets" }
+            do: end
+
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", ticket: { said: true } } }
+
+          due:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with: { topic: tracker.due, project: "${instance.project}", link: "${item}" }
+
+      # Whoever can reach this factory says a ticket changed: only which
+      # ticket is taken, and it is read as it is.
+      called:
+        event: tracker.called
+        outside: true
+        steps:
+          heard:
+            do: emit
+            with: { topic: tracker.heard, project: "${instance.project}", ticket: "${event.data.ticket}" }
+
+      first:
+        event: instance.active
+        scope: own
+        when: ${ event.source.instance == instance.id }
+        steps:
+          look:
+            do: emit
+            with: { topic: tracker.look, project: "${instance.project}" }
+
+      started:
+        event: system.started
+        steps:
+          look:
+            do: emit
+            with: { topic: tracker.look, project: "${instance.project}" }
+
+      look:
+        event: tracker.look
+        for: { project: "${instance.project}" }
+        steps:
+          changed:
+            do: tracker.changed
+            timeout: 2m
+
+          heard:
+            for_each: ${steps.changed.out.tickets}
+            do: emit
+            with: { topic: tracker.heard, project: "${instance.project}", ticket: "${item.id}", stamp: "${item.stamp}" }
+
+      # A ticket may have changed: its link, unless it has seen it as it
+      # now is.
+      heard:
+        event: tracker.heard
+        for: { project: "${instance.project}" }
+        turn: "ticket-${event.data.ticket}"
+        steps:
+          news:
+            do: rows.read
+            with:
+              collection: links
+              saying: { ticket: "${event.data.ticket}", card: { said: true }, seen: { not: "${ event.data.stamp ?? '' }" } }
+
+          due:
+            for_each: ${steps.news.out.those}
+            do: emit
+            with: { topic: tracker.due, project: "${instance.project}", link: "${item}" }
+
+      # A link names a card and no ticket: one is made for it, unless one
+      # made for it is there already, by a run the daemon stopped in.
+      make:
+        event: tracker.out
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${ steps.link.failed || (steps.link.out.data.ticket ?? "") != "" }
+            do: end
+
+          card:
+            do: board.get
+            with: { id: "${steps.link.out.data.card}" }
+
+          found:
+            allow_failure: true
+            do: tracker.find
+            with: { card: "${steps.link.out.data.card}" }
+
+          open:
+            when: ${ steps.found.ok && !steps.found.out.found }
+            allow_failure: true
+            do: tracker.open
+            with: { card: "${steps.link.out.data.card}", title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+
+          there:
+            description: Making it failed, or the daemon stopped in that step, which is not done twice whether or not the ticket was made. It is looked for.
+            when: ${steps.open.failed}
+            allow_failure: true
+            do: tracker.find
+            with: { card: "${steps.link.out.data.card}" }
+
+          again:
+            when: ${ steps.open.failed && steps.there.ok && !steps.there.out.found }
+            allow_failure: true
+            do: tracker.open
+            with: { card: "${steps.link.out.data.card}", title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+
+          keep:
+            when: ${ (steps.again.out.ticket ?? steps.open.out.ticket ?? steps.there.out.ticket ?? steps.found.out.ticket ?? "") != "" }
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                ticket: "${ steps.again.out.ticket ?? steps.open.out.ticket ?? steps.there.out.ticket ?? steps.found.out.ticket }"
+                url: "${ steps.again.out.url ?? steps.open.out.url ?? steps.there.out.url ?? steps.found.out.url }"
+                agreed_title: "${steps.card.out.title}"
+                agreed_body: "${steps.card.out.body}"
+                agreed_closed: false
+
+          due:
+            when: ${steps.keep.ok}
+            do: emit
+            with: { topic: tracker.due, project: "${instance.project}", link: "${event.data.link}" }
+
+          trouble:
+            when: ${ !steps.keep.ok }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card}: no ticket was made for it: ${ steps.found.error ?? steps.again.error ?? steps.there.error ?? steps.open.error }"
+
+      # A link names a ticket and no card: one is made for it, written as
+      # being made first, so that a daemon stopped as it is added leaves
+      # the link for a person and adds no second card.
+      bring:
+        event: tracker.in
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${ steps.link.failed || (steps.link.out.data.card ?? "") != "" || steps.link.out.data.state == "bringing" }
+            do: end
+
+          ticket:
+            do: tracker.ticket
+            with: { ticket: "${steps.link.out.data.ticket}" }
+
+          bringing:
+            do: record.update
+            with: { id: "${event.data.link}", fields: { state: bringing } }
+
+          open:
+            when: ${ !steps.ticket.out.closed }
+            do: board.add
+            with: { title: "${steps.ticket.out.title}", body: "${steps.ticket.out.body}", status: "${state.reopened}" }
+
+          shut:
+            when: ${steps.ticket.out.closed}
+            do: board.add
+            with: { title: "${steps.ticket.out.title}", body: "${steps.ticket.out.body}", status: "${state.closed}" }
+
+          keep:
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                card: "${ steps.open.out.id ?? steps.shut.out.id }"
+                url: "${steps.ticket.out.url}"
+                state: ""
+                agreed_title: "${steps.ticket.out.title}"
+                agreed_body: "${steps.ticket.out.body}"
+                agreed_closed: "${steps.ticket.out.closed}"
+
+      # A linked ticket is brought together: what moved on either side
+      # since the two last agreed crosses.
+      keep:
+        event: tracker.due
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${ steps.link.failed || (steps.link.out.data.card ?? "") == "" || (steps.link.out.data.ticket ?? "") == "" }
+            do: end
+
+          card:
+            allow_failure: true
+            do: board.get
+            with: { id: "${steps.link.out.data.card}" }
+
+          off:
+            when: ${steps.card.failed}
+            do: end
+
+          there:
+            do: tracker.ticket
+            with: { ticket: "${steps.link.out.data.ticket}" }
+
+          words:
+            description: Which of the title and the body moved, on which side, and whether what moved there is taken.
+            do: sides.cross
+            with:
+              here: { title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+              there: { title: "${steps.there.out.title}", body: "${steps.there.out.body}" }
+              last: { title: "${steps.link.out.data.agreed_title}", body: "${steps.link.out.data.agreed_body}" }
+              prefer: "${params.prefer}"
+              takes: "${params.takes_in}"
+
+          edit:
+            when: ${ steps.words.out.came in ["out", "both"] }
+            do: tracker.edit
+            with:
+              ticket: "${steps.link.out.data.ticket}"
+              sends: "${steps.words.out.sends}"
+              title: "${ steps.words.out.goes.title ?? '' }"
+              body: "${ steps.words.out.goes.body ?? '' }"
+
+          take_title:
+            when: ${ "title" in steps.words.out.takes }
+            do: board.update
+            with: { id: "${steps.link.out.data.card}", title: "${steps.words.out.comes.title}" }
+
+          take_body:
+            when: ${ "body" in steps.words.out.takes }
+            do: board.update
+            with: { id: "${steps.link.out.data.card}", body: "${ steps.words.out.comes.body ?? '' }" }
+
+          shut:
+            description: Whether it is closed, the same way. A card is closed by being in the board's last column.
+            do: sides.cross
+            with:
+              here: { closed: "${ steps.card.out.status == state.closed }" }
+              there: { closed: "${steps.there.out.closed}" }
+              last: { closed: "${steps.link.out.data.agreed_closed}" }
+              prefer: "${params.prefer}"
+
+          close:
+            when: ${ steps.shut.out.goes.closed == true }
+            do: tracker.close
+            with: { ticket: "${steps.link.out.data.ticket}" }
+
+          reopen:
+            when: ${ steps.shut.out.goes.closed == false }
+            do: tracker.reopen
+            with: { ticket: "${steps.link.out.data.ticket}" }
+
+          closed:
+            when: ${ steps.shut.out.comes.closed == true }
+            do: board.move
+            with: { id: "${steps.link.out.data.card}", to: "${state.closed}", note: "its ticket was closed" }
+
+          reopened:
+            when: ${ steps.shut.out.comes.closed == false }
+            do: board.move
+            with: { id: "${steps.link.out.data.card}", to: "${state.reopened}", note: "its ticket was opened again" }
+
+          agreed:
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                agreed_title: "${steps.words.out.agreed.title}"
+                agreed_body: "${ steps.words.out.agreed.body ?? '' }"
+                agreed_closed: "${steps.shut.out.agreed.closed}"
+                seen: "${steps.there.out.stamp}"
+
+  tickets-timer: |
+    # Asks our tracker once a minute which tickets changed, and has
+    # `tracker/tickets` look when any did.
+    blueprint: tracker/tickets-timer
+    version: 1
+    description: Ask our tracker once a minute which tickets changed, and have what keeps them in step look.
+    permissions: [extensions:tracker, emit, secrets]
+
+    params:
+      key: { type: string, default: "", description: "A secret the factory keeps that our tracker's command acts as." }
+
+    env:
+      TRACKER_TOKEN: { secret: "${params.key}" }
+
+    on:
+      asked:
+        poll:
+          every: 1m
+          do: tracker.changed
+        steps:
+          look:
+            do: emit
+            with: { topic: tracker.look, project: "${instance.project}" }

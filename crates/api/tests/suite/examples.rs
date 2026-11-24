@@ -388,9 +388,28 @@ fn every_example_that_ships_is_run_by_a_test_or_a_check() {
             }
         }
     }
+    // An example that is a package (a folder with a manifest) is played
+    // by its cases, as the packages that ship are, by the command line's
+    // suite (`packages.rs`), which reads `examples/` for them.
+    for entry in std::fs::read_dir(repo.join("examples")).unwrap().flatten() {
+        let folder = entry.path();
+        if !folder.join("extension.yaml").is_file() {
+            continue;
+        }
+        let cases = std::fs::read_dir(folder.join("examples"))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter(|case| case.file_name().to_string_lossy().ends_with(".case.json"))
+            .count();
+        if cases == 0 {
+            unrun.push(format!("examples/{}", entry.file_name().to_string_lossy()));
+        }
+    }
     assert!(
         unrun.is_empty(),
         "nothing runs {unrun:?}. An example that nothing runs goes wrong unnoticed: \
-         apply it in a test (as `examples.rs` does) and say there what it is to do"
+         apply it in a test (as `examples.rs` does) and say there what it is to do, or, for an \
+         example that is a package, give it cases beside a stand-in for its program (`examples/`)"
     );
 }

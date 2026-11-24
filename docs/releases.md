@@ -506,6 +506,16 @@ blueprints you write, from this version to the next.
   it, and nothing reads one back.
 - Something outside can say an event to the factory, with a key made
   for that one topic or as a service that signs what it sends.
+- A project's cards are kept in step with tickets kept somewhere else,
+  a linked ticket at a time (its title, its body, whether it is done and
+  what is said on it), by packages that come with the program: a
+  repository's issues on GitHub (`github/issues`), a Jira project's
+  issues (`jira/issues`) and a Notion database's pages
+  (`notion-pages/pages`). The last two ask the service's web API with
+  curl 8.3 or later, and have been played against stand-ins and not yet
+  against the real services. How one is written for a tracker nobody
+  ships a package for, with an example package to copy, is *Keeping a
+  tracker in step* in the guide to extension packages.
 
 ### Devices
 
