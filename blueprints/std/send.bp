@@ -1,0 +1,92 @@
+# A card's branch is sent to the repository's remote: one of the things
+# done with a card where it is worked (`std/lane-round`), after its work
+# is kept (`std/keep`), where the stage's row says `push`.
+#
+# With a key it is sent as the key, and never as whoever runs the daemon.
+# That it reached the remote is said of the card (`card.pushed`), for
+# whatever proposes the branch for merging there to hear: the application
+# knows no hosting service, and a package written for one does. A branch
+# that could not be sent is said where the work is reported, and the card
+# goes on all the same.
+blueprint: std/send
+version: 2
+description: "Send a card's branch to the repository's remote, as a key where one is said, and say of the card that it got there."
+# It keeps nothing as it goes: called again where the daemon was stopped
+# in the middle of it, the branch is sent again, which is the same done
+# twice.
+durable: false
+permissions: [board, channels, shell, projects, secrets]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+
+  title:
+    type: string
+    default: ""
+    description: "What the card is called, said with the branch."
+
+  remote:
+    type: string
+    default: origin
+    description: "The remote the branch is sent to, by the name the repository knows it by."
+
+  key:
+    type: string
+    default: ""
+    description: "A secret the factory keeps that the remote is sent to with; as whoever runs the daemon, if empty."
+
+steps:
+  where:
+    description: Where the card was worked.
+    allow_failure: true
+    do: place.changed
+    with: { item: "${params.item}" }
+
+  publish:
+    description: The card's branch is sent to the remote. With a key it is sent as the key, and never as whoever runs the daemon.
+    allow_failure: true
+    do: place.send
+    # The key is in the environment of this step alone, and of what in it speaks to the remote.
+    env: { FACTORY_REMOTE_KEY: { secret: "${params.key}" } }
+    with:
+      item: "${params.item}"
+      dir: "${ steps.where.out.dir ?? '' }"
+      remote: "${params.remote}"
+
+  pushed:
+    description: Said of the card when its branch has reached the remote, for whatever proposes the branch for merging there to hear.
+    when: ${steps.publish.ok}
+    do: emit
+    with:
+      topic: card.pushed
+      card: "${params.item}"
+      project: "${params.project}"
+      branch: "lane/${params.item}"
+      remote: "${params.remote}"
+      title: "${params.title}"
+
+  sent:
+    description: Said where the work is reported, when its branch reached the remote.
+    when: ${ params.channel != "" && steps.publish.ok && params.key == "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: its branch lane/${params.item} was sent to ${params.remote}"
+
+  sent_as:
+    description: Said there, when it reached the remote as a key.
+    when: ${ params.channel != "" && steps.publish.ok && params.key != "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: its branch lane/${params.item} was sent to ${params.remote} with the key ${params.key}"
+
+  unsent:
+    description: Said there, when it did not, and why.
+    when: ${ params.channel != "" && steps.publish.failed }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: its branch was not sent to ${params.remote}: ${ steps.publish.error ?? 'the push failed' }"

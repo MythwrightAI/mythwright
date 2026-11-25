@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 250" width="760" height="250" role="img" aria-labelledby="t d">
+<style>
+  .bg{fill:#fcfcfb} .t1{fill:#0b0b0b} .t2{fill:#52514e} .grid{stroke:#e4e3df} .axis{stroke:#bdbcb6}
+  .opus{fill:#2a78d6} .sol{fill:#eb6834} .opusink{stroke:#1d5aa3} .solink{stroke:#b54a1f}
+  text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+  @media (prefers-color-scheme: dark){
+    .bg{fill:#1a1a19} .t1{fill:#f0efec} .t2{fill:#c3c2b7} .grid{stroke:#33322f} .axis{stroke:#55544f}
+    .opus{fill:#3987e5} .sol{fill:#d95926} .opusink{stroke:#9cc3f2} .solink{stroke:#f3b496}
+  }
+</style>
+<title id="t">The judges' scores, out of 30</title><desc id="d">Two cards scored by three judges each, out of ten per judge. A project's own blueprint: opus 8, 7, 7 for 22; sol 3, 4, 4 for 11. One take at the top: opus 8, 8, 8 for 24; sol 3, 3, 3 for 9.</desc>
+<rect class="bg" width="760" height="250" rx="8"/>
+<text x="20" y="30" class="t1" font-size="16" font-weight="600">The judges' scores, out of 30</text>
+<text x="20" y="50" class="t2" font-size="13">Three judges, each out of 10, entries known only as A and B. Each segment is one judge.</text>
+<rect x="20" y="68" width="12" height="12" rx="2" class="opus"/><text x="38" y="78" class="t2" font-size="13">opus</text><rect x="88.8" y="68" width="12" height="12" rx="2" class="sol"/><text x="106.8" y="78" class="t2" font-size="13">sol</text>
+<line x1="230.0" y1="94" x2="230.0" y2="222" class="grid"/><text x="230.0" y="238" class="t2" font-size="12" text-anchor="middle">0</text>
+<line x1="370.0" y1="94" x2="370.0" y2="222" class="grid"/><text x="370.0" y="238" class="t2" font-size="12" text-anchor="middle">10</text>
+<line x1="510.0" y1="94" x2="510.0" y2="222" class="grid"/><text x="510.0" y="238" class="t2" font-size="12" text-anchor="middle">20</text>
+<line x1="650.0" y1="94" x2="650.0" y2="222" class="grid"/><text x="650.0" y="238" class="t2" font-size="12" text-anchor="middle">30</text>
+<text x="218" y="122" class="t1" font-size="13" text-anchor="end" font-weight="600">A project's own blueprint</text>
+<text x="218" y="140" class="t2" font-size="12" text-anchor="end">opens by its name</text>
+<rect x="230" y="104" width="110.0" height="20" class="opus"/>
+<rect x="342.0" y="104" width="96.0" height="20" class="opus"/>
+<path class="opus"  d="M440.0,104 H532.0 Q536.0,104 536.0,108 V120 Q536.0,124 532.0,124 H440.0 Z"/>
+<text x="546.0" y="119" class="t1" font-size="13"><tspan font-weight="600">22</tspan><tspan class="t2"> opus · 8 · 7 · 7</tspan></text>
+<rect x="230" y="128" width="40.0" height="20" class="sol"/>
+<rect x="272.0" y="128" width="54.0" height="20" class="sol"/>
+<path class="sol"  d="M328.0,128 H378.0 Q382.0,128 382.0,132 V144 Q382.0,148 378.0,148 H328.0 Z"/>
+<text x="392.0" y="143" class="t1" font-size="13"><tspan font-weight="600">11</tspan><tspan class="t2"> sol · 3 · 4 · 4</tspan></text>
+<text x="218" y="184" class="t1" font-size="13" text-anchor="end" font-weight="600">One --take at the top</text>
+<text x="218" y="202" class="t2" font-size="12" text-anchor="end">brings the whole tree</text>
+<rect x="230" y="166" width="110.0" height="20" class="opus"/>
+<rect x="342.0" y="166" width="110.0" height="20" class="opus"/>
+<path class="opus"  d="M454.0,166 H560.0 Q564.0,166 564.0,170 V182 Q564.0,186 560.0,186 H454.0 Z"/>
+<text x="574.0" y="181" class="t1" font-size="13"><tspan font-weight="600">24</tspan><tspan class="t2"> opus · 8 · 8 · 8</tspan></text>
+<rect x="230" y="190" width="40.0" height="20" class="sol"/>
+<rect x="272.0" y="190" width="40.0" height="20" class="sol"/>
+<path class="sol"  d="M314.0,190 H350.0 Q354.0,190 354.0,194 V206 Q354.0,210 350.0,210 H314.0 Z"/>
+<text x="364.0" y="205" class="t1" font-size="13"><tspan font-weight="600">9</tspan><tspan class="t2"> sol · 3 · 3 · 3</tspan></text>
+</svg>

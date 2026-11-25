@@ -1,0 +1,14 @@
+{
+  "reply": "ready",
+  "session": "0199aaaa-0000-7000-8000-000000000001",
+  "model": null,
+  "shown": [
+    "[ls]",
+    "Looking at the board first.",
+    "ready"
+  ],
+  "cost_usd": null,
+  "input_tokens": 14492,
+  "output_tokens": 5,
+  "failure": null
+}

@@ -1,0 +1,31 @@
+/* A table's columns in groups (`groups.ts`), and a cell that is a list of
+   scopes drawn by area (`views/scopes.tsx`). Colours are the theme's. */
+
+/* The band of headings over a table's heads: a heading as wide as the
+   columns under it, and nothing over those in no group. Both rows stay
+   while the rows scroll under them, the heads under the band. Where a
+   group begins is marked down the whole table, so its columns are seen
+   to be together. */
+.grid.banded .grid-bands th { height: calc(24px * var(--tall)); min-width: 0; max-width: none; padding: 0 9px; border-bottom: 0; font-size: calc(11.5px * var(--size)); font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--dim); }
+.grid.banded .grid-bands th .truncate { display: block; }
+.grid.banded thead tr + tr th { top: 24px; border-top: 0; }
+.grid .band-first, .grid.lined .band-first { border-left: 1px solid var(--line-strong); }
+/* The same headings in a row's form, each over the fields of its group. */
+.form-band { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+
+/* A cell of scopes says it short; pressed, it is one panel over the cell,
+   from its corner and as wide as it at least, with no border: a line an
+   area, as the Tools panel has it. It stays while lines are changed. */
+.grid td.editing:has(.scopes-edit) { background: transparent; }
+.cell-edit.scopes-edit { position: relative; min-height: calc(33px * var(--tall)); padding: 0; }
+.scopes-panel { position: absolute; z-index: 6; top: 0; left: 0; width: max(340px, 100%); display: grid; gap: 8px; padding: 10px 12px; border-radius: calc(8px * var(--round)); background: var(--bg2); box-shadow: var(--shadow); font-weight: 400; cursor: default; max-height: calc(100dvh - 16px); overflow-y: auto; }
+.scopes { display: grid; gap: 6px; min-width: 0; }
+.scopes-usual { padding: 0; height: auto; }
+/* Its lines are a table inside a cell of the table, and are not that
+   table's cells: no ground of their own (nor the one its rows take when
+   pointed at), no least width, and nothing that stays as the rows scroll. */
+.grid .scopes-panel .holds-table th, .grid .scopes-panel .holds-table td, .grid tbody tr:hover .scopes-panel .holds-table td {
+  position: static; height: auto; min-width: 0; max-width: none; border-bottom: 0; background: transparent;
+}
+.grid .scopes-panel .holds-table tr:first-child th { border-top: 0; }
+.grid.lined .scopes-panel .holds-table td, .grid .scopes-panel .holds-table td { border-left: 0; }

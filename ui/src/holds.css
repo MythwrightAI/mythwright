@@ -1,0 +1,15 @@
+/* What a member may ask of the factory, by area: a line an area, what is
+   held on the right, and what is not held quieter but as plainly there. */
+.holds-table { width: 100%; border-collapse: collapse; font-size: calc(12.5px * var(--size)); }
+/* An area is written as a scope is: in small letters, the word somebody would give a key. */
+/* Each heads its own line, and stays on it: a table's heads stay at the top of what scrolls, which in a dialog laid them over one another. */
+.holds-table th { position: static; text-align: left; font-weight: 500; font-size: inherit; text-transform: none; letter-spacing: 0; color: var(--dim); background: transparent; padding: 3px 12px 3px 0; white-space: nowrap; vertical-align: baseline; width: 1%; cursor: help; }
+.holds-table td { padding: 3px 0; overflow-wrap: anywhere; }
+.holds-table tr + tr th, .holds-table tr + tr td { border-top: 1px solid var(--line); }
+.holds-table .holds-may { color: var(--text); }
+.holds-table .holds-none th, .holds-table .holds-none .holds-may { color: var(--faint); }
+/* Every choice is one width, as wide as the longest of them says ("read, change and use"), so that they stand in an even column; and as quiet as the words it stands among.
+   The width is said with the cell's (`min`), which is what lets a table give it less where its panel has less room: said
+   alone it held the table wider than a phone at the largest text, and the panel scrolled sideways. */
+.holds-table select { font: inherit; width: min(15em, 100%); height: calc(24px * var(--tall)); padding: 0 4px; }
+.holds-where, .holds-plain { margin: 0; overflow-wrap: anywhere; }

@@ -1,0 +1,45 @@
+blueprint: shop/hears
+description: Everything a handler can hear, and how it is told which.
+one_at_a_time: true
+
+params:
+  project: { type: string, description: Whose things these are. }
+
+on:
+  made:
+    event: thing.made
+    for: { project: "${params.project}" }
+    steps:
+      note:
+        description: Say that it was made.
+        do: log
+        with: { message: made }
+  any:
+    event: thing.*
+    scope: fleet
+    when: ${ event.data.id != "shelf" }
+    do: log
+    with: { message: something }
+  theirs:
+    event: shop.told
+    scope: own
+    turn: "${event.data.id}"
+    do: log
+    with: { message: told }
+  called:
+    event: shop.called
+    outside: true
+    debounce: 30s
+    do: log
+    with: { message: called }
+  timed:
+    every: 5m
+    do: log
+    with: { message: tick }
+  asked:
+    poll:
+      every: 1m
+      do: thing.read
+      with: { id: shelf }
+    do: log
+    with: { message: changed }

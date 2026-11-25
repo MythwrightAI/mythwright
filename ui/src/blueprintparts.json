@@ -1,0 +1,92 @@
+[
+  {
+    "says": "what nothing names is applied, and what it runs is followed all the way down",
+    "runs": {"std/a": ["std/b"], "std/b": ["std/c"], "std/c": []},
+    "applied": [],
+    "tops": ["std/a"],
+    "parts": {"std/a": ["std/b", "std/c"], "std/b": ["std/c"], "std/c": []},
+    "part_of": {"std/a": [], "std/b": ["std/a"], "std/c": ["std/a"]},
+    "unreached": []
+  },
+  {
+    "says": "a part that two run is a part of each",
+    "runs": {"std/a": ["std/c"], "std/b": ["std/c"], "std/c": []},
+    "applied": [],
+    "tops": ["std/a", "std/b"],
+    "parts": {"std/a": ["std/c"], "std/b": ["std/c"], "std/c": []},
+    "part_of": {"std/a": [], "std/b": [], "std/c": ["std/a", "std/b"]},
+    "unreached": []
+  },
+  {
+    "says": "one that is applied though another runs it is both, and what it runs is a part of both",
+    "runs": {"std/a": ["std/s"], "std/s": ["std/t"], "std/t": []},
+    "applied": ["std/s"],
+    "tops": ["std/a", "std/s"],
+    "parts": {"std/a": ["std/s", "std/t"], "std/s": ["std/t"], "std/t": []},
+    "part_of": {"std/a": [], "std/s": ["std/a"], "std/t": ["std/a", "std/s"]},
+    "unreached": []
+  },
+  {
+    "says": "one said to be applied that nothing names is applied once, as it would have been",
+    "runs": {"std/a": [], "std/b": []},
+    "applied": ["std/a"],
+    "tops": ["std/a", "std/b"],
+    "parts": {"std/a": [], "std/b": []},
+    "part_of": {"std/a": [], "std/b": []},
+    "unreached": []
+  },
+  {
+    "says": "a ring that nothing outside it names is neither applied nor anybody's part",
+    "runs": {"std/a": [], "std/x": ["std/y"], "std/y": ["std/x"]},
+    "applied": [],
+    "tops": ["std/a"],
+    "parts": {"std/a": [], "std/x": ["std/y"], "std/y": ["std/x"]},
+    "part_of": {"std/a": [], "std/x": [], "std/y": []},
+    "unreached": ["std/x", "std/y"]
+  },
+  {
+    "says": "a ring that something names is its parts, and nothing is a part of itself",
+    "runs": {"std/t": ["std/x"], "std/x": ["std/y"], "std/y": ["std/x"]},
+    "applied": [],
+    "tops": ["std/t"],
+    "parts": {"std/t": ["std/x", "std/y"], "std/x": ["std/y"], "std/y": ["std/x"]},
+    "part_of": {"std/t": [], "std/x": ["std/t"], "std/y": ["std/t"]},
+    "unreached": []
+  },
+  {
+    "says": "one that names itself is not named by that",
+    "runs": {"std/a": ["std/a", "std/b"], "std/b": []},
+    "applied": [],
+    "tops": ["std/a"],
+    "parts": {"std/a": ["std/b"], "std/b": []},
+    "part_of": {"std/a": [], "std/b": ["std/a"]},
+    "unreached": []
+  },
+  {
+    "says": "a name that is no blueprint there is, is passed over",
+    "runs": {"std/a": ["gone/z", "std/b"], "std/b": ["gone/z"]},
+    "applied": ["gone/z"],
+    "tops": ["std/a"],
+    "parts": {"std/a": ["std/b"], "std/b": []},
+    "part_of": {"std/a": [], "std/b": ["std/a"], "gone/z": []},
+    "unreached": []
+  },
+  {
+    "says": "what a package's blueprint runs of the standard ones is its part, whatever family it is of",
+    "runs": {"pack/one": ["pack/two", "std/b"], "pack/two": [], "std/a": ["std/b"], "std/b": ["std/c"], "std/c": []},
+    "applied": [],
+    "tops": ["pack/one", "std/a"],
+    "parts": {"pack/one": ["pack/two", "std/b", "std/c"], "std/a": ["std/b", "std/c"]},
+    "part_of": {"std/b": ["pack/one", "std/a"], "std/c": ["pack/one", "std/a"], "pack/two": ["pack/one"]},
+    "unreached": []
+  },
+  {
+    "says": "with nothing listed there is nothing",
+    "runs": {},
+    "applied": [],
+    "tops": [],
+    "parts": {"std/a": []},
+    "part_of": {"std/a": []},
+    "unreached": []
+  }
+]

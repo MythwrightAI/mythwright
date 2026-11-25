@@ -1,0 +1,65 @@
+# A finished card's place to work in is tidied away, for the stage that
+# worked it (`std/working`).
+#
+# The card's worktree is removed, and its branch with it when nothing
+# would be lost: a worktree holding changes that were never committed is
+# the only place they are, and a branch whose work is neither in the
+# project's own branch nor on the remote is kept. Nothing is asked of the
+# remote. The card is then nobody's to work, and what whoever worked it
+# was still to be told is told nobody: put where cards are worked again,
+# it is taken as a card is the first time.
+#
+# Whose the card is, is for whoever calls this to say: a stage calls it
+# for a card it took. Where something was kept, or git would not do what
+# was asked, that is given out in a sentence, for the stage to say where
+# it reports.
+blueprint: std/cleared
+version: 2
+description: "Tidy away the place a finished card was worked in: its worktree, and its branch when nothing would be lost; and say what was kept, where anything was."
+# It keeps nothing as it goes: called again where the daemon was stopped
+# in the middle of it, what was cleared is found cleared, and what was
+# kept is found kept and said again as it was.
+durable: false
+permissions: [board, shell, projects]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+
+  remote:
+    type: string
+    default: origin
+    description: "The remote the card's branch may have been sent to."
+
+steps:
+  cleared:
+    description: "The worktree is removed, and the card's branch with it when nothing would be lost: one holding changes that were never committed is the only place they are, and a branch whose work is neither in the project's own branch nor on the remote is kept. Nothing is asked of the remote."
+    do: place.clear
+    allow_failure: true
+    with: { item: "${params.item}", remote: "${params.remote}" }
+
+  let_go:
+    description: Finished, it is nobody's to work. Put where cards are worked again, it is taken as a card is the first time.
+    allow_failure: true
+    do: board.update
+    with: { id: "${params.item}", fields: { taken: "" } }
+
+  unsaid:
+    description: And what whoever worked it was still to be told is told nobody.
+    allow_failure: true
+    do: board.update
+    with: { id: "${params.item}", fields: { again: [] } }
+
+  comes:
+    description: "What is to be said of it where the work is reported: that the worktree or the branch was kept and why, or that git would not do what was asked. Where git cannot be asked at all there was nothing of its making to tidy, and nothing is said."
+    do: place.tidied
+    with:
+      item: "${params.item}"
+      came: "${ steps.cleared.out.came ?? '' }"
+      why: "${ steps.cleared.out.why ?? '' }"
+      failed: ${steps.cleared.failed}
+      error: "${ steps.cleared.error ?? '' }"
+      remote: "${params.remote}"
+
+outputs:
+  says: "${steps.comes.out.says}"

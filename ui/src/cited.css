@@ -1,0 +1,54 @@
+/* Links between pages and sources in what somebody wrote (`views/pagelink.tsx`,
+ * `views/cited.tsx`, `views/articleend.tsx`): a link to a page as any link of
+ * the page, and one to a page the reader cannot open as faint words with
+ * nothing to press; a footnote's marker a small raised number, its source in
+ * a card over it, and the sources numbered at the end of what they are of.
+ * The same in the block editor (`write/noted.ts`, `write/linked.ts`), where
+ * a marker and a source take their number from what the editor works out. */
+
+.page-link { color: var(--accent); text-decoration: none; }
+.page-link:hover, .page-link:focus-visible { text-decoration: underline; }
+.page-link-none { color: var(--faint); font-style: italic; }
+
+sup.cite { position: relative; top: -0.15em; margin: 0 1px 0 1px; font-size: 0.72em; line-height: 0; vertical-align: super; }
+.cite-mark { display: inline; height: auto; min-width: 0; padding: 0 2px; border: 0; border-radius: calc(3px * var(--round)); background: transparent; color: var(--accent); font: inherit; font-weight: 600; line-height: 1; cursor: pointer; }
+.cite-mark:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.cite-mark:focus-visible { background: var(--bg3); }
+.cite-mark::before { content: '['; }
+.cite-mark::after { content: ']'; }
+
+.source-card { max-height: min(50vh, 360px); overflow: auto; padding: 0; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); box-shadow: 0 6px 24px rgb(0 0 0 / 0.25); z-index: 60; }
+.source-card-in { display: flex; align-items: baseline; gap: 8px; padding: calc(8px * var(--density)) 12px; font-size: calc(13px * var(--size)); line-height: 1.5; color: var(--text); overflow-wrap: anywhere; }
+.source-card-n { flex: none; font-weight: 600; color: var(--faint); }
+.source-card-n::after { content: '.'; }
+
+.prose-notes { clear: both; margin: 10px 0 0; padding: 8px 0 0 26px; border-top: 1px solid var(--line); font-size: 0.9em; line-height: 1.5; }
+.prose-notes li { margin: 2px 0; padding: 1px 4px; border-radius: calc(4px * var(--round)); overflow-wrap: anywhere; scroll-margin: 80px; }
+.prose-notes li::marker { color: var(--faint); font-weight: 600; }
+.prose-notes li:focus { outline: none; background: var(--bg3); }
+.note-back { margin-right: 6px; }
+.note-back-mark { display: inline; height: auto; min-width: 0; padding: 0 2px; border: 0; background: transparent; color: var(--accent); font: inherit; font-size: 0.86em; font-weight: 600; vertical-align: super; line-height: 1; cursor: pointer; }
+.note-back-mark:hover, .note-back-mark:focus-visible { text-decoration: underline; background: transparent; }
+.topic-references .prose-notes { margin: 0; padding-top: 0; border-top: 0; }
+
+/* In the block editor. */
+.writer-cite { color: var(--accent); font-weight: 600; cursor: pointer; }
+.writer-cite::after { content: '[' attr(data-n) ']'; }
+.writer-note { position: relative; padding-left: 26px; font-size: 0.92em; color: var(--dim); }
+.writer-note::before { content: attr(data-n) '.'; position: absolute; left: 0; width: 20px; text-align: right; color: var(--faint); font-weight: 600; }
+.ProseMirror a[href^='topic:'] { color: var(--accent); text-decoration: none; cursor: pointer; }
+.ProseMirror a[href^='topic:']:hover { text-decoration: underline; }
+.mentions .glyph.page { color: var(--accent); }
+
+/* What a link to a page leads to, in a card over it (`views/pagepreview.tsx`). */
+.page-card { max-height: min(50vh, 320px); overflow: auto; padding: 0; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); box-shadow: 0 6px 24px rgb(0 0 0 / 0.25); z-index: 60; }
+.page-card-in { display: grid; gap: calc(6px * var(--density)); padding: calc(10px * var(--density)) 12px; font-size: calc(13px * var(--size)); line-height: 1.5; color: var(--text); overflow-wrap: anywhere; }
+.page-card-head { display: grid; gap: 1px; min-width: 0; }
+.page-card-title { font-size: calc(14px * var(--size)); font-weight: 650; }
+.page-card-where { font-size: calc(12px * var(--size)); color: var(--faint); }
+.page-card-says { margin: 0; color: var(--dim); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden; }
+.page-card-reply { display: grid; gap: 2px; padding-left: 8px; border-left: 2px solid var(--line-strong); }
+.page-card-who { font-size: calc(12px * var(--size)); font-weight: 600; color: var(--faint); }
+.page-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: calc(12px * var(--size)); }
+.page-card-open { color: var(--accent); font-weight: 600; text-decoration: none; }
+.page-card-open:hover { text-decoration: underline; }

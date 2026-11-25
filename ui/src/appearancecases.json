@@ -1,0 +1,31 @@
+{
+  "words": {
+    "text": ["smaller", "usual", "larger", "largest"],
+    "width": ["standard", "wide"],
+    "colour": ["automatic", "light", "dark"],
+    "contents": ["shown", "hidden"],
+    "typeface": ["sans", "serif"]
+  },
+  "cases": [
+    [{}, null],
+    [{ "text": "larger" }, null],
+    [{ "width": "wide" }, null],
+    [{ "colour": "dark" }, null],
+    [{ "contents": "hidden" }, null],
+    [{ "typeface": "serif" }, null],
+    [{ "text": "largest", "width": "standard", "colour": "light" }, null],
+    [{ "text": null, "width": null, "colour": null, "contents": null, "typeface": null }, null],
+    ["wide", "How what one reads looks is a mapping of `text`, `width`, `colour`, `contents` and `typeface`."],
+    [[], "How what one reads looks is a mapping of `text`, `width`, `colour`, `contents` and `typeface`."],
+    [null, "How what one reads looks is a mapping of `text`, `width`, `colour`, `contents` and `typeface`."],
+    [{ "letters": "serif" }, "`letters` is nothing said of how what one reads looks: it says `text`, `width`, `colour`, `contents` and `typeface`."],
+    [{ "text": "huge" }, "`text` is one of smaller, usual, larger, largest, and \"huge\" is none of them."],
+    [{ "text": 1.2 }, "`text` is one of smaller, usual, larger, largest, and 1.2 is none of them."],
+    [{ "width": "full" }, "`width` is one of standard, wide, and \"full\" is none of them."],
+    [{ "colour": "Dark" }, "`colour` is one of automatic, light, dark, and \"Dark\" is none of them."],
+    [{ "colour": true }, "`colour` is one of automatic, light, dark, and true is none of them."],
+    [{ "contents": "folded" }, "`contents` is one of shown, hidden, and \"folded\" is none of them."],
+    [{ "typeface": "Serif" }, "`typeface` is one of sans, serif, and \"Serif\" is none of them."],
+    [{ "typeface": "mono" }, "`typeface` is one of sans, serif, and \"mono\" is none of them."]
+  ]
+}

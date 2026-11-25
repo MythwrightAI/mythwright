@@ -1,0 +1,41 @@
+/* How what is read looks (`appearance.ts`): the element a page is read in (`.reading-column`), at the width and with
+   the text whoever reads chose, and the button and menu in its head that choose them (`views/appearance.tsx`).
+   Nothing changes for whoever never chooses: standard is the measure every page has (`--column`, `page.css`), and the
+   usual text is the theme's own size. */
+
+/* Wide is the page's width, up to a bound past which a line is longer than anybody reads. */
+:root { --wide-column: 1400px; }
+:root[data-read-width="wide"] .reading-column { --column: var(--wide-column); }
+/* The text's size is the column's alone. What goes by it is said again here, as `themes.css` says it of the page. */
+:root[data-read-text] .reading-column { --size: var(--read-size); --tall: calc(var(--size) * var(--density)); }
+@media (pointer: coarse), (max-width: 760px) {
+  :root[data-read-text] .reading-column { --tall: max(1, calc(var(--size) * var(--density))); }
+}
+/* Serif is an article's and a library document's letters alone, its headings and its title in the same face, a little
+   lighter than the sans's bold; what is pressed and what labels the parts stays in the page's own letters. */
+:root[data-read-face] .reading-column:is(.topic-page[data-shows="article"], .doc-body) :is(.topic-article, .topic-title-sized, .topic-title-field, .writer) { font-family: var(--read-face); }
+:root[data-read-face] .reading-column:is(.topic-page[data-shows="article"], .doc-body) :is(.prose-heading, .ProseMirror :is(h1, h2, h3), .topic-title-sized, .topic-title-field) { font-weight: 600; letter-spacing: 0.003em; }
+:root[data-read-face] .reading-column :is(.topic-article, .writer) :is(button, .topic-part-label, .contents-title, .badge, .block-menu) { font-family: var(--sans); }
+
+.appearance-button { flex: none; min-width: calc(28px * var(--tall)); justify-content: center; padding: 0 6px; font-size: calc(13px * var(--size)); font-weight: 600; letter-spacing: 0.02em; }
+.appearance-button.on { background: var(--bg3); color: var(--text); }
+.appearance-menu {
+  width: min(calc(220px * var(--size)), calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: auto; padding: 4px;
+  background: var(--bg1); border: 1px solid var(--line-strong); border-radius: calc(10px * var(--round)); box-shadow: var(--shadow);
+}
+.appearance-group + .appearance-group { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
+.appearance-label { padding: 4px 8px 2px; font-size: calc(11.5px * var(--size)); font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.appearance-menu button { display: flex; width: 100%; justify-content: flex-start; gap: 8px; height: auto; min-height: calc(28px * var(--tall)); padding: 2px 8px; border: 0; background: transparent; color: var(--text); text-align: left; white-space: normal; }
+.appearance-menu button:hover, .appearance-menu button:focus-visible { background: var(--bg3); }
+/* A choice is marked by a dot in a ring, filled where it is the one chosen. */
+.appearance-tick { flex: none; box-sizing: border-box; width: calc(12px * var(--size)); height: calc(12px * var(--size)); border: 1px solid var(--line-strong); border-radius: 50%; }
+.appearance-menu button[aria-checked="true"] .appearance-tick { border: calc(4px * var(--size)) solid var(--accent); }
+.appearance-here { margin: 6px 8px 4px; font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+/* In Settings: each setting's name over its choices where the panel is narrow, beside them where it is not. */
+.appearance-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+.appearance-line .appearance-label { width: calc(64px * var(--size)); padding: 0; }
+.appearance-setting .pills { align-self: flex-start; }
+@media (pointer: coarse), (max-width: 760px) {
+  .appearance-menu button { min-height: calc(44px * var(--tall)); }
+  .appearance-button { min-width: calc(40px * var(--tall)); min-height: calc(40px * var(--tall)); }
+}

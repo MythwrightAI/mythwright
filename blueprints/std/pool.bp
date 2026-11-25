@@ -1,0 +1,404 @@
+# A pool: a limited number work at once, and the rest wait their turn.
+#
+# Some work is heavy enough that there is only room for so much of it: an
+# agent working a card, a render, a build. A pool is the one place that
+# says how many go at once. Whatever wants to do such work asks the pool
+# first (`pool.asked`) and begins when it is told it may (`pool.granted`);
+# when it has finished it says so (`pool.released`), and the next in line
+# is told. Whoever has to wait is told that it waits and what for
+# (`pool.waiting`), so that nothing sits unexplained. What is asked for may
+# say what it is about (`about`: a card, an order); that is said back with
+# the waiting, for whatever shows the thing to say so on it.
+#
+# The asker is an instance, and the pool knows it by that: a place is held
+# by something that can end. When whoever holds a place or waits for one
+# ends, however it ends, the pool hears of it and the place is free. So a
+# place is never held by something that is gone, and nothing has to
+# remember to give one back for the pool to stay true.
+#
+#   # the one that asks: a blueprint that is one piece of the work
+#   steps:
+#     place:
+#       do: wait
+#       with:
+#         event: pool.granted
+#         where: event.data.to == instance.id
+#         say: { topic: pool.asked, pool: renders, about: "${params.scene}" }
+#     work: { needs: [place], do: shell, with: { cmd: [render, "${params.scene}"] } }
+#
+# `say` asks once the wait is listening, so the answer cannot come too soon
+# to be heard. That blueprint's steps end, its instance ends, and its place
+# is free: it has nothing to give back. Something that lives on and holds a
+# place only for a while says `pool.released` when it has done.
+#
+# Something that looks after many things of a kind, and takes a place for
+# one of them at a time, asks for each by a name of its own (`as`): a stage
+# that works the cards of a column asks `as` the card. The place is then
+# that name's and not the asker's. Whoever waits is a name in a list here
+# and nothing else; `pool.granted` says the name (`as`) when its turn has
+# come, and the place is given back by saying `pool.released` with it.
+# Nothing ends such a place but that: whoever asks for one looks after it.
+#
+# Places are given in the order they were asked for, unless `order` says
+# otherwise. Who is given one is worked out by one action (`pool.turn`),
+# from who holds a place, who waits and what has just happened; this
+# blueprint hears, keeps what the action answers and tells those it
+# concerns. Its handlers take turns, so two that ask in the same instant
+# are still given their places one after the other.
+#
+# It can be told to give no places for a while, with the reason
+# (`mw emit pool.pause pool=<name> why="..."`), and to go on
+# (`pool.resume`): those waiting are told the reason, and what is already
+# being done goes on. Applied again with another `limit`, it gives out the
+# places there now are. Both are said to everyone (`pool.paused`,
+# `pool.open`), for whatever shows what waits.
+#
+# A pool hears what asks it only from when it is listening, as anything
+# does: a place asked for before then was asked of nobody. So it says when
+# it is (`pool.listening`), with who holds a place and who waits as it
+# says so: when it is first there, and each time it takes another text or
+# another limit where it is. Whatever asks by a name, and may have been
+# started beside the pool or before it, hears that and asks again for
+# what is due (`std/working` does, for the cards of its column): one that
+# waits is kept once however often it asks, so asking again costs nothing
+# where the pool had heard. An instance that waits for its place cannot
+# ask a second time, since the answer to that could come before it was
+# there to hear it; one that finds the pool has not got it ends, and is
+# begun again by whatever began it (`std/review` does).
+#
+# Which of those waiting goes first is `order`: whoever asked first, or
+# last, or whoever said the highest `priority` as it asked (a number; of
+# those as high, whoever asked first). To hold places back, or to
+# tell others than these, copy this file into the project's blueprints and
+# edit it.
+blueprint: std/pool
+version: 8
+description: Let a limited number work at once; the rest wait their turn and are told what for.
+one_at_a_time: true
+
+params:
+  name:
+    type: string
+    description: "What the pool is called: what those who ask it say in `pool`."
+
+  project:
+    type: string
+    default: ""
+    description: "Whose pool it is, where it is a project's: said with `pool.waiting`, so that whatever shows the thing that waits hears only its own project's pools."
+
+  limit:
+    type: int
+    default: 1
+    description: "How many hold a place at once. 0 is as many as ask."
+
+  order:
+    type: string
+    default: first
+    enum: [first, last, priority]
+    description: "Which of those waiting is given a place that is free: `first`, whoever asked first; `last`, whoever asked last; `priority`, whoever said the highest `priority` as it asked, and of those as high whoever asked first (one that said none said 0)."
+
+state:
+  # Who holds a place, each by the instance it is, in the order they were
+  # given one.
+  held: []
+  # Who waits for one, first come first.
+  waiting: []
+  # What each of them asked about, by who it is: what waits with it, said
+  # back when it is told that it waits.
+  abouts: {}
+  # The priority each of them said as it asked, by who it is: what
+  # `order: priority` goes by.
+  priorities: {}
+  # Why no place is given for now; empty while places are given as they
+  # come free.
+  paused: ""
+
+# Applied again with another limit, it takes that where it is: what it was
+# in the middle of giving is given, and the places there now are given
+# out after (`changed`, below). That it gives another number of places is
+# said to everyone, where it does: applied again as it was, nothing has
+# changed and nothing is said.
+on_update:
+  - when: ${ was.params.limit != params.limit && state.paused == "" }
+    do: emit
+    with: { topic: pool.open, pool: "${params.name}", limit: "${params.limit}" }
+
+on:
+  # It is listening: what asks from now is heard. Said when it is first
+  # there, and each time it has taken another text or another limit where
+  # it is, with who holds a place and who waits: for whatever asked before
+  # it could hear, which is not among them.
+  listening:
+    event: instance.active
+    scope: own
+    # Its own becoming active: it starts nothing, but says so.
+    when: ${ event.source.instance == instance.id }
+    do: emit
+    with:
+      topic: pool.listening
+      pool: "${params.name}"
+      held: ${state.held}
+      waiting: ${state.waiting}
+
+  # Something asks for a place. It joins those waiting, and is given one at
+  # once if there is one. One that asks while it holds a place waits for
+  # its next, and is given it after it has given this one back.
+  # Such a one is at work and is not told that it waits: it is told when
+  # it has given its place back and has to wait behind somebody else.
+  asked:
+    event: pool.asked
+    for: { pool: "${params.name}" }
+    # By an instance: a place is held by something that can end.
+    when: ${ event.source.instance != null }
+    steps:
+      turn:
+        do: pool.turn
+        with:
+          # Who holds a place, who waits, and whether places are given for now.
+          ...: ${state}
+          limit: ${params.limit}
+          order: "${params.order}"
+          # Whoever asks: the name it asks as, or else the instance that it is.
+          asks: "${event.source.instance}"
+          asks_as: "${ event.data.as ?? '' }"
+          # What it asks about, kept with it for as long as it holds or waits.
+          about: "${ event.data.about ?? '' }"
+          # And the priority it says it has, kept the same way.
+          priority: "${ event.data.priority ?? '' }"
+
+      kept:
+        do: set
+        with:
+          held: "${steps.turn.out.held}"
+          waiting: "${steps.turn.out.waiting}"
+          abouts: "${steps.turn.out.abouts}"
+          priorities: "${steps.turn.out.priorities}"
+
+      granted:
+        for_each: ${steps.turn.out.granted}
+        do: emit
+        with:
+          topic: pool.granted
+          pool: "${params.name}"
+          to: "${item.to}"
+          as: "${item.as}"
+          # Whether it had to wait: not, when it is the one that has just asked.
+          waited: ${item.waited}
+
+      told:
+        description: Whoever has just asked and was not given a place is told that it waits, and why.
+        needs: [kept]
+        when: ${steps.turn.out.waits}
+        do: emit
+        with:
+          topic: pool.waiting
+          pool: "${params.name}"
+          project: "${params.project}"
+          to: "${steps.turn.out.who}"
+          about: "${steps.turn.out.about}"
+          limit: ${params.limit}
+          why: "${state.paused}"
+
+  # A place is given back by whoever held it, and goes to the next.
+  released:
+    event: pool.released
+    for: { pool: "${params.name}" }
+    steps:
+      turn:
+        do: pool.turn
+        with:
+          # Who holds a place, who waits, and whether places are given for now.
+          ...: ${state}
+          limit: ${params.limit}
+          order: "${params.order}"
+          gives_back: "${event.source.instance}"
+          gives_back_as: "${ event.data.as ?? '' }"
+
+      kept:
+        do: set
+        with:
+          held: "${steps.turn.out.held}"
+          waiting: "${steps.turn.out.waiting}"
+          abouts: "${steps.turn.out.abouts}"
+          priorities: "${steps.turn.out.priorities}"
+
+      granted:
+        for_each: ${steps.turn.out.granted}
+        do: emit
+        with:
+          topic: pool.granted
+          pool: "${params.name}"
+          to: "${item.to}"
+          as: "${item.as}"
+          waited: ${item.waited}
+
+      told:
+        description: One that asked for its next place while it held this one, and has to wait for it now that this is given back, is told so. It was not told while it held a place.
+        needs: [kept]
+        when: ${steps.turn.out.waits}
+        do: emit
+        with:
+          topic: pool.waiting
+          pool: "${params.name}"
+          project: "${params.project}"
+          to: "${steps.turn.out.who}"
+          about: "${steps.turn.out.about}"
+          limit: ${params.limit}
+          why: "${state.paused}"
+
+  # Whoever held a place, or waited for one, has ended: finished, failed
+  # or stopped. Its place is free and it waits for nothing.
+  ended:
+    event: instance.finished
+    when: ${ event.source.instance in state.held || event.source.instance in state.waiting }
+    steps:
+      turn:
+        do: pool.turn
+        with:
+          # Who holds a place, who waits, and whether places are given for now.
+          ...: ${state}
+          limit: ${params.limit}
+          order: "${params.order}"
+          ended: "${event.source.instance}"
+
+      kept:
+        do: set
+        with:
+          held: "${steps.turn.out.held}"
+          waiting: "${steps.turn.out.waiting}"
+          abouts: "${steps.turn.out.abouts}"
+          priorities: "${steps.turn.out.priorities}"
+
+      granted:
+        for_each: ${steps.turn.out.granted}
+        do: emit
+        with:
+          topic: pool.granted
+          pool: "${params.name}"
+          to: "${item.to}"
+          as: "${item.as}"
+          waited: ${item.waited}
+
+  # Told to give no places for now. What is being done goes on; those
+  # waiting are told why they wait.
+  pause:
+    event: pool.pause
+    for: { pool: "${params.name}" }
+    # Said by a person, or by whatever watches what the work costs.
+    outside: true
+    steps:
+      hold:
+        description: Why, as it was said.
+        when: ${ (event.data.why ?? "") != "" }
+        do: set
+        with: { paused: "${event.data.why}" }
+
+      hold_unsaid:
+        description: And where nothing was said of why, that it was.
+        when: ${ (event.data.why ?? "") == "" }
+        do: set
+        with: { paused: "it was paused" }
+
+      turn:
+        description: Who waits, each with the name it asked as. Nobody is given a place while none are given.
+        needs: [hold, hold_unsaid]
+        do: pool.turn
+        with:
+          ...: ${state}
+          limit: ${params.limit}
+          order: "${params.order}"
+
+      say:
+        for_each: ${steps.turn.out.waiters}
+        do: emit
+        with:
+          topic: pool.waiting
+          pool: "${params.name}"
+          project: "${params.project}"
+          to: "${item.to}"
+          # One that asked by a name of its own is about that; of one that is
+          # an instance, what it is about was said when it asked.
+          about: "${item.about}"
+          limit: ${params.limit}
+          why: "${state.paused}"
+
+      everyone:
+        needs: [hold, hold_unsaid]
+        do: emit
+        with: { topic: pool.paused, pool: "${params.name}", why: "${state.paused}" }
+
+  resume:
+    event: pool.resume
+    for: { pool: "${params.name}" }
+    outside: true
+    steps:
+      go:
+        do: set
+        with: { paused: "" }
+
+      everyone:
+        description: "Said to everyone, as its pausing was: it gives places again, this many at once."
+        needs: [go]
+        do: emit
+        with: { topic: pool.open, pool: "${params.name}", limit: "${params.limit}" }
+
+      fill:
+        needs: [everyone]
+        do: emit
+        with: { topic: pool.fill, pool: "${params.name}" }
+
+  # Applied again, with another limit perhaps: the places there now are
+  # are given out.
+  changed:
+    event: instance.updated
+    scope: own
+    when: ${ event.source.instance == instance.id }
+    do: emit
+    with: { topic: pool.fill, pool: "${params.name}" }
+
+  # More than one place may have come free at once (it went on after a
+  # pause, or its limit was raised). Each of those waiting is given a place
+  # while there is one; the rest are told what they wait for now.
+  fill:
+    event: pool.fill
+    for: { pool: "${params.name}" }
+    steps:
+      turn:
+        do: pool.turn
+        with:
+          # Who holds a place, who waits, and whether places are given for now.
+          ...: ${state}
+          limit: ${params.limit}
+          order: "${params.order}"
+
+      kept:
+        do: set
+        with:
+          held: "${steps.turn.out.held}"
+          waiting: "${steps.turn.out.waiting}"
+          abouts: "${steps.turn.out.abouts}"
+          priorities: "${steps.turn.out.priorities}"
+
+      granted:
+        for_each: ${steps.turn.out.granted}
+        do: emit
+        with:
+          topic: pool.granted
+          pool: "${params.name}"
+          to: "${item.to}"
+          as: "${item.as}"
+          waited: ${item.waited}
+
+      still:
+        for_each: ${steps.turn.out.waiters}
+        do: emit
+        with:
+          topic: pool.waiting
+          pool: "${params.name}"
+          project: "${params.project}"
+          to: "${item.to}"
+          # One that asked by a name of its own is about that; of one that is
+          # an instance, what it is about was said when it asked.
+          about: "${item.about}"
+          limit: ${params.limit}
+          why: "${state.paused}"

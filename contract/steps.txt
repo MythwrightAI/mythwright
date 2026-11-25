@@ -1,0 +1,136 @@
+# The steps every database's tables are made by: each list by the name
+# its tables are made under, each of its steps in its order, and what
+# the step's text comes to. A step that is here stays where it is, word
+# for word, and a step is only ever added after the last: a database
+# that has run a list's first steps runs only those after.
+# Written by a test, never by hand. After adding a step at the end of a
+# list, or a list:
+#   WRITE_STEPS=1 cargo test -p api the_steps
+# writes its line. Commit it with the step. A line is never changed
+# that way: a step changed where it stood is written only with why
+# (steps-changed.txt), and a line is taken out by hand only for a step
+# no database anywhere was ever made by.
+
+agents 1 792f19c48e81d629
+agents 2 54bee0a684fadd0c
+agents 3 61bc31e760086f2f
+agents 4 8c8204cc0057c7e1
+agents 5 13860ee5d216ca3a
+agents 6 0798acc837969365
+agents 7 117bdeaaf1d144a8
+agents 8 de10f5b2338b8a64
+agents 9 ca949e82b11b4d42
+agents 10 b0f1b00f8fb5eb6c
+agents 11 3b47381e012a1aff
+agents 12 1aa242c23d6c75a5
+agents 13 7d8a26dad377adad
+agents 14 0d580b68419a5d88
+agents 15 3311e4088520f164
+agents 16 bee98d12c533ad8b
+agents 17 71dd02482b4afa1f
+agents 18 3aa1e18a497157e9
+agents 19 c9ec83ba21b30c68
+agents 20 575c4913dee3bc9d
+agents 21 386fec22b4e7b8bc
+agents 22 67f211c31f23888f
+agents 23 542203f8a918eae2
+
+appearance 1 a6e090ee846887cc
+
+arranged 1 bc92c40adf42f69e
+
+attachments 1 0eaf22684ef9fb38
+attachments 2 14bc721b46f80662
+
+board 1 95df1255c61c0873
+
+channels 1 352b2fc9c038ffd2
+channels 2 accfc6680ef34549
+channels 3 1543aa12b8973576
+channels 4 a0738e5b66122dd7
+channels 5 ce4d4461f09b774d
+channels 6 cc023e6085e44d89
+channels 7 a9ab8d96603f97b9
+channels 8 d94e01c3922b2bc4
+channels 9 0b6ebe243f57471a
+channels 10 a7800d823317fea4
+channels 11 3aa42c81fce7eeca
+channels 12 dfe461e0983c4165
+
+clocked 1 f480ab2d789b02bb
+
+collections 1 a6f5d0142ab0d20f
+collections 2 6731006c6c43eb26
+collections 3 84deb5474795f375
+collections 4 15dae8b8fea42fa7
+collections 5 7b0535442913d71e
+collections 6 fe348490ec74a928
+collections 7 282fa202d6e6ddbb
+collections 8 5227887fb684eb57
+collections 9 8e422a3cc036c934
+collections 10 e68c35e6d1ea368d
+collections 11 f4f19c66bd00db12
+collections 12 c36381b5c0ae049d
+collections 13 65fdf0b674be219a
+collections 14 feef00678133bc44
+
+conductor 1 1ac4e3da895486fb
+conductor 2 9e6ef251fc1729c1
+conductor 3 57b79615efe28e61
+conductor 4 78b3faee9ded803e
+conductor 5 b4ce3e8d58fe9b6a
+conductor 6 297fa0e0a5997b42
+conductor 7 17be7761616eca1c
+conductor 8 7a6a2c7a79cbece8
+conductor 9 54eb2fea0594b7a0
+conductor 10 2d2e39eaffe9f550
+conductor 11 338aa4626939ef5f
+conductor 12 157305774c64a87f
+conductor 13 1c179253d66bc9ba
+conductor 14 cc0d46f4f42b31e6
+conductor 15 49d1e3d16ba4adc4
+conductor 16 5596608e94008525
+conductor 17 163414bd7df94ddb
+conductor 18 84452717c24b56ac
+conductor 19 3911317ea27dd562
+conductor 20 4e7eb89666a94c3b
+
+files 1 8d7dc413a4951a26
+
+follows 1 bf513ffe95520dfb
+
+groups 1 90c2a6b42a7a5ea1
+
+hosting 1 d37ea4d104b2d482
+hosting 2 107f39a649e386e5
+
+identity 1 4a9806e020f09dbb
+identity 2 e1ac40db18ba0db4
+identity 3 04c57b250d724f10
+identity 4 e95f1ea9ff898a6a
+identity 5 f5bddffddd5a573a
+
+inbox 1 735201eb066a0cea
+inbox 2 7ec85e1d3b1637a3
+inbox 3 204261925a561172
+
+journal 1 65ea3dafd87a98af
+journal 2 2780ef23550ce06a
+journal 3 0596f7b2045e1975
+journal 4 2d0bf3654b3603c5
+journal 5 132292dfa9839791
+
+projects 1 ca9adc6b9c1af804
+projects 2 29c9d3e5629384c4
+
+search 1 3597f358571ae098
+
+store 1 6ee1e566c8e189cf
+
+themes 1 9f35ff0403fd425d
+themes 2 bea9c98de248a276
+themes 3 20f8abf9f32a244d
+
+topics 1 612c157b4c7dcfe3
+
+workspaces 1 7894088c05c37f96

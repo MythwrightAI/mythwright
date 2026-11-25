@@ -1,0 +1,11 @@
+shop/least
+
+What it is
+  After a restart:
+    title: Taken up where it was
+
+What it does when it is applied
+  Write a line in the run's log. [main/greet]
+
+What it may do
+  = It runs as whoever applies it, and can do no more than they can.

@@ -1,0 +1,38 @@
+shop/ends
+
+What it is
+  What is done as it stops, fails, or takes a new text.
+  It keeps, from one run to the next: `open`.
+  It writes nothing down as it goes: stopped in the middle, it is begun again from its start by whatever asked for it.
+  It goes on running once its steps are done, for what it hears.
+  It gives out: `thing`.
+
+What it makes
+  A thing called `shelf`. [made]
+
+What it does when it is applied
+  1. Make sure a thing is there. [made]
+
+What it hears, and what it then does
+  When this happens: a thing was changed (`thing.changed`). Heard from its own project, and from the factory itself. [changed]
+    1. Do nothing. [run]
+
+What it may do
+  It runs as whoever applies it, and can do no more than they can.
+  Of what they can do, it uses only what it lists: `things` and `post`.
+  Read things. [things:read]
+  Make and change things. [things:write]
+  Send letters. [post:send]
+
+What it does as it ends or is changed
+  When its steps went well:
+    - Write a line in the run's log.
+  When its steps fail:
+    - Send a letter.
+  When its steps have ended, however they went:
+    - Write a line in the run's log.
+  When it takes a new text while it is running, in place of running its steps again:
+    - Keep `open`.
+    - Send a letter. Only when `version` of the instance as it was before this text is not `2`.
+  When it is stopped:
+    - Read a thing.

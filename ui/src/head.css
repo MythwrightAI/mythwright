@@ -1,0 +1,33 @@
+/* What a page's head is called and what stands beside it (views/pagehead.tsx, `Titled`): one item of the head, centred on
+   its line as the right of the head is, its words on the title's baseline. A narrow head wraps them under the title. */
+.head-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; row-gap: 2px; min-width: 0; }
+.head-title > * { min-width: 0; max-width: 100%; }
+/* What a project's thing is, faintly beside its head where somebody named it something else (views/thingwas.tsx). */
+.thing-was { font-size: calc(12px * var(--size)); font-weight: 400; white-space: nowrap; }
+h1 > .thing-was { margin-left: 10px; }
+/* The right of a page's head (views/pagehead.tsx): when it was changed, what it is shared by, its address, its pin
+   and its gear, at the end of the head's first line; what the page has in its head besides is on the line after. */
+.head-acts { display: flex; align-items: center; gap: 2px; flex: none; max-width: 100%; margin-left: auto; }
+.head-acts > button { flex: none; color: var(--faint); }
+.head-acts > button:hover, .head-acts > button[aria-expanded="true"] { color: var(--text); }
+.head-acts .head-pin[aria-pressed="true"] { color: var(--accent); }
+.head-acts .head-share { gap: 5px; padding: 0 8px; }
+/* A tool that opens a panel beside the page (a document's comments, details and history): lit while the panel is open,
+   and as wide as its count where it has one beside its drawing. */
+.head-acts .head-tool[aria-pressed="true"] { color: var(--accent); }
+.head-acts .head-tool.counted { width: auto; gap: 3px; padding: 0 6px; }
+.head-tool-count { font-size: calc(12px * var(--size)); font-variant-numeric: tabular-nums; }
+/* The words give way before anything that is pressed does. */
+.head-edited, .head-quiet { flex: 0 1 auto; min-width: 0; margin-right: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--faint); font-size: calc(12px * var(--size)); }
+.head-quiet { padding: 0 6px; border: 1px solid var(--line); border-radius: calc(4px * var(--round)); line-height: calc(18px * var(--tall)); }
+/* The line it ends and the line after it are as far apart as two lines of a head always were: the break is a line of no height between them. */
+.view-head > .head-break { flex-basis: 100%; height: 0; }
+.view-head:has(> .head-break) { row-gap: 5px; }
+/* What a line of the gear's menu opened that is more than a line (how a view is laid out) hangs from the break: under the head's
+   first line and ending where the gear does, over the page. On a phone it is as wide as the screen, as what floats there is. */
+.view-head > .head-break { position: relative; }
+:where(.head-break) > .layout-menu { top: 1px; }
+/* On a phone's width when it was changed is said by the gear's menu and not in the head, where it took a line of its own. */
+@media (max-width: 480px) { .head-edited { display: none; } }
+/* A CSV file read into a table (views/csvdialog.tsx): the lines that could not be read, each with why. */
+.csv-lines { margin: 0; padding-left: 18px; max-height: 180px; overflow: auto; color: var(--dim); font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; }

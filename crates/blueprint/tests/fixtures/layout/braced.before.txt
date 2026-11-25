@@ -1,0 +1,12 @@
+# A `${ }` written bare inside braces is put in quotes there, and left bare where its braces are opened.
+blueprint: braced
+steps:
+  count:
+    do: emit
+    with: { topic: shop.counted, data: { rounds: ${ params.rounds + 1 }, of: ${params.item}, plain: as it was } }
+  listed:
+    do: emit
+    with: { topic: shop.listed, data: { all: [${params.first}, ${params.second}, plain, 3] } }
+  opened:
+    do: emit
+    with: { topic: shop.opened, data: { it: ${item}, long: ${ params.a_rather_long_name_of_something + params.another_long_name }, why: ${ a ? b : c } } }

@@ -1,0 +1,12 @@
+/target/
+node_modules
+/ui/dist/
+/ui/dist.lock*
+/.data/
+*.log
+.DS_Store
+# Pages saved out of a channel while trying things. Nothing of the
+# repository's own is an HTML file at its root (the client's is under ui/).
+/*.html
+# Your own extension packages, never committed (`mw extension add local/<name>`).
+/local/

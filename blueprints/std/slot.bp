@@ -1,0 +1,180 @@
+# A slot hosts one service behind a stable address and replaces it safely.
+#
+# Apply it once and the service starts. Apply it again with a changed service
+# and the new version is started beside the old one, given a growing share of
+# the traffic while it is watched, and promoted, or rolled back if it
+# misbehaves. The address never changes and the old version keeps serving
+# until the new one has proved itself.
+#
+# Proved itself by what it was sent. A new version that no connection
+# reached while it was watched has proved nothing, and a rollout of it is
+# no evidence that it works. Unless told otherwise the slot promotes it all
+# the same, since a service nobody is using yet has to be rolled out too,
+# and says that it did (`slot.unwatched`, and `unwatched` in what it says as
+# it promotes). With `min_connections` a stage that saw fewer fails, and
+# the new version is rolled back.
+#
+# This file is the rollout policy. To roll out differently, copy it into your
+# project's blueprints and edit it: nothing here needs a rebuild.
+blueprint: std/slot
+version: 2
+description: Host a service behind a stable address, with canary rollouts.
+permissions: [fleet, blueprints]
+
+params:
+  name: { type: string, description: "The slot's name; also the name of its router." }
+
+  service:
+    type: object
+    description: "What to run: cmd (a program and its arguments), cli (this program's own command line) or run (a script of your own), and its env, health, restart."
+
+  listen: { type: int, default: 0, description: "Port of the stable address; 0 picks a free one." }
+
+  expose:
+    type: bool
+    default: true
+    description: "Put a stable address in front. False for a component nothing connects to."
+
+  rollout:
+    type: string
+    default: canary
+    enum: [canary, replace]
+    description: "How a new version takes over."
+
+  weights:
+    type: list
+    default: [10, 50, 100]
+    description: "Share of traffic the new version gets at each stage."
+
+  observe: { type: duration, default: 20s, description: "How long each stage is watched." }
+
+  max_fail_ratio:
+    type: number
+    default: 0.05
+    description: "Share of the new version's connections that may fail."
+
+  min_connections:
+    type: int
+    default: 0
+    description: "How many connections the new version must have been sent in a stage for the stage to pass. With 0, one that was sent nothing is promoted all the same, and the slot says it was promoted unwatched."
+
+  ready_timeout:
+    type: duration
+    default: 60s
+    description: "How long the new version has to become healthy."
+
+state:
+  stable: null
+  generation: 0
+
+steps:
+  front:
+    description: The stable address. Kept across rollouts.
+    when: ${params.expose}
+    do: router.ensure
+    with: { name: "${params.name}", listen: "${params.listen}" }
+
+  next:
+    description: Which generation the new version is, and what it is called for it.
+    do: rollout.next
+    with: { name: "${params.name}", generation: "${state.generation}" }
+
+  candidate:
+    description: Start the new version beside the current one.
+    do: service.start
+    with:
+      name: "${steps.next.out.name}"
+      spec: ${params.service}
+
+  ready:
+    description: Nothing is sent to a version that is not healthy.
+    do: service.wait_healthy
+    with: { service: "${steps.candidate.out.name}", timeout: "${params.ready_timeout}" }
+    on_fail:
+      - do: service.stop
+        with: { service: "${steps.candidate.out.name}" }
+      - emit:
+          topic: slot.rejected
+          slot: "${params.name}"
+          candidate: "${steps.candidate.out.name}"
+          reason: "${self.error}"
+
+  shift:
+    description: Give the new version a growing share of traffic, watching each stage.
+    when: ${ params.expose && state.stable != null && params.rollout == "canary" }
+    for_each: ${params.weights}
+    call: std/canary-stage
+    with:
+      router: "${params.name}"
+      stable: "${state.stable}"
+      candidate: "${steps.candidate.out.name}"
+      weight: ${item}
+      observe: "${params.observe}"
+      max_fail_ratio: ${params.max_fail_ratio}
+      min_connections: ${params.min_connections}
+    on_fail:
+      # Roll back: everything to the version that was working.
+      - do: router.route
+        with:
+          name: "${params.name}"
+          backends:
+            - { service: "${state.stable}", weight: 100 }
+      - do: service.stop
+        with: { service: "${steps.candidate.out.name}" }
+      - emit:
+          topic: slot.rolled_back
+          slot: "${params.name}"
+          candidate: "${steps.candidate.out.name}"
+          reason: "${self.error}"
+
+  promote:
+    description: All traffic to the new version.
+    when: ${params.expose}
+    do: router.route
+    with:
+      name: "${params.name}"
+      backends:
+        - { service: "${steps.candidate.out.name}", weight: 100 }
+
+  retire:
+    description: The old version has nothing left to do.
+    when: ${ state.stable != null }
+    do: service.stop
+    with: { service: "${state.stable}" }
+
+  remember:
+    do: set
+    with: { stable: "${steps.candidate.out.name}", generation: "${steps.next.out.generation}" }
+
+  watched:
+    description: What watching it came to. How many stages it was watched through, and in how many of them no connection reached it.
+    do: rollout.watched
+    with: { shifts: "${ steps.shift.out ?? [] }" }
+
+  announce:
+    do: emit
+    with:
+      topic: slot.promoted
+      slot: "${params.name}"
+      service: "${steps.candidate.out.name}"
+      generation: ${state.generation}
+      stages: ${steps.watched.out.shifts}
+      unwatched: ${steps.watched.out.unwatched}
+
+  unwatched:
+    description: Promoted, and nothing was learnt of it. No connection reached the new version in any stage it was watched through, so that it was not rolled back says nothing of whether it works.
+    when: ${ steps.watched.out.came == "unwatched" }
+    do: emit
+    with:
+      topic: slot.unwatched
+      slot: "${params.name}"
+      service: "${steps.candidate.out.name}"
+      stages: ${steps.watched.out.shifts}
+
+outputs:
+  address: ${steps.front.out.address}
+  port: ${steps.front.out.port}
+  service: ${steps.candidate.out.name}
+  generation: ${state.generation}
+  # In how many of the stages it was watched through no connection reached it.
+  unwatched: ${steps.watched.out.unwatched}

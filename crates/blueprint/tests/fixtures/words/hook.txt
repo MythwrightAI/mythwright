@@ -1,0 +1,107 @@
+The words of a hook, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== hook.do
+--- written
+blueprint: w
+steps:
+    a: {do: noop}
+on_success:
+    - do: noop
+--- laid
+blueprint: w
+
+steps:
+  a: { do: noop }
+
+on_success:
+  - do: noop
+--- wrong
+blueprint: w
+steps:
+    a: {do: noop}
+on_success:
+    - do: nothing.like.it
+--- refused 5:7
+there is no action called `nothing.like.it`
+
+=== hook.emit
+--- written
+blueprint: w
+steps:
+    a: {do: noop}
+on_success:
+    - emit: {topic: w.done}
+--- laid
+blueprint: w
+
+steps:
+  a: { do: noop }
+
+on_success:
+  - emit: { topic: w.done }
+--- wrong
+blueprint: w
+steps:
+    a: {do: noop}
+on_success:
+    - emit: 3
+--- refused 5:7
+`emit` needs `topic` (where to publish, e.g. `build.slow`)
+
+=== hook.when
+--- written
+blueprint: w
+steps:
+    a: {do: noop}
+on_success:
+    - do: noop
+      when: ${ 1 == 1 }
+--- laid
+blueprint: w
+
+steps:
+  a: { do: noop }
+
+on_success:
+  - do: noop
+    when: ${ 1 == 1 }
+--- wrong
+blueprint: w
+steps:
+    a: {do: noop}
+on_success:
+    - do: noop
+      when: ${ 1 + }
+--- refused 6:13
+`when`: the expression ends too soon
+
+=== hook.with
+--- written
+blueprint: w
+steps:
+    a: {do: noop}
+on_success:
+    - do: log
+      with: {message: hi}
+--- laid
+blueprint: w
+
+steps:
+  a: { do: noop }
+
+on_success:
+  - do: log
+    with: { message: hi }
+--- wrong
+blueprint: w
+steps:
+    a: {do: noop}
+on_success:
+    - do: noop
+      with: [a]
+--- refused 6:13
+`with` must be a mapping, found a list

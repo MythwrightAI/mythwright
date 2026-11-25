@@ -1,0 +1,173 @@
+# The things done with a card where it is looked at, gone through in
+# order: what a stage that reviews has done for a card before anybody
+# looks at it, and again from where the looking was once those who looked
+# have approved it (`std/reviewing`).
+#
+# What is usual there is short: those who look (begun and heard from by
+# the stage itself, since they say when they have decided), and then what
+# was approved put with the rest (`std/merge`), where the stage says so.
+# The project's `segments` may lay more into the list, a row each: a
+# command of the project's own before anybody is asked to look, something
+# between the looking and the merge, another looking with other seats, a
+# blueprint of the project's own in place of the merge. Each thing is
+# called for the card and ends in a word, and what comes next is asked of
+# the list (`segments.next`).
+#
+# It goes on until there is something that is begun and heard from, which
+# it gives back for the stage to begin (`begins`, with where in the list
+# it is and who looks); or until the list has ended, and then says what it
+# came to: the card goes on, goes back, or is left for a person. It moves
+# nothing itself: what becomes of the card is the stage's to do.
+#
+# Its first thing is asked for and called here, and the rest by
+# `std/through`, which calls itself once for each thing done: as many as
+# the stage says are done at most in one going through (its `most`, five
+# where it says none).
+blueprint: std/segments
+version: 6
+description: "Go through the things done with a card where it is reviewed, from the first of them or from where its review was: each is called in order, until there is a review to begin or the list has ended."
+# It keeps nothing as it goes: called again where the daemon was stopped
+# in the middle of it, it begins where it was told to and finds done what
+# was done.
+durable: false
+permissions: [board, channels, agents, shell, projects, secrets, blueprints]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  here: { type: string, description: "The column the card is reviewed in." }
+
+  rows:
+    type: list
+    default: []
+    description: "The rows of the project's `segments`, as whoever asks read them."
+
+  of:
+    type: object
+    default: {}
+    description: "Which of those rows are this list's: the cells a row of it says, and what each says."
+
+  usual:
+    type: list
+    default: []
+    description: "What is usually done there, each with its `order`, the blueprint that `does` it, and whether it is `spawned`."
+
+  begin:
+    type: bool
+    default: true
+    description: "The thing at `row` and `order` is begun, or the first of the list where neither is said. Otherwise that one has ended, and what comes after it is gone through."
+
+  row: { type: string, default: "", description: "Where in the list: the row." }
+  order: { type: int, default: 0, description: "And the order." }
+
+  says:
+    type: string
+    default: ""
+    description: "What is said as the card goes on, where nothing that is done says anything else."
+
+  own:
+    type: object
+    default: {}
+    description: "What the stage says of itself, handed to a thing done where it declares it; and how many things at most are done in one going through (`most`, five if it says none), on its row (`id`)."
+
+  journey:
+    type: object
+    default: {}
+    description: "What is so of this card's coming, handed on the same way."
+
+steps:
+  card:
+    description: "The card as it is: it may have been moved, or taken away."
+    allow_failure: true
+    do: board.get
+    with: { id: "${params.item}" }
+
+  first:
+    description: "Which of the list is begun, by what is usual and the rows as they are laid into it. What it is begun with is this step's answer."
+    do: segments.next
+    with:
+      rows: ${params.rows}
+      usual: ${params.usual}
+      of: ${params.of}
+      item: "${params.item}"
+      labels: ${ steps.card.out.labels ?? [] }
+      part_of: "${ steps.card.out.more.part_of ?? '' }"
+      found: ${steps.card.ok}
+      status: "${ steps.card.out.status ?? '' }"
+      here: "${params.here}"
+      moved: ${ steps.card.out.moved ?? [] }
+      begin: ${params.begin}
+      row: "${params.row}"
+      order: ${params.order}
+      says: "${params.says}"
+      through: true
+      most_done: ${ params.own.most ?? 5 }
+      most_of: "${ params.own.id ?? '' }"
+      own: ${params.own}
+      journey: ${params.journey}
+
+  one:
+    description: The first thing of the list is called for the card, and ends in a word.
+    when: ${steps.first.out.calls}
+    call: "${steps.first.out.name}"
+    as: "segment-${params.item}-1"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      ...: ${steps.first.out.with}
+
+  second:
+    description: What comes after it, from what it came to.
+    do: segments.next
+    with:
+      item: "${params.item}"
+      found: true
+      here: "${params.here}"
+      was: ${steps.first.out}
+      gave: ${steps.one.out}
+
+  rest:
+    description: Where that is another thing to do, the rest of the list from there, a thing at a time.
+    when: ${steps.second.out.calls}
+    call: std/through
+    as: "through-${params.item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      here: "${params.here}"
+      next: ${steps.second.out}
+
+  now:
+    description: "The card as it is when the list has been gone through: somebody may have moved it meanwhile."
+    allow_failure: true
+    do: board.get
+    with: { id: "${params.item}" }
+
+  last:
+    description: "What the going through came to: something that is begun and heard from, for the stage to begin; or the word the list ended with, and what is said with it. A card that was moved meanwhile, or is gone, comes to nothing."
+    do: segments.next
+    with:
+      item: "${params.item}"
+      found: ${steps.now.ok}
+      status: "${ steps.now.out.status ?? '' }"
+      moved: ${ steps.now.out.moved ?? [] }
+      here: "${params.here}"
+      was: ${ steps.rest.out.answer ?? steps.second.out }
+      last: true
+
+outputs:
+  # `review`, there is one to begin and hear from (`begins`); or the word
+  # the list ended with: `on`, `back`, `left`; or `nothing`.
+  came: "${steps.last.out.word}"
+  says: "${steps.last.out.says}"
+  begins: ${steps.last.out.spawns}
+  # Whether it ended by itself, with a word for the stage to act on.
+  ends: ${steps.last.out.tells}
+  # Where in the list: of the review to begin, or of what said the word.
+  row: "${ steps.last.out.at[0] }"
+  order: ${ steps.last.out.at[1] }
+  title: "${steps.last.out.title}"
+  # Who looks and how many have to approve, for a review to begin; and
+  # whether only what is usual comes after it.
+  with: ${steps.last.out.with}
+  usual: ${steps.last.out.usual}

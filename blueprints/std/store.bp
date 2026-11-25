@@ -1,0 +1,113 @@
+# A store: a database that this blueprint makes and hosts, for tables to be
+# kept in.
+#
+# Where a table's records are kept is its blueprint's choice, and one of
+# the choices is a store service: a process that keeps records and answers
+# a small protocol (docs/stores.md). The application knows no database by
+# name. It is given an address, and what answers there is a blueprint's
+# business. This is that blueprint.
+#
+# This one is the SQLite case: the database is one file, made by the first
+# step with the params below, and the program that serves it is the
+# product's own command line (`store serve`), which a step or a service
+# runs by giving its arguments as `cli:`, with no shell between and so the
+# same on every system. It gives out `url`,
+# and a table is kept there by declaring it with `store: service` and
+# `at:` that address; `std/board` takes it as its `database`.
+#
+# Another database is another blueprint of this shape, and nothing in the
+# application changes for it. For a database that is a server of its own,
+# such as PostgreSQL, the steps are: make its data directory if there is
+# none (a `shell` step), host the server (`std/slot`, with its own health
+# check), make the database and its table in it (a `shell` step), and then
+# host a small adapter beside it that speaks the store protocol and keeps
+# the records in that server (`std/slot` again, as here). Its `url` is the
+# adapter's address. Copy this file and change the steps.
+#
+# Stopping it stops the service. The file, and what is in it, stays.
+blueprint: std/store
+version: 2
+description: Make a database and host it as a store service, for tables to be kept in.
+permissions: [shell, fleet, blueprints]
+
+params:
+  name:
+    type: string
+    default: store
+    description: "The store's name. With the project's, it is the name of its service on this device."
+
+  file:
+    type: string
+    default: ""
+    description: "The database file, relative to the project. Left empty, it is `.data/<name>.db`, which is not listed among the project's files."
+
+  port:
+    type: int
+    default: 0
+    description: "The port of its address; 0 picks a free one, and keeps it for as long as the store is not stopped."
+
+  ready_timeout:
+    type: duration
+    default: 60s
+    description: "How long it has to start answering."
+
+state:
+  # The database file, and what its service is called on this device.
+  file: ""
+  service: ""
+
+steps:
+  place:
+    description: "Where the database is: the file that was named."
+    when: ${ params.file != "" }
+    do: set
+    with: { file: "${params.file}" }
+
+  place_unnamed:
+    description: With none named, a file called after the store, where nothing lists it.
+    when: ${ params.file == "" }
+    do: set
+    with: { file: ".data/${params.name}.db" }
+
+  called:
+    description: What its service is called. A service's name is the device's, so the project's goes in front, and two projects can each have a store called `store`.
+    when: ${ instance.project != null }
+    do: set
+    with: { service: "${instance.project}-${params.name}" }
+
+  called_alone:
+    description: With no project, it is called what the store is.
+    when: ${ instance.project == null }
+    do: set
+    with: { service: "${params.name}" }
+
+  create:
+    description: The database, made if it is not there. One that is there is left as it is, with what is in it.
+    do: shell
+    with:
+      # This program's own command line. The file is one argument of it
+      # and no part of a command, so that no name anyone gives it is run.
+      cli: [store, init, --db, "${state.file}"]
+
+  host:
+    description: "The store program, serving that file: health-checked, started again if it dies, and replaced safely when this is applied again."
+    call: std/slot
+    as: slot
+    with:
+      name: "${state.service}"
+      listen: ${params.port}
+      # A new version serves the same file as the old one, so there is
+      # nothing to learn by giving it a share of the traffic first.
+      rollout: replace
+      ready_timeout: "${params.ready_timeout}"
+      service:
+        # It listens on this device, at the port its service is given.
+        cli: [store, serve, --db, "${state.file}"]
+        health: { http: /health, interval: 1s }
+
+outputs:
+  # The address a table is kept at: `store: service`, `at: <url>`.
+  url: "http://${steps.host.out.address}"
+  file: ${state.file}
+  service: ${steps.host.out.service}
+  port: ${steps.host.out.port}

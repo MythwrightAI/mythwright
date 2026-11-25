@@ -1,0 +1,58 @@
+# A project's library: its documents, as the Markdown files of a folder.
+#
+# A project has no library until this is applied to it. The documents are
+# the files that end in `.md` in the folder said (`docs`, unless another is
+# said) and in the folders under it, as they are: nothing is added to a
+# file for it to be a document, and one written in an editor, by an agent
+# or arriving with a change to the project is in the library the next time
+# it is read. A document's title is the heading it begins with, or its
+# file's name; what is declared below beyond that is kept in a block of
+# settings at the head of a document that has any of it.
+#
+# A document is known by where it is (`shop-docs:guides:install` is
+# `guides/install.md`), so a file that is moved is another document.
+#
+# What happens to a document is kept as its history, as a card's is: that
+# it was written, changed or taken away through the factory, and what was
+# said on it. The library can be read as pages, by whoever may read the
+# project, at `/library/<project>/docs/`.
+#
+#   mw apply std/docs --project shop
+#   mw apply std/docs --project shop --param folder=notes
+blueprint: std/docs
+version: 1
+description: "Give a project a library: the Markdown files of a folder, as documents."
+permissions: [projects]
+
+params:
+  folder:
+    type: string
+    default: docs
+    description: "The folder of the project the documents are in, from the top of the project; `.` for the project itself."
+
+steps:
+  library:
+    description: The documents, and what is kept of each.
+    do: collection.ensure
+    with:
+      name: docs
+      store: documents
+      at: "${params.folder}"
+      fields:
+        title: { type: text, required: true }
+        body: { type: text }
+        path: { type: text }
+        tags: { type: list }
+        # Whether it is written out when the library is (`std/site`).
+        public: { type: flag }
+      views:
+        library: { kind: list }
+      history:
+        record.created: "{actor} wrote it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.removed: "{actor} took it away"
+
+outputs:
+  folder: ${steps.library.out.at}
+  documents: ${steps.library.out.records}

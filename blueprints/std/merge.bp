@@ -1,0 +1,132 @@
+# What was approved is put with the rest: the usual thing done with a card
+# after those who looked at it approved it, where its stage says `merge`
+# (`std/reviewing`).
+#
+# The card's branch is merged into the project's own, as a commit of its
+# own that says which card. One worked in the project itself has no
+# branch, and its work is there already. Merged, or with nothing to merge,
+# the card goes on (`on`), and what is said as it goes says so. A branch
+# that no longer merges goes back to whoever worked it, to be brought up
+# to date (`back`): the merge is called off, and the project's branch is
+# as it was. Anything else in the way of a merge is a person's to put
+# right, and the card is left where it is with the sentence that says
+# what (`left`).
+#
+# What its merge follows up is said of the earlier cards it is about, for
+# whatever counts what comes of merged work (a comparison's ways): a card
+# whose work it reverts, the cards whose files it changes again within
+# the days said (`within`: once, of them all), and, where the card goes
+# on, each card it says it fixes (`fixes`). Said again where it is done
+# again after a stop, each is counted once.
+#
+# To put approved work with the rest another way, name a blueprint of the
+# project's own in a row of its `segments` at the order of this one (20).
+blueprint: std/merge
+version: 3
+description: "Merge an approved card's branch into the project's own, and say what that came to: the card goes on, goes back to be brought up to date, or is left for a person."
+# It keeps nothing as it goes: called again where the daemon was stopped
+# in the middle of it, a merge left half made is called off and made
+# again, and one that was made is found made.
+durable: false
+permissions: [board, shell, projects]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+
+  title:
+    type: string
+    default: ""
+    description: "What the card is called: what the merge's commit says after the card's id."
+
+  here: { type: string, description: "The column the card is reviewed in." }
+  pass: { type: string, default: "", description: "Where it goes on to." }
+  fail: { type: string, default: "", description: "Where it is sent back to." }
+  by: { type: string, default: "", description: "Who approved it." }
+  words: { type: string, default: "", description: "What they said." }
+
+  within:
+    type: int
+    default: 14
+    description: "How many days after an earlier card's merge this one changing the same files is said of it."
+
+  approved: { type: int, default: 0, description: "How many approved." }
+  against: { type: int, default: 0, description: "How many sent it back." }
+  looked: { type: int, default: 1, description: "How many looked." }
+
+steps:
+  merged:
+    description: Its work is put into the project's own branch, as a commit of its own that says which card. A merge that stops on a conflict is called off, and the project's branch is as it was.
+    allow_failure: true
+    do: place.merge
+    with: { item: "${params.item}", message: "${params.item}: ${params.title}" }
+
+  then:
+    description: What that comes to. Merged, or with nothing to merge, the card goes on. A branch that no longer merges goes back to whoever worked it. Anything else in the way of a merge is a person's to put right.
+    do: review.verdict
+    with:
+      verdict: passed
+      merged: "${ steps.merged.out.came ?? '' }"
+      failed: ${steps.merged.failed}
+      why: "${ steps.merged.out.why ?? steps.merged.error ?? '' }"
+      conflict: "${ steps.merged.out.said ?? '' }"
+      item: "${params.item}"
+      status: "${params.here}"
+      here: "${params.here}"
+      pass: "${params.pass}"
+      fail: "${params.fail}"
+      merge: true
+      by: "${params.by}"
+      words: "${params.words}"
+      approved: ${params.approved}
+      against: ${params.against}
+      seats: ${params.looked}
+
+  follows:
+    description: What its merge follows up, as git has it. The earlier cards whose work it reverts, and those merged within the days said whose files it changes again.
+    needs: [merged]
+    when: ${ (steps.merged.out.came ?? '') == "merged" }
+    allow_failure: true
+    do: place.follows
+    with: { item: "${params.item}", within: "${params.within}" }
+
+  reverted:
+    description: Said of each card whose work it reverts.
+    for_each: ${ steps.follows.out.reverts ?? [] }
+    allow_failure: true
+    do: emit
+    with:
+      topic: card.reverted
+      card: "${item}"
+      project: "${params.project}"
+      by: "${params.item}"
+
+  again:
+    description: Said once of the cards whose files it changes again, however many they are.
+    when: ${ steps.follows.out.again[0] != null }
+    allow_failure: true
+    do: emit
+    with:
+      topic: card.changed_again
+      cards: ${steps.follows.out.again}
+      project: "${params.project}"
+      by: "${params.item}"
+
+  card:
+    description: "The card as it now is, where it goes on: the cards it says it fixes."
+    needs: [then]
+    when: ${ steps.then.out.word == "on" }
+    allow_failure: true
+    do: board.get
+    with: { id: "${params.item}" }
+
+  fixed:
+    description: Said of each card it says it fixes.
+    for_each: ${ steps.card.out.more.fixes ?? [] }
+    allow_failure: true
+    do: emit
+    with: { topic: card.fixed, card: "${item}", project: "${params.project}", by: "${params.item}" }
+
+outputs:
+  came: "${steps.then.out.word}"
+  says: "${steps.then.out.says}"

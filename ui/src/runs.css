@@ -1,0 +1,35 @@
+/* A run's steps (`views/run.tsx`). How a step came out is said in a line
+   that gives way to the columns before it, and is pressed for the whole
+   of it, which is opened under the step's line as wide as the list. */
+.run-result { width: 46%; max-width: 0; }
+button.run-gave { display: flex; max-width: 100%; height: auto; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: var(--dim); font: inherit; text-align: left; cursor: pointer; }
+button.run-gave.error-text { color: var(--bad); }
+button.run-gave:hover, button.run-gave[aria-expanded="true"] { background: none; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+button.run-gave:hover:not(.error-text), button.run-gave[aria-expanded="true"]:not(.error-text) { color: var(--text); }
+/* A step that says what it is for is said by that, and its key is under
+   it, smaller: the words go onto as many lines as they need inside the
+   step's own column, and the key is one word that breaks where it must. */
+.step-says { display: block; max-width: 68ch; overflow-wrap: anywhere; }
+.steps-say .run-result { width: 34%; }
+code.step-key { display: block; font-size: calc(11px * var(--size)); color: var(--dim); overflow-wrap: anywhere; }
+/* In the list of runs, what a text calls its own steps, after the words for them. */
+code.run-called { font-size: calc(11px * var(--size)); color: inherit; }
+.run-whole > td { padding-top: 0; background: var(--bg0); }
+.run-whole pre { margin: 0; max-height: 320px; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* The id of something running, wherever one is written (`views/running.tsx`):
+   the id, and beside it what it is. It is words among the words it stands
+   in, and takes their line. */
+.running-id { display: inline; font: inherit; }
+button.running-id { height: auto; min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; text-align: left; white-space: inherit; vertical-align: baseline; cursor: pointer; }
+button.running-id:hover { background: none; }
+button.running-id code { color: var(--accent); }
+button.running-id:hover code, button.running-id:focus-visible code { text-decoration: underline; }
+.running-is { font-family: var(--sans); font-size: calc(12px * var(--size)); color: var(--dim); }
+.running-id.gone code { color: var(--faint); text-decoration: line-through; }
+.running-gone { font-family: var(--sans); font-size: calc(12px * var(--size)); color: var(--faint); }
+
+/* A step opened from the graph (`graph/details.tsx`): what it says of itself, and under it, smaller, what its text calls it and what it runs. */
+.node-says { margin: 0; }
+.node-key { font-size: calc(12px * var(--size)); color: var(--dim); overflow-wrap: anywhere; }
+.node-key code { font-size: calc(12px * var(--size)); }

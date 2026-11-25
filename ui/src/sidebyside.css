@@ -1,0 +1,46 @@
+/* Sandbox tests side by side, as a view of a blueprint's page: what is
+   played over the columns, and a column for each text, laid out as a
+   board's cards are, as many across as the view has room for and one
+   under the other where it has not. Nothing in it is wider than its
+   column: each column is a container (`container-type`), so what the
+   Sandbox view draws inside it lays itself out for the column's width
+   as it does in a narrow Sandbox view. The view scrolls up and down and
+   never sideways. */
+.beside-view { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 0; min-width: 0; min-height: 0; height: 100%; overflow: auto; }
+.beside-view h2 { margin: 0 0 8px; font-size: calc(12px * var(--size)); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+.beside-view h3 { margin: 0; font-size: calc(14px * var(--size)); font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--text); overflow-wrap: anywhere; }
+.beside-view .sandbox-part h3 { font-size: calc(13px * var(--size)); }
+.beside-view h4 { margin: 0 0 4px; font-size: calc(12.5px * var(--size)); font-weight: 600; overflow-wrap: anywhere; }
+.beside-choose { display: grid; gap: 8px; min-width: 0; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--bg1); }
+.beside-texts { display: flex; flex-wrap: wrap; gap: 6px 18px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.beside-texts > legend { padding: 0; margin-bottom: 4px; font-size: calc(12px * var(--size)); color: var(--dim); }
+.beside-text { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; align-items: start; min-width: 0; max-width: 100%; font-size: calc(13px * var(--size)); }
+.beside-text > span { min-width: 0; overflow-wrap: anywhere; }
+.beside-text .faint { font-size: calc(12px * var(--size)); }
+.beside-played { margin: 0; font-size: calc(12.5px * var(--size)); line-height: 1.45; overflow-wrap: anywhere; }
+.beside-go { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; }
+.beside-go > span { min-width: 0; overflow-wrap: anywhere; font-size: calc(12.5px * var(--size)); }
+.beside-reading { margin: 0; font-size: calc(13px * var(--size)); }
+.beside-one { display: grid; gap: 8px; min-width: 0; font-size: calc(13px * var(--size)); line-height: 1.45; }
+.beside-one > p { margin: 0; overflow-wrap: anywhere; }
+.beside-seconds { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.beside-seconds > li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-width: 0; }
+.beside-seconds > li > span { min-width: 0; overflow-wrap: anywhere; font-size: calc(12.5px * var(--size)); }
+
+.beside-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 14px; align-items: start; min-width: 0; padding: 14px 16px 20px; }
+.beside-column { display: grid; gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: calc(10px * var(--round)); background: var(--bg0); container-type: inline-size; }
+.beside-head { display: grid; gap: 2px; min-width: 0; }
+.beside-ran { font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+.beside-presses { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.beside-presses:empty { display: none; }
+.beside-counts { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: calc(12.5px * var(--size)); }
+.beside-counts td, .beside-counts th { padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.beside-counts col.beside-what { width: 56%; }
+.beside-counts col.beside-figure { width: 24%; }
+.beside-counts col.beside-after { width: 20%; }
+.beside-counts td { overflow-wrap: break-word; }
+.beside-kind th { padding-top: 8px; text-align: left; font-size: calc(11.5px * var(--size)); font-weight: 600; color: var(--dim); }
+.beside-happened > summary { cursor: pointer; font-size: calc(13px * var(--size)); font-weight: 600; }
+.beside-happened[open] > summary { margin-bottom: 10px; }
+.beside-column .sandbox-foot { max-height: none; margin: 0 -12px -12px; padding: 8px 12px 10px; border-radius: 0 0 calc(10px * var(--round)) calc(10px * var(--round)); }
+.beside-happened .sandbox-outcome { display: none; }

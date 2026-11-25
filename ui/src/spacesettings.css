@@ -1,0 +1,24 @@
+/* In Settings: the workspace the side panel is of (`views/spacesettings.tsx`).
+ *
+ * Its name is written where it is said, beside the letter that stands for
+ * it, and the field is as wide as there is room for, up to what a name
+ * needs. Taking it away is a part of its own at the foot of Settings, as
+ * what cannot be undone: its words beside the button, which goes under
+ * them where the panel is narrow, and nothing lies over anything else at
+ * any width. */
+
+.space-settings-form { gap: 6px; }
+.space-settings-label { font-size: calc(12.5px * var(--size)); color: var(--dim); }
+.space-settings-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.space-settings-name .space-face { width: calc(32px * var(--tall)); height: calc(32px * var(--tall)); border-radius: calc(7px * var(--round)); font-size: calc(16px * var(--size)); }
+.space-settings-name input { flex: 1 1 auto; min-width: 0; max-width: 360px; }
+.space-settings-name strong { min-width: 0; }
+.space-settings-about { margin: 0; font-size: calc(12.5px * var(--size)); }
+.space-settings-grave { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 14px; }
+.space-settings-grave-said { display: grid; gap: 2px; flex: 1 1 240px; min-width: 0; }
+.space-settings-grave-said .muted { font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; }
+.space-settings-grave button { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.space-settings-grave-said strong { overflow-wrap: anywhere; }
+/* The question: the name typed before the button opens, and why it is closed under the field. */
+.space-typed input { width: 100%; min-width: 0; }
+.space-typed-why { margin: 0; font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; }

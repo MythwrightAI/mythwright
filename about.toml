@@ -1,0 +1,210 @@
+# What `cargo xtask notices` has `cargo about` go by, to write the Rust half
+# of THIRD-PARTY-NOTICES.md: which licences a crate that is built into the
+# programs may be under, which systems the programs are built for, and the
+# crates whose licence the tool cannot tell by itself.
+#
+# A package holds the programs and the client, and those hold other
+# people's libraries. Every licence accepted here asks one thing of whoever
+# hands on a copy: that its notice and its text go with it, which is what
+# that file is. A licence that asks more (source handed on with the
+# program, the program itself under the same terms) is not on this list
+# and is not added to it: the tool then refuses to make the file, and the
+# library that brings one is taken out, or is the maintainer's to accept as an
+# exception of its own below, one library at a time, with what it asks
+# written beside it.
+#
+# Where a library is offered under either of several, the first of this
+# list that it offers is the one it is taken under. MIT is first because
+# its text is the library's own notice: it names who wrote it. The
+# client's packages are held to the same list (`accepted` in
+# `ui/scripts/notices.ts` reads it from here).
+accepted = [
+    "MIT",
+    "Apache-2.0",
+    # Apache-2.0 with a permission added to it, and nothing asked beyond it.
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
+    # No crate's today: one package of the client's.
+    "BSD-2-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    # A dedication to the public: it asks nothing. Its text goes all the same.
+    "CC0-1.0",
+]
+
+# What a package is made for (`xtask/src/package.rs`): Linux, macOS and
+# Windows, each on both kinds of processor, and Windows by both of its
+# toolchains, since a package made on another system to be tried there is
+# built by the other one. A crate that is only one system's is in the file.
+# What is built for no system a package is made for (a browser, a phone) is
+# not in any program and is left out.
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+    "aarch64-pc-windows-msvc",
+    "x86_64-pc-windows-gnu",
+]
+
+# What only the tests use is in no program. What a build runs (a build
+# script, a macro) is kept: what it writes is in the program.
+ignore-dev-dependencies = true
+ignore-build-dependencies = false
+
+# The product's own crates are not somebody else's: they are published
+# nowhere (`publish = false` in the root manifest), and are told by that.
+private = { ignore = true }
+
+# ---------------------------------------------------------------------------
+# The one crate under a licence that asks more than a notice.
+#
+# `option-ext` is under the Mozilla Public License 2.0, and is in the
+# window's program on Linux and macOS (the window is drawn by `wry`, which
+# asks `dirs` where a person's folders are, which uses it). The licence is
+# copyleft by the file: it does not reach the program its files are built
+# into, and asks that whoever hands on the built program says where the
+# source of those files can be had, which THIRD-PARTY-NOTICES.md says
+# under the crate (`source_said` in `xtask/src/notices.rs`; a test holds
+# that a library under such a licence has that line). Nothing here changes
+# the crate. It was accepted on 2026-11-19, for this crate alone:
+# the licence is not accepted in general, and a second crate under it is
+# refused until it is decided the same of it.
+[option-ext]
+accepted = ["MPL-2.0"]
+
+# ---------------------------------------------------------------------------
+# Crates the tool cannot tell the licence text of by itself. Each names the
+# file in the crate that is its licence, with that file's SHA-256, so that
+# an update of the crate that changes the file is refused until it is read
+# again.
+
+# Its file is the licence with the appendix on how to apply it left off,
+# which the tool does not take for the licence.
+[ryu.clarify]
+license = "Apache-2.0 OR BSL-1.0"
+[[ryu.clarify.files]]
+path = "LICENSE-APACHE"
+license = "Apache-2.0"
+checksum = "62c7a1e35f56406896d7aa7ca52d0cc0d272ac022b5d2796e7d6905db8a3636a"
+
+# The same: the licence without its appendix.
+[sync_wrapper.clarify]
+license = "Apache-2.0"
+[[sync_wrapper.clarify.files]]
+path = "LICENSE"
+license = "Apache-2.0"
+checksum = "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+
+# Offered under three, and the one file it carries is the text of CC0.
+[dunce.clarify]
+license = "CC0-1.0"
+[[dunce.clarify.files]]
+path = "LICENSE"
+license = "CC0-1.0"
+checksum = "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+
+# Its file is the licence twice over, its own and that of the code it was
+# first written from, which the tool takes for another licence altogether.
+[curve25519-dalek.clarify]
+license = "BSD-3-Clause"
+[[curve25519-dalek.clarify.files]]
+path = "LICENSE"
+license = "BSD-3-Clause"
+checksum = "cca0bd3c4fcdba74145ef9d49c62337e2c9fbf9368288f11d0547f1b0273219f"
+
+# Every crate of Windows' own interfaces carries its licence in a file
+# whose name the tool does not look for (`license-mit`, in small letters).
+# It is the same file in each.
+[windows.clarify]
+license = "MIT OR Apache-2.0"
+[[windows.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-collections.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-collections.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-core.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-core.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-future.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-future.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-implement.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-implement.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-interface.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-interface.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-link.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-link.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-numerics.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-numerics.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-result.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-result.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-strings.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-strings.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-sys.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-sys.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-threading.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-threading.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+
+[windows-version.clarify]
+license = "MIT OR Apache-2.0"
+[[windows-version.clarify.files]]
+path = "license-mit"
+license = "MIT"
+checksum = "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"

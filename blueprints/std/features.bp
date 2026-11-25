@@ -1,0 +1,169 @@
+# A project's features: pieces of work bigger than a card.
+#
+# A feature is something wanted that takes several cards to do. It is a
+# record of a table of its own, `features`, which is a board of its own:
+# a column for each thing that becomes of one. Each feature has a
+# blueprint of its own (`std/feature`), which is its pipeline:
+#
+# - where it begins (the first column), an agent of a role reads it and
+#   asks what it needs to know, or says how it would be built: a plan,
+#   ending with the cards it comes to and which of them wait on which;
+# - with a plan it waits in the second column for somebody to accept it,
+#   or to say on it what should be otherwise, which its agent is told;
+# - moved to the third column it is accepted: its cards are added to the
+#   project's board, each saying what it waits on and that it is a piece
+#   of this feature, and (with `ready`) made ready for whoever works cards;
+# - when every one of its cards is done, it goes to the last column.
+#
+# A feature may also gather cards that are on the board already
+# (`gathers`, their ids; or `labelled`, a label every card of which is
+# gathered when the feature is first planned): work that was written up
+# before anybody put it in order. Its agent is shown them and plans them
+# with whatever else is needed, a ticket of its plan being one of those
+# cards or a new one; accepted, the cards there already are given what
+# they wait on and say they are pieces of this feature, and nothing else
+# of them is changed.
+#
+# Whoever accepts a plan has cards added and changed for them, so they
+# are asked for what changing a card takes, and with the usual (`accepts`)
+# they are a person: an agent that moves a feature on has accepted
+# nothing.
+#
+# What each of those is, is this blueprint's params and the text of
+# `std/feature`, which a project replaces with a file of its own.
+blueprint: std/features
+version: 4
+description: "Give a project features: pieces of work that take several cards, each planned by an agent, accepted by a person, and done when its cards are."
+permissions: [projects, records, board, channels, agents, blueprints]
+
+params:
+  project: { type: string, description: "The project it works in." }
+
+  columns:
+    type: list
+    default: [backlog, planned, building, done]
+    description: "What becomes of a feature, in order: where it begins and is planned, where it waits with a plan, where it is once that is accepted, and where it is when its cards are done."
+
+  role: { type: string, default: architect, description: "The role whose agents plan a feature." }
+
+  picks:
+    type: string
+    default: first
+    enum: [first, turn, least, rank]
+    description: "Which of the role's agents plans one, of those with as little in hand as each other."
+
+  channel:
+    type: string
+    default: ""
+    description: "Where what becomes of a feature is said; nowhere if empty."
+
+  ready:
+    type: bool
+    default: true
+    description: "Whether a feature's cards are made ready when it is accepted, to be worked as soon as what each waits on is done. Otherwise they stay in the board's first column."
+
+  rounds:
+    type: int
+    default: 8
+    description: "How many times a feature is put to its agent before it is left for a person."
+
+  accepts:
+    type: string
+    default: person
+    enum: [person, anyone]
+    description: "Who accepts a plan by moving its feature on: a `person` who holds what changing a card takes, or `anyone` who does, an agent included, for a fleet that is to plan and accept by itself."
+
+steps:
+  table:
+    description: The features, as a table that is a board.
+    do: collection.ensure
+    with:
+      name: features
+      project: "${params.project}"
+      fields:
+        title: { type: text, required: true }
+        # What is wanted, as whoever asks for it says.
+        body: { type: text }
+        status: { type: choice, of: "${params.columns}", required: true }
+        # How it would be built, as whoever planned it said; and what
+        # that one asked and is not yet answered. `quiet`: each is said
+        # by an event of its own, below.
+        plan: { type: text, quiet: true }
+        question: { type: text, quiet: true }
+        # The cards it came to, once it was accepted.
+        cards: { type: list, quiet: true }
+        # The cards on the board already that it is to put in order: its
+        # plan may be given these, and no other card that was there.
+        gathers: { type: records, of: board }
+        # A label: every card that carries it and is not done is gathered
+        # when the feature is first planned, and `gathers` says which
+        # those were from then on.
+        labelled: { type: text }
+      views:
+        features: { kind: board, by: status }
+        list: { kind: table }
+      history:
+        record.created: "{actor} asked for it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.removed: "{actor} took it away"
+        feature.asked: "{agent} asked: {question}"
+        feature.planned: "{agent} said how it would be built"
+        feature.gathered: "it gathers {count} card(s): {cards}"
+        feature.accepted: "it was accepted, and came to {count} card(s): {cards}"
+        feature.unaccepted: "it was moved on, and its plan was not accepted: {why}"
+        feature.done: "every card of it is done"
+
+  there:
+    description: The features there are, and which of them are not done.
+    do: rows.read
+    with:
+      project: "${params.project}"
+      collection: features
+      saying: { status: { not: "${ params.columns[3] }" } }
+
+  each:
+    description: A blueprint of its own for each feature that is not done.
+    for_each: ${steps.there.out.those}
+    spawn: std/feature
+    as: "feature-${item}"
+    with:
+      project: "${params.project}"
+      id: "${item}"
+      role: "${params.role}"
+      picks: "${params.picks}"
+      channel: "${params.channel}"
+      ready: ${params.ready}
+      rounds: ${params.rounds}
+      accepts: "${params.accepts}"
+      at: "${ params.columns[0] }"
+      planned: "${ params.columns[1] }"
+      building: "${ params.columns[2] }"
+      done: "${ params.columns[3] }"
+
+on:
+  # Each feature that is asked for is given its own.
+  added:
+    event: record.created
+    for: { project: "${params.project}", collection: features }
+    steps:
+      feature:
+        spawn: std/feature
+        as: "feature-${event.data.id}"
+        with:
+          project: "${params.project}"
+          id: "${event.data.id}"
+          role: "${params.role}"
+          picks: "${params.picks}"
+          channel: "${params.channel}"
+          ready: ${params.ready}
+          rounds: ${params.rounds}
+          accepts: "${params.accepts}"
+          at: "${ params.columns[0] }"
+          planned: "${ params.columns[1] }"
+          building: "${ params.columns[2] }"
+          done: "${ params.columns[3] }"
+
+outputs:
+  columns: ${params.columns}
+  features: ${steps.there.out.count}

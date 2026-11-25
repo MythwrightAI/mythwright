@@ -1,0 +1,30 @@
+/* A conversation: the dialog that writes one, what stands at the head of its page, and its line in the inbox. */
+.conversed-compose textarea { resize: vertical; min-height: 96px; max-height: 40vh; }
+.conversed-field { display: grid; gap: 6px; min-width: 0; }
+.conversed-field > label { font-size: calc(12px * var(--size)); color: var(--dim); }
+/* Who it is to: those chosen, each with what takes it off, and where another is typed, on as many lines as they need. */
+.conversed-to { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; padding: 5px 6px; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg0); }
+.conversed-to input { flex: 1 1 120px; min-width: 0; width: auto; height: calc(24px * var(--tall)); padding: 0 2px; border: 0; background: transparent; }
+.conversed-to input:focus { outline: none; }
+.conversed-to:focus-within { border-color: var(--accent); }
+.conversed-chosen { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; min-width: 0; height: calc(24px * var(--tall)); padding: 0 2px 0 8px; border-radius: calc(12px * var(--round)); background: var(--bg2); font-size: calc(12.5px * var(--size)); }
+.conversed-chosen button { flex: none; width: calc(20px * var(--tall)); height: calc(20px * var(--tall)); color: var(--faint); }
+.conversed-chosen button:hover { color: var(--text); }
+/* Who can be chosen, each saying who it is: a list of its own, which scrolls in itself. */
+.conversed-offered { display: grid; gap: 1px; max-height: 132px; min-width: 0; overflow-y: auto; overflow-x: hidden; }
+.conversed-offered p { margin: 0; padding: 4px 2px; font-size: calc(12.5px * var(--size)); }
+.conversed-one { display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%; height: calc(28px * var(--tall)); padding: 0 8px; border: 0; border-radius: calc(6px * var(--round)); background: transparent; color: var(--text); font: inherit; font-size: calc(13px * var(--size)); text-align: left; }
+.conversed-one:hover, .conversed-one:focus-visible { background: var(--bg2); }
+.conversed-one .faint { flex: none; font-size: calc(11px * var(--size)); }
+.conversed-note { margin: 0; font-size: calc(12px * var(--size)); }
+/* At the head of its page: the envelope where a private channel has its lock, and what opens what is done with it. */
+.conversed-subject { display: flex; align-items: center; min-width: 0; }
+.brand .inbox-compose { flex: none; width: 26px; height: calc(24px * var(--tall)); margin: -2px 0; color: var(--faint); }
+.brand .inbox-compose:hover { color: var(--text); }
+@media (max-width: 760px), (pointer: coarse) and (max-height: 520px) {
+  .brand .inbox-compose { width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); margin: 0; }
+  .conversed-one { height: calc(40px * var(--tall)); font-size: calc(15px * var(--size)); }
+  .conversed-chosen { height: calc(32px * var(--tall)); font-size: calc(14px * var(--size)); }
+  .conversed-chosen button { width: calc(30px * var(--tall)); height: calc(30px * var(--tall)); }
+  .conversed-to input { height: calc(32px * var(--tall)); }
+}

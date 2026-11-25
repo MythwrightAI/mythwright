@@ -1,0 +1,33 @@
+[package]
+name = "projects"
+description = "Projects and their files: a project's row, its folder and the factory's place for its own blueprints, what a table keeps private there, and the Trash's rows and files of what is deleted."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# Most of what it does is played through the studio, which opens it (the
+# studio suite's `projects.rs`, `trashed.rs`) and the API suite; its own
+# suite holds what is of plain paths.
+test = false
+doctest = false
+
+[dependencies]
+brand = { workspace = true }
+blueprint = { workspace = true }
+kernel = { workspace = true }
+journal = { workspace = true }
+texts = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+rusqlite = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

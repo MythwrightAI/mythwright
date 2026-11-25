@@ -1,0 +1,210 @@
+# A role: so many agents that do the same kind of work.
+#
+# Nothing in the factory knows what any agent is for. A role is how a
+# fleet says it: a word (`worker`, `reviewer`, whatever the fleet calls
+# them), what an agent of that role is told and may do, and how many of
+# them there are. Applied, it brings that many up, called `<role>-1`,
+# `<role>-2` and so on, each an agent like any other (`std/agent`, under
+# this) and each marked with the role. Work is then given to the role
+# (`agent.task` with `role: reviewer`), to whichever of them has nothing
+# in hand, and a conversation begun with one of them is carried on with
+# that one. A role may be made of several of these, each called something
+# of its own (`name`) and run by something else: three who review, on
+# three models, are three of these with one role.
+#
+# Applied again with another `count`, there are that many: more are
+# brought up, and those past the count leave. How they leave is `leave`:
+# `finish`, the usual, has one take no more work and stop when it has
+# finished what it has in hand; `now` stops it where it is, and what it
+# was doing with it. Stopping the instance stops them all, at once. What
+# the role is told and may do can be said again the same way, and reaches
+# every one of them. Called something else, those under the old name leave
+# as those past the count do, and as many come up under the new.
+#
+#   mw apply std/role --project shop --key reviewers \
+#       --param role=reviewer --param count=3 --param permission=read \
+#       --param instructions="You review changes. You change nothing yourself."
+blueprint: std/role
+version: 6
+description: Bring up so many agents of one role, each told and allowed the same.
+permissions: [agents, blueprints]
+
+params:
+  role:
+    type: string
+    description: "What the fleet calls agents of this kind: a word, such as `worker`."
+
+  name:
+    type: string
+    default: ""
+    description: "What these are called, each with its number after it (`<name>-1`); the role's own word, if empty."
+
+  count:
+    type: int
+    default: 1
+    description: "How many of them there are. With 0 there are none."
+
+  leave:
+    type: string
+    default: finish
+    enum: [finish, now]
+    description: "What becomes of one that is no longer counted: `finish`, it takes no more work and is stopped when it has finished what it has in hand; `now`, it is stopped where it is."
+
+  instructions:
+    type: string
+    default: ""
+    description: "What an agent of this role is told on every turn: what it is for, and how it is to work."
+
+  prompt:
+    type: string
+    default: ""
+    description: "A file of the project's own words each is told first, before `instructions`: its name in the `prompts/` of the project's own blueprints (`reviewer.md`), read as it was vouched for. None, if empty."
+
+  rank:
+    type: int
+    default: 0
+    description: "How these are ranked among all of their role, the higher before the lower: read where work is given to the one ranked highest (`pick: rank`), and nowhere else."
+
+  permission:
+    type: string
+    default: edit
+    enum: [read, edit, full]
+    description: "How much one may do unasked: `read` looks and changes nothing, `edit` changes files where it works, `full` anything."
+
+  holds:
+    type: list
+    default: []
+    description: "What each one's credential holds, as scopes (`board:read`, `channels`); what an agent usually holds, if empty. No more than whoever applied this holds."
+
+  wall:
+    type: string
+    default: ""
+    description: "Whether each one's program works behind a wall, shown its work and a home of its own and nothing else of this device: `on` or `off`. If empty, each is as it was, and one that is new has one. `off` takes `shell`."
+
+  reads:
+    type: list
+    default: []
+    description: "What else each one's program may read behind its wall: folders or files, written from the top or from the home of whoever runs the daemon (`~/.cargo`). Takes `shell`."
+
+  changes:
+    type: list
+    default: []
+    description: "What else it may change there, written the same way. Takes `shell`."
+
+  git:
+    type: string
+    default: ""
+    description: "What each one's program may do with the project's repository behind its wall: `off`, `read`, `commit` (its own work) or `write` (all of it). If empty, each is as it was, and one that is new reads."
+
+  secrets:
+    type: list
+    default: []
+    description: "The keys each one's program is handed: secrets the factory keeps, each under a variable of its environment, written `VARIABLE=name` (`REMOTE_TOKEN=remote-bot`). Takes `secrets:use`."
+
+  outlives:
+    type: string
+    default: ""
+    description: "Whether each one's program goes on without the daemon, and is taken up where it is by the next one: `on` or `off`. If empty, each is as it was, and a new one's does not."
+
+  web:
+    type: string
+    default: ""
+    description: "Whether each one's program may use the web unasked, looking things up and fetching pages by itself: `on` or `off`. If empty, each is as it was, and a new one's may not."
+
+  adapter:
+    type: string
+    default: ""
+    description: "What runs them; the device's usual, if empty."
+
+  model: { type: string, default: "", description: "Which model, where there is a choice." }
+  channel: { type: string, default: "", description: "A channel they listen in; none, if empty." }
+
+  reports:
+    type: string
+    default: ""
+    description: "A channel each is in to say there what it is asked there, and asked there by its name; none, if empty."
+
+  signins:
+    type: list
+    default: []
+    description: "What each draws its sign-in from, in order; nothing, for a program that signs in as whoever runs the daemon."
+
+state:
+  # How many it has brought up, and what they were called, so that applied
+  # again with fewer, or under another name, it knows which are to leave.
+  count: 0
+  named: ""
+
+steps:
+  some:
+    when: ${ params.count < 0 }
+    do: fail
+    with:
+      message: "`count` is how many agents there are in the role, and is not less than none; it is ${params.count}."
+
+  counted:
+    description: What each is called, and which of those there were are no longer counted. Applied with fewer than there were, those past the count; called something else, all that had the old name.
+    do: agent.counted
+    with:
+      name: "${params.name}"
+      role: "${params.role}"
+      count: ${params.count}
+      had: ${state.count}
+      called: "${state.named}"
+
+  told:
+    description: What each is told, the project's own words its `prompt` names first where it names any.
+    do: text.put
+    with:
+      parts:
+        - { own: "${params.prompt}", if: "${ params.prompt != '' }" }
+        - { say: "\n\n", if: "${ params.prompt != '' }" }
+        - "${params.instructions}"
+
+  each:
+    description: Each is an agent of its own (`std/agent`), told and allowed what the role is, and marked with it.
+    for_each: ${steps.counted.out.names}
+    call: std/agent
+    as: "${item}"
+    with:
+      name: "${item}"
+      role: "${params.role}"
+      rank: ${params.rank}
+      instructions: "${steps.told.out.text}"
+      permission: "${params.permission}"
+      holds: ${params.holds}
+      wall: "${params.wall}"
+      reads: ${params.reads}
+      changes: ${params.changes}
+      git: "${params.git}"
+      secrets: ${params.secrets}
+      outlives: "${params.outlives}"
+      web: "${params.web}"
+      adapter: "${params.adapter}"
+      model: "${params.model}"
+      joins: "${params.channel}"
+      reports: "${params.reports}"
+      signins: ${params.signins}
+
+  past:
+    description: Those no longer counted leave, as `leave` says. What they did is kept; counted in again, they are back.
+    for_each: ${steps.counted.out.past}
+    call: std/agent
+    as: "${item}"
+    with: { name: "${item}", leave: "${params.leave}" }
+
+  released:
+    description: And are no longer held by this, which held its agents itself before each had a text of its own.
+    for_each: ${steps.counted.out.past}
+    do: agent.stop
+    with:
+      name: "${item}"
+      idle: ${ params.leave == "finish" }
+
+  kept:
+    do: set
+    with: { count: "${params.count}", named: "${steps.counted.out.named}" }
+
+outputs:
+  role: "${params.role}"
+  agents: ${steps.each.count}

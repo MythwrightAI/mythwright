@@ -1,0 +1,637 @@
+# One feature, from being asked for to its last card being done.
+#
+# It is a long-lived instance, one per feature (`std/features` starts
+# it), and is the feature's pipeline. What it does is in four handlers:
+#
+# - **planned.** Where the feature begins, it is put to an agent of a role
+#   (`std/feature-round`), which asks what it needs to know or says how
+#   the feature would be built. The same agent has it throughout, in one
+#   conversation, and is told when what the feature asks is changed, when
+#   something is said on it, and when it is sent back to be planned again;
+# - **accepted.** Moved to where a feature is built, by somebody who
+#   holds what changing a card takes (a person, unless `accepts` says
+#   anyone), its plan becomes cards: one for each ticket the plan ends
+#   with, each waiting on the cards its ticket says, and each saying it
+#   is a piece of this feature. A ticket may be a card that is on the
+#   board already, one of those the feature gathers (`gathers`): that
+#   card is given what it waits on and says it is a piece of this, and is
+#   otherwise left as it is. The plan is held against the board before
+#   anything is written (`tickets.fit`): one that does not fit, or that
+#   was moved on by somebody who may not accept it, is said on the
+#   feature with why, and the feature goes back to where it waits. A
+#   plan that lists no tickets, of a feature that gathers nothing, comes
+#   to one card, which is the feature;
+# - **built.** When every one of its cards is done, the feature is;
+# - **taken away,** it ends.
+#
+# The tickets of a plan are a block of this form at its end, the same as a
+# plan that is a document has (`std/plan`): `after` lists tickets by their
+# place in the block, counted from 1.
+#
+#   ```tickets
+#   [
+#     { "title": "Lay the floor", "body": "What is wanted, and how one would know it is done." },
+#     { "title": "Put the shelves up", "after": [1] }
+#   ]
+#   ```
+blueprint: std/feature
+version: 5
+description: "Take one feature from being asked for to done: planned by an agent, accepted by a person, built as the cards its plan lists."
+permissions: [records, board, channels, agents, blueprints]
+# One thing at a time: a round asks an agent, and what is said on the
+# feature while it does is for the round after.
+one_at_a_time: true
+
+params:
+  project: { type: string, description: "The project it works in." }
+  id: { type: string, description: "The feature's id." }
+  role: { type: string, default: architect, description: "Whose agent plans it." }
+
+  picks:
+    type: string
+    default: first
+    enum: [first, turn, least, rank]
+    description: "How it is picked."
+
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+  ready: { type: bool, default: true, description: "Whether its cards are made ready." }
+  rounds: { type: int, default: 8, description: "Rounds of planning, at most." }
+  at: { type: string, default: backlog, description: "Where a feature begins, and is planned." }
+  planned: { type: string, default: planned, description: "Where it waits with a plan." }
+
+  building:
+    type: string
+    default: building
+    description: "Where it is once its plan is accepted."
+
+  done: { type: string, default: done, description: "Where it is when its cards are done." }
+
+  accepts:
+    type: string
+    default: person
+    enum: [person, anyone]
+    description: "Who accepts its plan by moving it on: a `person` who holds what changing a card takes, or `anyone` who does, an agent included."
+
+  told:
+    type: string
+    description: "What its agent is told of how a feature is planned, beside what its row of the fleet's agents says."
+    default: |
+      Read the feature. If something you need in order to say how it would be built is missing, ask for it: one question, in a sentence or two, and nothing else. Otherwise say how it would be built: what there is to do and why in that order, and what could go wrong. End with its tickets, the pieces of work it comes to, each small enough for one agent to do and one to look over, as a block of exactly this form:
+
+      ```tickets
+      [
+        { "title": "Lay the floor", "body": "What is wanted, and how one would know it is done." },
+        { "title": "Put the shelves up", "body": "...", "after": [1] }
+      ]
+      ```
+
+      `after` lists the tickets a ticket waits on, by their place in the block, counted from 1. Tickets that wait on nothing of each other are worked side by side.
+
+      Where the feature gathers cards that are on the board already, they are shown to you with it, and a ticket may be one of them: `{ "card": "shop-3", "after": [1] }` is the card shop-3, which then waits on the first ticket, where `{ "title": ... }` is a new card. `after` may also name a card on the board by its id (`"after": [1, "shop-9"]`). A ticket that is a card and says no `after` leaves what that card waits on as it is. You may be given only the cards the feature gathers.
+
+state:
+  begun: false
+  rounds: 0
+  agent: ""
+  # What follows from those, kept each time a round is counted
+  # (`agent.round`): the actor its agent is, so that what its agent does
+  # to the feature is not taken for an answer; and whether it may be put
+  # to its agent again.
+  its: "agent:"
+  open: false
+  # Whether its plan was accepted, the tickets that came to, and the cards:
+  # which, how many, and as a sentence lists them; which of them are to be
+  # made ready, and what changed for those that were there already.
+  accepted: false
+  tickets: []
+  cards: []
+  count: 0
+  listed: ""
+  ready: []
+  changes: ""
+  # Why its plan was not accepted, the last time it was moved on and was not.
+  why: ""
+  # Who moved it on, while its plan is being taken up; nobody otherwise.
+  mover: ""
+  # Who wrote its plan as it stands (its agent, or whoever changed it), for its cards' history.
+  wrote: ""
+
+# What it keeps of its rounds is said again when it has taken another
+# text where it is (`carried`). One carried over from a text that kept
+# less has nobody who moved it on, and nothing is asked of it for that:
+# what reads `mover` takes nothing kept for nobody.
+on_update:
+  - do: set
+    with: { begun: true, open: true }
+
+on:
+  first:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && !state.begun }
+    steps:
+      begun:
+        do: set
+        with: { begun: true, open: true }
+
+      round:
+        call: std/feature-round
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          id: "${params.id}"
+          role: "${params.role}"
+          picks: "${params.picks}"
+          channel: "${params.channel}"
+          at: "${params.at}"
+          planned: "${params.planned}"
+          told: "${params.told}"
+
+      counted:
+        do: agent.round
+        with:
+          had: ${state.rounds}
+          most: ${params.rounds}
+          took: "${steps.round.out.agent}"
+          has: "${state.agent}"
+
+      kept:
+        do: set
+        with:
+          rounds: ${steps.counted.out.rounds}
+          agent: "${steps.counted.out.agent}"
+          its: "${steps.counted.out.its}"
+          open: ${steps.counted.out.open}
+
+  # Carried over to another text: how many rounds there may be may be
+  # another number, and one carried from a text that kept less has what
+  # follows from its rounds said for the first time. Nothing is counted.
+  carried:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && state.begun }
+    steps:
+      counted:
+        do: agent.round
+        with:
+          had: ${state.rounds}
+          most: ${params.rounds}
+          counts: false
+          has: "${state.agent}"
+
+      kept:
+        do: set
+        with:
+          its: "${steps.counted.out.its}"
+          open: ${steps.counted.out.open}
+
+  # Something was said on the feature by somebody other than its own
+  # agent: the answer to what it asked, or a word on what it proposed.
+  said:
+    event: record.commented
+    for: { id: "${params.id}" }
+    when: ${ state.open && !state.accepted && (event.data.by ?? '') != state.its }
+    steps:
+      round:
+        call: std/feature-round
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          id: "${params.id}"
+          agent: "${state.agent}"
+          role: "${params.role}"
+          picks: "${params.picks}"
+          channel: "${params.channel}"
+          at: "${params.at}"
+          planned: "${params.planned}"
+          told: "${params.told}"
+          why: said
+          note: "${ event.data.body ?? '' }"
+
+      counted:
+        do: agent.round
+        with:
+          had: ${state.rounds}
+          most: ${params.rounds}
+          took: "${steps.round.out.agent}"
+          has: "${state.agent}"
+
+      kept:
+        do: set
+        with:
+          rounds: ${steps.counted.out.rounds}
+          agent: "${steps.counted.out.agent}"
+          its: "${steps.counted.out.its}"
+          open: ${steps.counted.out.open}
+
+  # The feature was changed: what it asks, or where it is.
+  changed:
+    event: record.updated
+    for: { id: "${params.id}" }
+    when: ${state.begun}
+    steps:
+      now:
+        do: record.get
+        with: { id: "${params.id}" }
+
+      news:
+        description: Whether its agent is to be told. What it asks was changed by somebody else (`changed`), or it was sent back to be planned again (`back`); or neither, and nobody is told (`none`).
+        do: agent.news
+        with:
+          open: ${state.open}
+          settled: ${state.accepted}
+          by: "${event.source.actor}"
+          its: "${state.its}"
+          rounds: ${state.rounds}
+          reworded: ${ 'title' in (event.data.changed ?? []) || 'body' in (event.data.changed ?? []) }
+          moved: ${ 'status' in (event.data.changed ?? []) }
+          here: ${ steps.now.out.data.status == params.at }
+
+      round:
+        description: Its agent is told.
+        when: ${ steps.news.out.came != "none" }
+        call: std/feature-round
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          id: "${params.id}"
+          agent: "${state.agent}"
+          role: "${params.role}"
+          picks: "${params.picks}"
+          channel: "${params.channel}"
+          at: "${params.at}"
+          planned: "${params.planned}"
+          told: "${params.told}"
+          why: "${steps.news.out.came}"
+
+      counted:
+        when: ${steps.round.ok}
+        do: agent.round
+        with:
+          had: ${state.rounds}
+          most: ${params.rounds}
+          took: "${steps.round.out.agent}"
+          has: "${state.agent}"
+
+      counts:
+        when: ${steps.counted.ok}
+        do: set
+        with:
+          rounds: ${steps.counted.out.rounds}
+          agent: "${steps.counted.out.agent}"
+          its: "${steps.counted.out.its}"
+          open: ${steps.counted.out.open}
+
+      proposed:
+        description: Its plan, where its round wrote it, is its agent's work.
+        when: ${ "plan" in (event.data.changed ?? []) && (event.data.through ?? "") == "std/feature-round" }
+        do: set
+        with: { wrote: "${state.its}" }
+
+      rewritten:
+        description: Where anybody else changed it, it is theirs.
+        when: ${ "plan" in (event.data.changed ?? []) && (event.data.through ?? "") != "std/feature-round" }
+        do: set
+        with: { wrote: "${ event.source.actor ?? '' }" }
+
+      # Moved to where a feature is built: who moved it is kept, and its
+      # plan is taken up in a handler of its own (`taken`), which is asked
+      # for again when the daemon has been away in the middle of it.
+      # Whether it was moved there is what the event says of its own
+      # change (`chose`), and never where the feature is by the time this
+      # hears of it: an earlier change of somebody else's, heard late,
+      # would be taken for the move.
+      moved_on:
+        description: Who moved it on, kept for as long as its plan is being taken up.
+        when: ${ event.data.chose.status == params.building && !state.accepted }
+        do: set
+        with: { mover: "${ event.source.actor ?? '' }" }
+
+      take:
+        when: ${steps.moved_on.ok}
+        do: emit
+        with: { topic: feature.moved_on, record: "${params.id}", project: "${params.project}" }
+
+  # The daemon was away. A plan that was being taken up when it went is
+  # asked for again: what was under way then is taken up where it was, or
+  # was ended where it could not be gone on with, and
+  # taken a second time a plan makes nothing twice.
+  started:
+    event: system.started
+    when: ${ (state.mover ?? "") != "" && !state.accepted }
+    steps:
+      take:
+        do: emit
+        with: { topic: feature.moved_on, record: "${params.id}", project: "${params.project}" }
+
+  # Moved on: whether that accepts its plan is asked before anything is
+  # written, so that a plan is taken whole or not at all. Whoever moved it
+  # has cards added and changed for them, by this, which holds what whoever
+  # applied it holds: so they are asked for what changing a card takes,
+  # and with the usual (`accepts`) they are a person.
+  taken:
+    event: feature.moved_on
+    scope: own
+    for: { record: "${params.id}" }
+    when: ${ (state.mover ?? "") != "" && !state.accepted }
+    steps:
+      settled_already:
+        description: Asked for a second time for one move (as the daemon came back, while the first was still going on), it finds the plan taken or refused by then, and does nothing.
+        when: ${ state.accepted || (state.mover ?? "") == "" }
+        do: end
+
+      now:
+        do: record.get
+        with: { id: "${params.id}" }
+
+      may:
+        description: What whoever moved it on holds now; asked of a person, unless `accepts` says anyone.
+        allow_failure: true
+        do: actor.holds
+        with:
+          actor: "${ state.mover ?? '' }"
+          scope: "board:write"
+          who: "${params.accepts}"
+
+      tickets:
+        description: The tickets its plan ends with, as the block says them.
+        when: ${ steps.may.out.holds ?? false }
+        do: tickets.read
+        with: { content: "${ steps.now.out.data.plan ?? '' }" }
+
+      board:
+        description: The project's cards as they stand, which the plan is held against.
+        when: ${steps.tickets.ok}
+        do: rows.read
+        with: { project: "${params.project}", collection: board }
+
+      where:
+        description: Where cards begin on the board, and where they end.
+        when: ${steps.board.ok}
+        do: board.list
+        with: { project: "${params.project}", ids: [] }
+
+      fits:
+        description: "Whether the plan fits what is there: a ticket may be one of the cards the feature gathers, and nothing may wait on itself by any road. Nothing has been written yet."
+        when: ${steps.where.ok}
+        do: tickets.fit
+        with:
+          read: "${steps.tickets.out.came}"
+          unread: "${ steps.tickets.out.why ?? '' }"
+          tickets: ${steps.tickets.out.tickets}
+          may: ${ steps.now.out.data.gathers ?? [] }
+          rows: ${steps.board.out.rows}
+          of: "${params.id}"
+          over: "${steps.where.out.last}"
+
+      # Not accepted: by whom it may not be, or a plan that does not fit.
+      # Why is kept to be said, the feature goes back to where it waits
+      # with a plan, and nothing else is changed.
+      agents:
+        description: An agent moved it on, where a plan is a person's to accept.
+        when: ${ steps.may.out.refused == "agent" }
+        do: set
+        with: { why: "an agent moved it on, and its plan is a person's to accept.", mover: "" }
+
+      unheld:
+        description: Whoever moved it on does not hold what changing a card takes.
+        when: ${ steps.may.out.refused == "scope" }
+        do: set
+        with:
+          why: "whoever moved it on does not hold `board:write`, which adding and changing the cards it comes to takes."
+          mover: ""
+
+      unfit:
+        description: Its plan does not fit what is on the board.
+        when: ${ steps.fits.out.came == "unfit" }
+        do: set
+        with: { why: "${steps.fits.out.why}", mover: "" }
+
+      unaccepted:
+        description: Said of the feature, with why, for its history.
+        when: ${ steps.agents.ok || steps.unheld.ok || steps.unfit.ok }
+        do: emit
+        with:
+          topic: feature.unaccepted
+          record: "${params.id}"
+          project: "${params.project}"
+          why: "${state.why}"
+
+      back:
+        description: It goes back to where it waits with a plan, to be put right and moved on again.
+        when: ${steps.unaccepted.ok}
+        do: record.update
+        with:
+          id: "${params.id}"
+          fields: { status: "${params.planned}" }
+
+      untold:
+        description: And said where the work is reported.
+        when: ${ steps.unaccepted.ok && params.channel != "" }
+        allow_failure: true
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${params.id} was moved on, and its plan was not accepted: ${state.why} It is back in ${params.planned}: say on it what should be otherwise, or put it right and move it on again."
+
+      accepting:
+        description: "Its plan fits, and is taken. That it was accepted is kept only when its cards are as the plan says (`settled`): cut short before that, it is taken up again, and makes nothing twice."
+        when: ${ steps.fits.out.came in ["fits", "whole"] }
+        do: set
+        with: { why: "" }
+
+      read:
+        description: The tickets are kept.
+        when: ${ steps.accepting.ok && steps.tickets.out.came == "read" }
+        do: set
+        with: { tickets: "${steps.tickets.out.tickets}" }
+
+      unread:
+        description: A block that cannot be read is said, with why, and the feature comes to one card.
+        when: ${ steps.accepting.ok && steps.tickets.out.came == "unread" && params.channel != "" }
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${params.id}: the tickets its plan ends with could not be read (${steps.tickets.out.why}), so it came to one card. They are a list written as JSON between a line that says ```tickets and a line that says ```."
+
+      added:
+        description: "A card for each ticket that is new, where cards begin, each saying which feature it is a piece of. None is made ready yet: a card is not begun before it says what it waits on."
+        when: ${ steps.accepting.ok && steps.fits.out.came == "fits" }
+        for_each: ${steps.fits.out.new}
+        do: board.add
+        with:
+          project: "${params.project}"
+          title: "${item.title}"
+          body: "${ item.body ?? '' }\n\nA piece of ${params.id}: ${steps.now.out.data.title}."
+          fields: { after: [], part_of: "${params.id}" }
+          wrote: "${ state.wrote ?? '' }"
+
+      placed:
+        description: "What every card of the plan waits on, new and there already: the places and the cards its ticket named, and for a card that was there what it already waited on outside this plan."
+        when: ${steps.added.ok}
+        do: tickets.placed
+        with:
+          tickets: ${steps.tickets.out.tickets}
+          made: ${steps.added.out}
+          may: ${ steps.now.out.data.gathers ?? [] }
+          rows: ${steps.board.out.rows}
+          of: "${params.id}"
+          over: "${steps.where.out.last}"
+          begins: "${steps.where.out.first}"
+
+      linked:
+        description: Each card says which cards it waits on, and which feature it is a piece of.
+        when: ${steps.placed.ok}
+        for_each: ${steps.placed.out.links}
+        do: board.update
+        with:
+          id: "${item.id}"
+          fields: { after: "${item.after}", part_of: "${item.part_of}" }
+
+      several:
+        when: ${steps.linked.ok}
+        do: set
+        with:
+          cards: ${steps.placed.out.ids}
+          count: ${steps.placed.out.count}
+          listed: "${steps.placed.out.listed}"
+          ready: ${steps.placed.out.ready}
+          changes: "${steps.placed.out.told}"
+
+      whole:
+        description: "A plan that lists no tickets, of a feature that gathers nothing, is one piece of work: a card that is the feature, with its plan."
+        when: ${ steps.accepting.ok && steps.fits.out.came == "whole" }
+        do: board.add
+        with:
+          project: "${params.project}"
+          title: "${steps.now.out.data.title}"
+          body: "${ steps.now.out.data.body ?? '' }\n\nThe whole of ${params.id}."
+          fields: { after: [], part_of: "${params.id}", plan: "${ steps.now.out.data.plan ?? '' }" }
+          wrote: "${ state.wrote ?? '' }"
+
+      one:
+        when: ${steps.whole.ok}
+        do: set
+        with:
+          cards: ["${steps.whole.out.id}"]
+          count: 1
+          listed: "${steps.whole.out.id}"
+          ready: ["${steps.whole.out.id}"]
+          changes: ""
+
+      readied:
+        description: "Where they are to be worked without anyone saying so, they are made ready, now that each says what it waits on: the new ones, and those that were there and had not been begun. A card already in hand is left where it is."
+        when: ${ steps.accepting.ok && params.ready }
+        for_each: ${state.ready}
+        do: board.move
+        with: { id: "${item}", to: ready }
+
+      kept:
+        description: The feature says which cards it came to.
+        when: ${steps.accepting.ok}
+        do: record.update
+        with:
+          id: "${params.id}"
+          fields: { cards: "${state.cards}" }
+
+      settled:
+        description: Accepted once, however often it is moved there.
+        when: ${steps.kept.ok}
+        do: set
+        with: { accepted: true, mover: "" }
+
+      accepted:
+        when: ${steps.accepting.ok}
+        do: emit
+        with:
+          topic: feature.accepted
+          record: "${params.id}"
+          project: "${params.project}"
+          count: ${state.count}
+          cards: "${state.listed}"
+
+      told:
+        description: Said where the work is reported, of cards that were made ready.
+        when: ${ steps.accepting.ok && params.channel != "" && params.ready }
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${params.id} was accepted, and came to ${state.count} card(s): ${state.listed}. They are ready: each is begun when the cards it waits on are done. ${state.changes}"
+
+      told_waiting:
+        description: And of cards that wait where they were added.
+        when: ${ steps.accepting.ok && params.channel != "" && !params.ready }
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${params.id} was accepted, and came to ${state.count} card(s): ${state.listed}. They are in the board’s first column until someone makes them ready. ${state.changes}"
+
+      # A feature whose cards were all done before it was accepted has
+      # none left to hear of: it is done now.
+      left:
+        description: Those of its cards that are not done.
+        when: ${steps.accepting.ok}
+        do: board.list
+        with: { project: "${params.project}", ids: "${state.cards}", except: done }
+
+      finished:
+        when: ${ steps.left.out.count == 0 }
+        do: record.update
+        with:
+          id: "${params.id}"
+          fields: { status: "${params.done}" }
+
+      ended:
+        when: ${steps.finished.ok}
+        do: emit
+        with: { topic: feature.done, record: "${params.id}", project: "${params.project}" }
+
+      ended_told:
+        when: ${ steps.finished.ok && params.channel != "" }
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${params.id} is done: every card of it was done already."
+
+      over:
+        when: ${steps.finished.ok}
+        do: stop
+
+  # One of its cards is done. When all of them are, so is the feature.
+  built:
+    event: board.item.moved
+    for: { project: "${params.project}", to: done }
+    when: ${ state.accepted && event.data.id in state.cards }
+    steps:
+      theirs:
+        description: Those of its cards that are not done yet.
+        do: board.list
+        with: { project: "${params.project}", ids: "${state.cards}", except: done }
+
+      finished:
+        when: ${ steps.theirs.out.count == 0 }
+        do: record.update
+        with:
+          id: "${params.id}"
+          fields: { status: "${params.done}" }
+
+      said:
+        when: ${steps.finished.ok}
+        do: emit
+        with: { topic: feature.done, record: "${params.id}", project: "${params.project}" }
+
+      told:
+        when: ${ steps.finished.ok && params.channel != "" }
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${params.id} is done: every card of it is."
+
+      over:
+        when: ${steps.finished.ok}
+        do: stop
+
+  removed:
+    event: record.removed
+    for: { id: "${params.id}" }
+    do: stop

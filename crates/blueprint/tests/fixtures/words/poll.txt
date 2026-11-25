@@ -1,0 +1,95 @@
+The words of a poll, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== poll.do
+--- written
+blueprint: w
+on:
+    poke:
+        poll:
+            every: 1m
+            do: noop
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    poll:
+      every: 1m
+      do: noop
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        poll:
+            every: 1m
+            do: nothing.like.it
+        do: noop
+--- refused 3:5
+there is no action called `nothing.like.it`
+
+=== poll.every
+--- written
+blueprint: w
+on:
+    poke:
+        poll:
+            every: 1m
+            do: noop
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    poll:
+      every: 1m
+      do: noop
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        poll:
+            every: often
+            do: noop
+        do: noop
+--- refused 4:9
+`poll` needs `every: <duration>` and `do: <action>`
+
+=== poll.with
+--- written
+blueprint: w
+on:
+    poke:
+        poll:
+            every: 1m
+            do: log
+            with: {message: hi}
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    poll:
+      every: 1m
+      do: log
+      with: { message: hi }
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        poll:
+            every: 1m
+            do: noop
+            with: [a]
+        do: noop
+--- refused 7:19
+`with` must be a mapping, found a list

@@ -1,0 +1,75 @@
+/* A table's records by what comes first, and in bands by what they name
+   (`views/ordered.tsx`). The columns are the board's own to look at; what
+   is here is how they stand beside each other and what a card says of
+   what it waits on. */
+
+.ordered { height: 100%; min-width: 0; overflow: auto; padding: 0 20px 20px; }
+.ordered-sum { margin: 2px 0 10px; position: sticky; left: 0; }
+.ordered-above { position: sticky; left: 0; max-width: 520px; margin-bottom: 10px; }
+.ordered .bands { height: auto; padding: 0; overflow: visible; }
+
+/* Every band has the same columns, of the same widths, so that one band's
+   stand under another's. */
+.ordered-lanes { display: grid; grid-auto-flow: column; gap: 12px; align-items: start; width: max-content; }
+/* One step and nothing beside it: it has the room that is left, and its cards stand in rows across it. */
+.ordered-room { width: 100%; }
+.ordered-wide .cards { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); }
+.ordered-lane { min-width: 0; }
+.ordered-lane .cards { overflow: visible; }
+/* A card is as wide as its column and no wider, whatever it says: the
+   column's one track is the column's width, where left to itself it grew
+   to the widest thing any card would not break (a line of labels), and
+   every card with it. What a card says in a line goes onto the next. */
+.cards { grid-template-columns: minmax(0, 1fr); }
+.card { min-width: 0; }
+.card > .row { flex-wrap: wrap; row-gap: 4px; min-width: 0; }
+/* A card with nothing to say under its title keeps no line for it. */
+.card > .row:not(:has(> :not(.grow))) { display: none; }
+.card > .row > .badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A card's labels are a line of their own, the last: as wide as the card, so that the line they were in ends before them. */
+.card > .row > .card-tags { flex: none; width: 100%; display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.card-tags > .tag { max-width: 100%; }
+/* Whom a card is given to, a line of its own before the labels, as words: on one line where the card has room, and
+   where it has not the kind goes onto the next, the name whole (cut short it was a letter or two in a column's width). */
+.card > .row > .card-assigned { flex: none; width: 100%; min-width: 0; font-size: calc(12px * var(--size)); line-height: 1.35; overflow-wrap: anywhere; }
+.card-assigned > .faint { white-space: nowrap; }
+/* A tag among other marks in a line (a card's labels, what a view is held to): the same tag, the line's height, cut short where it has no room. */
+.tag-small { display: inline-block; height: calc(18px * var(--tall)); padding: 0 6px; font-size: calc(11.5px * var(--size)); line-height: calc(18px * var(--tall)); vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .id { overflow-wrap: anywhere; }
+.ordered-note { padding: 0 12px 6px; font-size: calc(11.5px * var(--size)); line-height: 1.35; }
+.ordered-fold { width: 100%; height: auto; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 650; text-align: left; cursor: pointer; padding-bottom: 10px; }
+.ordered-fold:hover { background: transparent; color: var(--accent); }
+.ordered-shut { opacity: 0.75; }
+/* A column that holds none of a band's records keeps its place and says little. */
+.ordered-none { opacity: 0.55; }
+.ordered-head, .ordered-fold { text-transform: none; }
+.ordered-ringlane { border-color: var(--accent); }
+
+.ordered-card { cursor: pointer; }
+.ordered-card > span:first-child { overflow-wrap: anywhere; }
+.ordered-over { opacity: 0.6; }
+.ordered-where { text-transform: lowercase; }
+.ordered-waits { font-size: calc(11.5px * var(--size)); line-height: 1.35; overflow-wrap: anywhere; }
+/* Pointed at, a record marks what it waits on and what waits on it: by
+   its edge alone, so that nothing moves. */
+.ordered-first { border-color: var(--info); box-shadow: inset 3px 0 0 var(--info); }
+.ordered-next { border-color: var(--accent); box-shadow: inset -3px 0 0 var(--accent); }
+
+/* Bands: records gathered by what one of their fields names. */
+.bands { height: 100%; min-width: 0; overflow: auto; padding: 0 20px 20px; display: grid; gap: 14px; align-content: start; }
+.bands-band { display: grid; gap: 8px; min-width: 0; }
+.bands-head { display: flex; align-items: center; gap: 8px; width: max-content; max-width: min(100%, 90vw); height: auto; padding: 4px 8px 4px 2px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; position: sticky; left: 0; }
+.bands-head:hover { background: transparent; color: var(--accent); }
+.bands-fold { width: 14px; color: var(--faint); }
+/* Each band's columns are the same widths, so that one band's stand under another's. */
+.bands .board { height: auto; padding: 0; overflow: visible; width: 100%; min-width: min-content; }
+.bands .board .cards { overflow: visible; }
+
+/* What a view is held to, said in its head on a line of its own. */
+.held { flex-basis: 100%; display: flex; align-items: center; gap: 10px; min-width: 0; font-size: calc(12.5px * var(--size)); color: var(--muted); }
+.held > span { min-width: 0; overflow-wrap: anywhere; }
+.held-clear { flex: none; height: calc(24px * var(--tall)); padding: 0 8px; }
+.layout-only { padding: 6px 2px 2px; text-transform: capitalize; }
+/* What records are gathered by is chosen beside its name, which keeps its room. */
+.layout-option > select { flex: 0 1 auto; width: auto; min-width: 0; max-width: 62%; height: calc(28px * var(--tall)); padding: 0 8px; }
+.layout-option > .grow { white-space: nowrap; }

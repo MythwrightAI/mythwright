@@ -1,0 +1,126 @@
+# How the entries of a card's A/B test are judged where judges score:
+# each judge scores every entry, side by side, the scores are kept as
+# they were said, and what they come to is the test's rule (`then`: a
+# person picks, the usual; the highest; the one most judges scored over
+# the others), a tie always being left for a person (`contest.scores`).
+blueprint: std/judge-scores
+version: 2
+description: "Have a card's A/B test judged by judges who each score every entry, what the scores come to being the test's own rule."
+durable: false
+permissions: [board, agents, blueprints]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  entries: { type: list, description: "The entries to judge, as their rows say them." }
+
+  judge_slot:
+    type: string
+    default: ""
+    description: "The agent who judges, where one is named."
+
+  judge_role: { type: string, default: reviewer, description: "Else the role whose agents judge." }
+  seats: { type: int, default: 1, description: "How many judge, each for itself." }
+  needed: { type: int, default: 0, description: "Taken by a judging that picks; not this one's." }
+
+  council:
+    type: string
+    default: votes
+    description: "Taken by a judging that picks; not this one's."
+
+  stretches:
+    type: int
+    default: 3
+    description: "Taken by a judging that talks; not this one's."
+
+  told:
+    type: string
+    default: ""
+    description: "What the test says to its judges, in its own words."
+
+  then:
+    type: string
+    default: person
+    description: "What the scores come to: `person`, `highest` or `most`."
+
+  scale: { type: int, default: 10, description: "The highest score there is." }
+
+  blind:
+    type: bool
+    default: true
+    description: "Whether the judges know the entries by letters alone."
+
+  not:
+    type: list
+    default: []
+    description: "Agents that may not judge: those that worked an entry."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which round of the card this is, for asking each judge once."
+
+steps:
+  shown:
+    description: What the judges are shown of each entry, by its letter, and who judges.
+    do: contest.shown
+    with: { entries: "${params.entries}", blind: "${params.blind}", seats: "${params.seats}" }
+
+  card:
+    do: board.get
+    with: { id: "${params.item}" }
+
+  asks:
+    description: What each judge is asked, which is `prompts/judge.md` with how a judge that scores answers.
+    needs: [shown, card]
+    do: text.put
+    with:
+      parts:
+        - from: judge.md
+          with:
+            item: "${params.item}"
+            title: "${steps.card.out.title}"
+            body: "${steps.card.out.body}"
+            told: "${params.told}"
+            how: [{ from: judge/scores.md, with: { scale: "${params.scale}" } }]
+            shown: "${steps.shown.out.text}"
+
+  seated:
+    description: Every judge scores at once, each for itself.
+    needs: [asks]
+    for_each: ${steps.shown.out.seated}
+    spawn: std/judge-seat
+    as: "${item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      seat: "${item}"
+      judge_slot: "${params.judge_slot}"
+      judge_role: "${params.judge_role}"
+      not: ${params.not}
+      prompt: "${steps.asks.out.text}"
+      asking: "${params.asking}"
+
+  all:
+    description: And is waited for, until every one of them has scored.
+    needs: [seated]
+    do: wait
+    with: { ended: "${steps.shown.out.seated}" }
+
+  scores:
+    description: What the scores come to, by the test's rule.
+    needs: [all]
+    do: contest.scores
+    with:
+      entries: "${params.entries}"
+      replies: "${steps.all.out.gave}"
+      scale: "${params.scale}"
+      then: "${params.then}"
+
+outputs:
+  judged: "${steps.scores.out.came}"
+  winner: "${ steps.scores.out.winner ?? '' }"
+  why: "${ steps.scores.out.why ?? '' }"
+  question: "${ steps.scores.out.question ?? '' }"
+  said: ${steps.scores.out.scores}
+  by: "${ params.judge_slot ?? '' }"

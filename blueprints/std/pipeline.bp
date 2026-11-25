@@ -1,0 +1,424 @@
+# What runs a project's pipelines: the rows of its `triggers`, each a
+# pipeline (a blueprint of the project's, `pipelines/<name>`) and what
+# runs it: somebody asking (`hand`), a branch of its repository moving
+# (`branch`), a card coming to a column (`column`), so long after it last
+# ran (`every`), or a time of day with its zone (`at`). It is a table and
+# not handlers each pipeline writes, because a pipeline run again is
+# applied over, which would end its own handlers with it.
+#
+# A run is a call of the pipeline under the row's key (its name where it
+# says none, and the environment's after it) and under the row's
+# environment, which that environment's rules hold as the call starts it
+# (who approves, the branches it runs), handed what happened, and only
+# what the pipeline takes:
+# which rows fire, under which key and with what is a block's to say
+# (`triggers.fired`). Every run first asks the project's pool for
+# pipelines for a place by its key: so a run asked for while one under the
+# same key goes on waits for that one to end, and no more than so many go
+# at once (`at_once`). Somebody who asks for a run by hand
+# (`pipeline.asked`, from outside) is asked first whether they hold what
+# the pipeline runs with: it runs with the authority of whoever applied
+# this.
+#
+# What goes by the clock is a child for each row (`std/pipeline-timed`):
+# `std/later` for a row of `every`, begun again each time it is over, and
+# `std/pipeline-at` for a row of `at`. A row of `branch` has the
+# project's branches followed (`branches.follow`), asked again as the
+# daemon starts. A run keeps nothing here: it is the pipeline's, under its
+# key. Its handlers take turns, but for a run's, which take turns by key.
+blueprint: std/pipeline
+version: 4
+description: "Run a project's pipelines as the rows of its `triggers` say: by hand, as a branch moves, as a card comes to a column, so often, or at a time of day."
+one_at_a_time: true
+# What its pipelines may use, at the most: a pipeline runs with what it
+# says of these, or all of them where it says nothing.
+permissions: [board, channels, agents, shell, projects, secrets, blueprints, records, fleet, inbox]
+
+params:
+  project: { type: string, description: "The project whose pipelines these are." }
+
+  at_once:
+    type: int
+    default: 2
+    description: "How many pipelines of the project run at once; one under a key another runs under always waits for it."
+
+steps:
+  table:
+    description: The table of what runs which pipeline. Saying a row steers runs done as whoever applied this, so writing one takes running blueprints.
+    do: collection.ensure
+    with:
+      name: triggers
+      project: "${params.project}"
+      fields:
+        title: { type: text }
+        pipeline: { type: text, required: true, takes: "blueprints:run" }
+        "on":
+          type: choice
+          of: [hand, branch, column, every, at]
+          required: true
+          takes: "blueprints:run"
+        branch: { type: text, takes: "blueprints:run" }
+        column: { type: text, takes: "blueprints:run" }
+        every: { type: text, takes: "blueprints:run" }
+        at: { type: text, zoned: true, takes: "blueprints:run" }
+        key: { type: text, takes: "blueprints:run" }
+        # The environment of the project's its runs are under. They are
+        # started as whoever applied this, whom the environment's rule of
+        # who approves may name, so saying it takes what saying that rule
+        # takes.
+        environment: { type: text, takes: ["blueprints:run", "environments:secrets"] }
+        # Who last wrote it, which the factory writes: a run under an
+        # environment whose rule says who approves waits for one of them
+        # unless whoever wrote it is one of them (`triggers.fired`).
+        environment_by: { type: text, quiet: true, hidden: true, writer_of: environment }
+        # What more the pipeline is handed, each `name=value`. It is run
+        # as whoever applied this, and a value may reach a command or name
+        # a secret, so saying it takes what those take.
+        with: { type: list, takes: ["blueprints:run", shell, "secrets:use"] }
+        paused: { type: flag, takes: "blueprints:run" }
+      views:
+        triggers: { kind: table }
+      history:
+        record.created: "{actor} added it"
+        record.updated: "{actor} changed its {changed}"
+        record.removed: "{actor} took it away"
+
+  pool:
+    description: The project's pool for pipelines, which every run asks for a place by its key.
+    call: std/pool
+    as: pool
+    with:
+      name: "${params.project}/pipelines"
+      project: "${params.project}"
+      limit: ${params.at_once}
+
+on:
+  # The rows are gone by as the instance is first there, as the daemon
+  # starts (what follows branches is asked again then), and as one of them
+  # is added, changed or taken away.
+  first:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id }
+    steps:
+      timed:
+        call: std/pipeline-timed
+        as: timed
+        with: { project: "${params.project}", row: "" }
+
+  started:
+    event: system.started
+    steps:
+      timed:
+        call: std/pipeline-timed
+        as: timed
+        with: { project: "${params.project}", row: "" }
+
+  changed:
+    event: record.*
+    for: { project: "${params.project}", collection: triggers }
+    steps:
+      timed:
+        call: std/pipeline-timed
+        as: timed
+        with: { project: "${params.project}", row: "${event.data.id}" }
+
+  # Somebody asked for a pipeline to run, from outside: it runs where a
+  # row runs it by hand and they hold what it runs with.
+  asked:
+    event: pipeline.asked
+    outside: true
+    for: { project: "${params.project}" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: triggers }
+
+      fired:
+        description: Which rows run the pipeline asked for by hand, and what whoever asked is to hold.
+        do: triggers.fired
+        with:
+          rows: ${steps.rows.out.rows}
+          "on": hand
+          pipeline: "${ event.data.pipeline ?? '' }"
+          with: ${ event.data.with ?? null }
+          by: "${event.source.actor}"
+
+      may:
+        description: Whether whoever asked holds what running blueprints takes and what the pipeline runs with, now.
+        when: ${ steps.fired.out.says == "" }
+        allow_failure: true
+        do: actor.holds
+        with:
+          actor: "${event.source.actor}"
+          scope: "blueprints:run"
+          scopes: "${steps.fired.out.holds}"
+
+      fire:
+        description: Each run that is due, said for the run to ask its place (`go`).
+        when: ${ steps.may.out.holds ?? false }
+        for_each: ${steps.fired.out.fires}
+        do: emit
+        with:
+          topic: pipeline.fired
+          project: "${params.project}"
+          row: "${item.row}"
+          pipeline: "${item.pipeline}"
+          key: "${item.key}"
+          environment: "${item.environment}"
+          with: ${item.with}
+          asks: ${item.asks}
+          asked: "${ event.data.asked ?? '' }"
+
+      why:
+        description: Where nothing runs, why, in a sentence.
+        when: ${ !(steps.may.out.holds ?? false) }
+        do: triggers.refused
+        with:
+          pipeline: "${ event.data.pipeline ?? '' }"
+          says: "${steps.fired.out.says}"
+          lacks: ${ steps.may.out.lacks ?? [] }
+
+      refused:
+        description: Said where nothing runs, with why and with what whoever asked does not hold.
+        needs: [why]
+        when: ${steps.why.ok}
+        do: emit
+        with:
+          topic: pipeline.refused
+          project: "${params.project}"
+          pipeline: "${ event.data.pipeline ?? '' }"
+          by: "${event.source.actor}"
+          asked: "${ event.data.asked ?? '' }"
+          says: "${steps.why.out.says}"
+          lacks: ${ steps.may.out.lacks ?? [] }
+
+      told:
+        description: And whoever asked is told so in their inbox.
+        needs: [why]
+        when: ${steps.why.ok}
+        allow_failure: true
+        do: inbox.tell
+        with: { to: "${event.source.actor}", says: "${steps.why.out.says}", why: refused }
+
+  # A branch of the project's repository moved to a commit.
+  moved:
+    event: project.branch.moved
+    for: { project: "${params.project}" }
+    when: ${ event.data.to != "" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: triggers }
+
+      fired:
+        description: Which rows fire for it, each with its pipeline, key and what it is handed.
+        do: triggers.fired
+        with:
+          rows: ${steps.rows.out.rows}
+          "on": branch
+          branch: "${event.data.branch}"
+          commit: "${event.data.to}"
+
+      fire:
+        description: Each run that is due, said for the run to ask its place (`go`).
+        for_each: ${steps.fired.out.fires}
+        do: emit
+        with:
+          topic: pipeline.fired
+          project: "${params.project}"
+          row: "${item.row}"
+          pipeline: "${item.pipeline}"
+          key: "${item.key}"
+          environment: "${item.environment}"
+          with: ${item.with}
+          asks: ${item.asks}
+
+      refused:
+        description: Each that cannot be run, said with why.
+        for_each: ${steps.fired.out.refused}
+        do: emit
+        with:
+          topic: pipeline.refused
+          project: "${params.project}"
+          row: "${item.row}"
+          says: "${item.says}"
+
+  # A card came to a column.
+  came:
+    event: board.item.moved
+    for: { project: "${params.project}" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: triggers }
+
+      fired:
+        description: Which rows fire for it, each with its pipeline, key and what it is handed.
+        do: triggers.fired
+        with:
+          rows: ${steps.rows.out.rows}
+          "on": column
+          column: "${event.data.to}"
+          item: "${event.data.id}"
+
+      fire:
+        description: Each run that is due, said for the run to ask its place (`go`).
+        for_each: ${steps.fired.out.fires}
+        do: emit
+        with:
+          topic: pipeline.fired
+          project: "${params.project}"
+          row: "${item.row}"
+          pipeline: "${item.pipeline}"
+          key: "${item.key}"
+          environment: "${item.environment}"
+          with: ${item.with}
+          asks: ${item.asks}
+
+      refused:
+        description: Each that cannot be run, said with why.
+        for_each: ${steps.fired.out.refused}
+        do: emit
+        with:
+          topic: pipeline.refused
+          project: "${params.project}"
+          row: "${item.row}"
+          says: "${item.says}"
+
+  # The time of day a row says came (`std/pipeline-at`).
+  due:
+    event: pipeline.due
+    scope: own
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: triggers }
+
+      fired:
+        description: Which rows fire for it, each with its pipeline, key and what it is handed.
+        do: triggers.fired
+        with:
+          rows: ${steps.rows.out.rows}
+          "on": due
+          row: "${event.data.row}"
+
+      fire:
+        description: Each run that is due, said for the run to ask its place (`go`).
+        for_each: ${steps.fired.out.fires}
+        do: emit
+        with:
+          topic: pipeline.fired
+          project: "${params.project}"
+          row: "${item.row}"
+          pipeline: "${item.pipeline}"
+          key: "${item.key}"
+          environment: "${item.environment}"
+          with: ${item.with}
+          asks: ${item.asks}
+
+      refused:
+        description: Each that cannot be run, said with why.
+        for_each: ${steps.fired.out.refused}
+        do: emit
+        with:
+          topic: pipeline.refused
+          project: "${params.project}"
+          row: "${item.row}"
+          says: "${item.says}"
+
+  # So long after it last ran: what waited for a row of `every` is over, and it waits again.
+  waited:
+    event: instance.finished
+    scope: own
+    for: { status: done }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: triggers }
+
+      fired:
+        description: Which rows fire for it, each with its pipeline, key and what it is handed.
+        do: triggers.fired
+        with:
+          rows: ${steps.rows.out.rows}
+          "on": due
+          key: "${ event.data.key ?? '' }"
+
+      fire:
+        description: Each run that is due, said for the run to ask its place (`go`).
+        for_each: ${steps.fired.out.fires}
+        do: emit
+        with:
+          topic: pipeline.fired
+          project: "${params.project}"
+          row: "${item.row}"
+          pipeline: "${item.pipeline}"
+          key: "${item.key}"
+          environment: "${item.environment}"
+          with: ${item.with}
+          asks: ${item.asks}
+
+      refused:
+        description: Each that cannot be run, said with why.
+        for_each: ${steps.fired.out.refused}
+        do: emit
+        with:
+          topic: pipeline.refused
+          project: "${params.project}"
+          row: "${item.row}"
+          says: "${item.says}"
+
+      again:
+        description: It waits again, where its row still says so.
+        needs: [fire]
+        when: ${ steps.fired.out.due != "" }
+        call: std/pipeline-timed
+        as: timed
+        with: { project: "${params.project}", row: "" }
+
+  # A run's turn has come: it has a place in the pool, by its key. One
+  # asked for under the same key while it goes on waits for it.
+  go:
+    event: pipeline.fired
+    scope: own
+    turn: "${event.data.key}"
+    steps:
+      place:
+        description: A place in the project's pool for pipelines, by the run's key.
+        do: wait
+        with:
+          event: pool.granted
+          where: "event.data.pool == '${params.project}/pipelines' && event.data.as == '${event.data.key}'"
+          say:
+            topic: pool.asked
+            pool: "${params.project}/pipelines"
+            as: "${event.data.key}"
+            about: "${event.data.pipeline}"
+
+      approved:
+        description: Where whoever it is run for is not each one of those its environment's rule names as approving, one of them lets it go on first.
+        needs: [place]
+        when: ${ event.data.asks ?? false }
+        allow_failure: true
+        do: approval.ask
+        with:
+          says: "A run of ${event.data.pipeline} by a row of the project's triggers."
+          environment: "${event.data.environment}"
+
+      ran:
+        description: The pipeline, under its key and its row's environment, handed what it takes.
+        needs: [approved]
+        when: ${ !(event.data.asks ?? false) || steps.approved.ok }
+        allow_failure: true
+        call: "${event.data.pipeline}"
+        as: "${event.data.key}"
+        environment: "${ event.data.environment ?? '' }"
+        with:
+          ...: ${event.data.with}
+
+      given:
+        description: The place is given back, however the run ended.
+        needs: [ran]
+        do: emit
+        with: { topic: pool.released, pool: "${params.project}/pipelines", as: "${event.data.key}" }

@@ -1,0 +1,16 @@
+{
+  "says": "A daemon stopped as the step that adds a card for an issue begins has the step done again when it is back: adding a card is the same done twice, and looks first for the card that step added by what was said of it. None was, and one is added: the issue has one card, and its link says which.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"given": {"issues/7/title": "Refunds", "issues/7/body": "People ask for them.", "issues/7/state": "OPEN", "issues/7/stamp": "s1"}},
+    {"stopped_at": "open", "of": "issues", "by": {"run": ["record", "add", "shop", "links", "issue=7"]}, "sets_off": "bring"},
+    {"run": ["record", "show", "shop-links-1"], "says": "card: shop-1"},
+    {"run": ["record", "show", "shop-1"], "says": "title: Refunds"},
+    {"run": ["read", "shop"], "says": "shop-1 was made for an issue on GitHub"},
+    {"run": ["board", "add", "shop", "Next"], "says": "shop-2"}
+  ]
+}

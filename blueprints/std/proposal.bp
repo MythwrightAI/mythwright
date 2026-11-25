@@ -1,0 +1,365 @@
+# A proposal: how one card is to be done, said before anybody does it.
+#
+# It is a long-lived instance, one per card, for as long as the card is in
+# the column its stage plans (`does: plan` in a fleet's `stages`). An agent
+# of the stage's role is given the card and reads it (`std/proposal-round`),
+# and does one of three things:
+#
+# - it **asks**. Its question is put on the card, which waits; what
+#   somebody then says on the card is the answer, and it takes the card up
+#   again with that;
+# - it **proposes**: how the fleet would do the card, as the pieces of
+#   work there are, what each waits on, and how one would know it is done.
+#   That is kept on the card as its plan, where whoever works it and
+#   whoever looks the work over are shown it. The card then goes to the
+#   column its stage says (`to`), or stays where it is for a person to
+#   accept by moving it on;
+# - it **leaves it**, having been told of something that changes nothing.
+#
+# The same agent has the card throughout, in one conversation: it is the
+# card's to come back to, and is told when the card's words are changed,
+# when something is said on it, and when it is sent back to this column
+# with what was wrong. It is told so many times and no more (`rounds`): a
+# card that goes round that often is left for a person.
+#
+# Moved out of the column, the card is somebody else's, and this ends. Put
+# back, it is given a new one, in the conversation the last one held.
+blueprint: std/proposal
+version: 5
+description: Have an agent of a role say how one card is to be done, or ask what it needs to know, and keep that with the card.
+permissions: [board, channels, agents, blueprints]
+# One round at a time: a round asks an agent, and what is said on the card
+# while it does is for the round after.
+one_at_a_time: true
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card's id." }
+  channel: { type: string, default: "", description: "Where to report; nowhere if empty." }
+
+  agent:
+    type: string
+    default: ""
+    description: "Which agent. If empty, the one the card is given to if it is an agent's, and else whichever of the role the stage's `picks` says; every round after is that one's."
+
+  role: { type: string, default: architect, description: "The role whose agents plan." }
+
+  after_restart:
+    type: string
+    default: again
+    enum: [again, leave]
+    description: "What becomes of what an agent had in hand here when the daemon is stopped and started again: `again`, it goes on (an agent whose program outlives the daemon is taken up where it is; another is asked again); `leave`, it is left where it is for a person, and the channel says why."
+
+  restarts:
+    type: int
+    default: 3
+    description: "How many times at most the daemon may be started again in the middle of the same piece of work before it is left for a person, whatever `after_restart` says."
+
+  picks:
+    type: string
+    default: first
+    enum: [first, turn, least, rank]
+    description: "Which of the role's agents it is, of those with as little in hand as each other."
+
+  from:
+    type: string
+    default: backlog
+    description: "The column whose cards are planned: where the card is while this lives."
+
+  to:
+    type: string
+    default: ""
+    description: "The column a card goes to when it has a plan. With none it stays where it is, for a person to accept the plan by moving it on."
+
+  rounds:
+    type: int
+    default: 8
+    description: "How many times its agent is told of the card before it is left for a person."
+
+  note:
+    type: string
+    default: ""
+    description: "What was said as the card was moved here, when it was sent back: its agent is told."
+
+  hands:
+    type: bool
+    default: true
+    description: "With a plan, the card is handed on by whoever planned it, to `to`. Its stage says otherwise where it has more to do with a planned card first, and then hands the card on itself."
+
+  told:
+    type: string
+    description: "What its agent is told of how a card is planned, beside what its row of the fleet's agents says."
+    default: |
+      Read the card. If something you need in order to say how it would be done is missing, ask for it: one question, in a sentence or two, and nothing else. Otherwise say how the fleet would do it: the pieces of work there are, in the order they would be done, what each one waits on, and how one would know the whole is done. Write it for whoever will do the work and whoever will look it over; they are shown it with the card.
+
+state:
+  # Whether its first round was begun, how many there have been, and who has the card.
+  begun: false
+  rounds: 0
+  agent: ""
+  # What follows from those, kept each time a round is counted
+  # (`agent.round`): who the next round is put to; the actor its agent is,
+  # so that what its agent does to the card is not taken for an answer;
+  # whether it may be put to its agent again; and what its agent is
+  # called in a sentence.
+  next: ""
+  its: "agent:"
+  open: false
+  whom: its agent
+
+# One that is there takes another text, or what its stage now says, where
+# it is: its card is not read again for that. What it keeps of its rounds
+# is said again when it has (`carried`).
+on_update:
+  - do: set
+    with: { begun: true, open: true }
+
+on:
+  # The first round, begun when it is listening: from then it hears
+  # everything that becomes of its card.
+  first:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && !state.begun }
+    steps:
+      begun:
+        do: set
+        with: { begun: true, open: true }
+
+      round:
+        call: std/proposal-round
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          item: "${params.item}"
+          channel: "${params.channel}"
+          agent: "${params.agent}"
+          role: "${params.role}"
+          picks: "${params.picks}"
+          after_restart: "${params.after_restart}"
+          restarts: ${params.restarts}
+          from: "${params.from}"
+          to: "${params.to}"
+          hands: ${params.hands}
+          told: "${params.told}"
+          # Which round this is: stopped as it asks its agent, it finds the turn it asked for.
+          asking: "round-${event.seq}"
+          # New here, or sent back here with something said.
+          why: came
+          note: "${params.note}"
+
+      counted:
+        do: agent.round
+        with:
+          had: ${state.rounds}
+          most: ${params.rounds}
+          took: "${steps.round.out.agent}"
+          has: "${state.agent}"
+          named: "${params.agent}"
+
+      kept:
+        do: set
+        with:
+          rounds: ${steps.counted.out.rounds}
+          agent: "${steps.counted.out.agent}"
+          next: "${steps.counted.out.next}"
+          its: "${steps.counted.out.its}"
+          open: ${steps.counted.out.open}
+          whom: "${steps.counted.out.whom}"
+
+  # Carried over to another text, or to what its stage now says: how many
+  # rounds there may be may be another number, and one carried from a text
+  # that kept less has what follows from its rounds said for the first
+  # time. Nothing is counted.
+  carried:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && state.begun }
+    steps:
+      counted:
+        do: agent.round
+        with:
+          had: ${state.rounds}
+          most: ${params.rounds}
+          counts: false
+          has: "${state.agent}"
+          named: "${params.agent}"
+
+      kept:
+        do: set
+        with:
+          next: "${steps.counted.out.next}"
+          its: "${steps.counted.out.its}"
+          open: ${steps.counted.out.open}
+          whom: "${steps.counted.out.whom}"
+
+  # What the card asks was changed by somebody other than its own agent.
+  changed:
+    event: board.item.updated
+    for: { id: "${params.item}" }
+    when: ${ state.open && event.data.reworded && event.source.actor != state.its }
+    steps:
+      round:
+        call: std/proposal-round
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          item: "${params.item}"
+          channel: "${params.channel}"
+          agent: "${state.next}"
+          role: "${params.role}"
+          picks: "${params.picks}"
+          after_restart: "${params.after_restart}"
+          restarts: ${params.restarts}
+          from: "${params.from}"
+          to: "${params.to}"
+          hands: ${params.hands}
+          told: "${params.told}"
+          # Which round this is: stopped as it asks its agent, it finds the turn it asked for.
+          asking: "round-${event.seq}"
+          why: changed
+
+      counted:
+        do: agent.round
+        with:
+          had: ${state.rounds}
+          most: ${params.rounds}
+          took: "${steps.round.out.agent}"
+          has: "${state.agent}"
+          named: "${params.agent}"
+
+      kept:
+        do: set
+        with:
+          rounds: ${steps.counted.out.rounds}
+          agent: "${steps.counted.out.agent}"
+          next: "${steps.counted.out.next}"
+          its: "${steps.counted.out.its}"
+          open: ${steps.counted.out.open}
+          whom: "${steps.counted.out.whom}"
+
+  # Something was said on the card by somebody other than its own agent:
+  # the answer to what it asked, or a word on what it proposed.
+  said:
+    event: record.commented
+    for: { id: "${params.item}" }
+    when: ${ state.open && (event.data.by ?? '') != state.its }
+    steps:
+      round:
+        call: std/proposal-round
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          item: "${params.item}"
+          channel: "${params.channel}"
+          agent: "${state.next}"
+          role: "${params.role}"
+          picks: "${params.picks}"
+          after_restart: "${params.after_restart}"
+          restarts: ${params.restarts}
+          from: "${params.from}"
+          to: "${params.to}"
+          hands: ${params.hands}
+          told: "${params.told}"
+          # Which round this is: stopped as it asks its agent, it finds the turn it asked for.
+          asking: "round-${event.seq}"
+          why: said
+          note: "${ event.data.body ?? '' }"
+
+      counted:
+        do: agent.round
+        with:
+          had: ${state.rounds}
+          most: ${params.rounds}
+          took: "${steps.round.out.agent}"
+          has: "${state.agent}"
+          named: "${params.agent}"
+
+      kept:
+        do: set
+        with:
+          rounds: ${steps.counted.out.rounds}
+          agent: "${steps.counted.out.agent}"
+          next: "${steps.counted.out.next}"
+          its: "${steps.counted.out.its}"
+          open: ${steps.counted.out.open}
+          whom: "${steps.counted.out.whom}"
+
+  # The card was moved. Out of the column, it is somebody else's now and
+  # this ends; back into it (sent back from where its plan was looked at),
+  # its agent is told what was said as it was moved.
+  moved:
+    event: board.item.moved
+    for: { id: "${params.item}" }
+    when: ${state.begun}
+    steps:
+      gone:
+        when: ${ event.data.to != params.from }
+        do: stop
+
+      round:
+        when: ${ event.data.to == params.from && state.rounds > 0 && state.open }
+        call: std/proposal-round
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          item: "${params.item}"
+          channel: "${params.channel}"
+          agent: "${state.next}"
+          role: "${params.role}"
+          picks: "${params.picks}"
+          after_restart: "${params.after_restart}"
+          restarts: ${params.restarts}
+          from: "${params.from}"
+          to: "${params.to}"
+          hands: ${params.hands}
+          told: "${params.told}"
+          # Which round this is: stopped as it asks its agent, it finds the turn it asked for.
+          asking: "round-${event.seq}"
+          why: back
+          note: "${ event.data.note ?? '' }"
+
+      counted:
+        when: ${steps.round.ok}
+        do: agent.round
+        with:
+          had: ${state.rounds}
+          most: ${params.rounds}
+          took: "${steps.round.out.agent}"
+          has: "${state.agent}"
+          named: "${params.agent}"
+
+      kept:
+        when: ${steps.counted.ok}
+        do: set
+        with:
+          rounds: ${steps.counted.out.rounds}
+          agent: "${steps.counted.out.agent}"
+          next: "${steps.counted.out.next}"
+          its: "${steps.counted.out.its}"
+          open: ${steps.counted.out.open}
+          whom: "${steps.counted.out.whom}"
+
+      enough:
+        description: Said once, where the work is reported, when the card has gone round as often as it may.
+        when: ${ params.channel != "" && event.data.to == params.from && !state.open }
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${params.item} has been put to ${state.whom} ${state.rounds} times, which is as often as it may be: it is left in ${params.from} for a person."
+
+      leaves:
+        description: And said as an event of the card's, with why.
+        when: ${ event.data.to == params.from && !state.open }
+        do: emit
+        with:
+          topic: card.left
+          card: "${params.item}"
+          project: "${params.project}"
+          why: "it has been put to ${state.whom} ${state.rounds} times, which is as often as it may be"
+
+  # Taken off the board, there is nothing to plan.
+  removed:
+    event: board.item.removed
+    for: { id: "${params.item}" }
+    do: stop

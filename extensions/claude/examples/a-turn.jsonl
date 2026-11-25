@@ -1,0 +1,7 @@
+{"type":"system","subtype":"init","session_id":"0f1e2d3c-0000-4000-8000-000000000001","model":"example-model","permissionMode":"plan"}
+{"type":"rate_limit_event","rate_limit_info":{"status":"allowed"},"session_id":"0f1e2d3c-0000-4000-8000-000000000001"}
+this line is not JSON, and says nothing
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"thinking","thinking":"..."},{"type":"text","text":"Looking at the board first."},{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]},"session_id":"0f1e2d3c-0000-4000-8000-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"README.md"}]},"session_id":"0f1e2d3c-0000-4000-8000-000000000001"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"ready"}]},"session_id":"0f1e2d3c-0000-4000-8000-000000000001"}
+{"type":"result","subtype":"success","is_error":false,"result":"ready","session_id":"0f1e2d3c-0000-4000-8000-000000000001","total_cost_usd":0.0528817,"usage":{"input_tokens":2,"cache_creation_input_tokens":12575,"cache_read_input_tokens":24140,"output_tokens":4}}

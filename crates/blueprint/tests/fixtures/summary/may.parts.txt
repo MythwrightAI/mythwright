@@ -1,0 +1,50 @@
+shop/may
+
+What it is
+  = What somebody deciding to apply this most needs to know.
+  After a restart:
+    title: Taken up where it was
+  = Whoever applies it may tell it 3 things:
+    = A command of your own. It has to be said. [command]
+    = The secret the tool is handed. Unless it is said: nothing. [key]
+    = Everything the last tool is handed. It has to be said. [spec]
+
+What it makes
+  Makes: [main/made]
+    title: a thing called `shelf`
+    made: a thing `shelf` (shelf)
+  `shop/other` [main/other]
+    tags: waited for
+    opens: blueprint shop/other
+    made: a blueprint `shop/other` (shop/other)
+
+What it does when it is applied
+  Run a command and wait for it to finish. [main/listed]
+  Run a command and wait for it to finish. [main/yours]
+  Run a command and wait for it to finish. [main/whole]
+  Make sure a thing is there. [main/made]
+  Run `shop/other` and wait for it to finish. [main/other]
+  Run a command and wait for it to finish. [main/script]
+  Run a command and wait for it to finish. [main/mixed]
+
+What it may do
+  = It runs as whoever applies it, and can do no more than they can.
+  Permissions:
+    items: `shell`
+    items: `things`
+    items: `secrets`
+    items: `blueprints`
+    items: `post`
+  = Make and change things. [things:write]
+  = Start, apply and stop blueprint instances. [blueprints:run]
+  = Use what the factory keeps secret, without being shown it: hand one to a program. [secrets:use]
+  = Run commands on a device. [shell]
+  = Send letters. [post:send]
+  = It runs a command: `git status --short`. [main/listed]
+  = It runs a command that the param `command` says. [main/yours]
+  = It runs a command it is handed as it runs, which its text does not write out. [main/whole]
+  = It runs a command of 2 lines, written out in its text. [main/script]
+  = It runs a command: `make <the param command> -j<the param key>`. [main/mixed]
+  = It hands the secret `shop` to what it runs, as the variable `SHOP_TOKEN`.
+  = It hands the secret the param `key` names to what it runs, as the variable `TOOL_KEY`. [main/yours]
+  = What the blueprints it starts may do is said of each of them: `shop/other`.

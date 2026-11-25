@@ -1,0 +1,29 @@
+[package]
+name = "kv-cache"
+description = "A small key-value cache: the running example of something a blueprint builds, hosts and rolls out."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "kv-cache"
+path = "src/main.rs"
+test = false
+
+[dev-dependencies]
+blueprint = { workspace = true }
+kernel = { workspace = true }
+journal = { workspace = true }
+conductor = { workspace = true }
+hosting = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

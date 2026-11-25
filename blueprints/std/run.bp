@@ -1,0 +1,180 @@
+# A command of the project's own, run for one card where its work is: the
+# project's tests before anybody looks at a card, what tidies what an
+# agent left. It is a segment: one small thing a stage does with a card,
+# named in a row of the project's `segments` (`std/fleet`), which says
+# the command (`command`) and what becomes of a card whose command did not
+# pass (`with`: `fails=left`).
+#
+# It ends in a word, as every segment does. `on`: the command passed, and
+# the card goes to what comes next where it is. `back`: it did not, and
+# the card goes back to whoever worked it with the end of what was
+# printed. `left`: it did not, and its row says such a card is left for
+# a person; or no command was said.
+#
+# The command is the project's own, run as whoever applied the fleet
+# where the card was worked, or in the project's folder where the row
+# says `in=project`. A card with no place of its own yet, in a project
+# that would give it one, is left. Saying one in a row takes `shell`.
+#
+# Its row may say how long the command may run before somebody is told
+# (`warn_after`, as `20m`): still running then, it says so of the card
+# (`card.slow`), and whoever the project's `tells` names for `slow` is
+# told once, in their inbox. The command is not stopped by it.
+#
+# It keeps nothing as it goes: a daemon stopped while the command is
+# under way has the stage that called this call it again when it is
+# back, and the command is run again from its start. A command that was
+# cut off has not said that the card does not pass. One that runs long
+# again is told of again to nobody: what it says names the card's coming
+# (`asking`), which is the same when this is called again.
+blueprint: std/run
+version: 8
+description: "Run a command of the project's own for one card, where its work is or in the project's folder, and say what that comes to: the card goes on, goes back with what was printed, or is left for a person."
+permissions: [shell, projects, records]
+durable: false
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+
+  title: { type: string, default: "", description: "What the card is called." }
+  labels: { type: string, default: "", description: "The labels it holds, with a comma between." }
+
+  command:
+    type: string
+    default: ""
+    description: "The command, run by a shell where `in` says, and given the card as $CARD, what it is called as $CARD_TITLE and its labels as $CARD_LABELS."
+
+  in:
+    type: string
+    default: card
+    description: "Where the command is run: `card`, where the card was worked; `project`, in the project's own folder."
+
+  record_to:
+    type: string
+    default: ""
+    description: "A table of the project each run of the command is kept in as a row, made the first time; nothing kept where not said."
+
+  warn_after:
+    type: string
+    default: ""
+    description: "How long the command may run before whoever the project's `tells` names for `slow` is told, once, as `20m`; nobody, where not said. The command goes on."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which coming of the card this is, in a word of whatever goes through its list: a command begun again after a stop is told of once."
+
+  worktree:
+    type: bool
+    default: false
+    description: "Whether the card is worked here in a place of its own, where the project can give it one: where cards are worked, the round says."
+
+  fails:
+    type: string
+    default: back
+    description: "What becomes of a card whose command did not pass: `back`, it goes back to whoever worked it with what was printed; `left`, it is left for a person."
+
+steps:
+  where:
+    description: Where the card was worked.
+    allow_failure: true
+    do: place.changed
+    with: { item: "${params.item}" }
+
+  at:
+    description: "Where its command is run, as `in` says: where the card was worked, or the project's folder; or nowhere, the card having no place of its own yet."
+    do: segments.where
+    with:
+      item: "${params.item}"
+      command: "${params.command}"
+      in: "${params.in}"
+      dir: "${ steps.where.out.dir ?? '' }"
+      there: ${ steps.where.out.there ?? true }
+      worktree: ${params.worktree}
+
+  ran:
+    description: The command. One that does not pass fails nothing here; what it comes to is said next.
+    when: ${ params.command != "" && steps.at.out.runs }
+    allow_failure: true
+    do: shell
+    with:
+      run: "${params.command}"
+      cwd: "${steps.at.out.dir}"
+      env:
+        CARD: "${params.item}"
+        CARD_TITLE: "${params.title}"
+        CARD_LABELS: "${params.labels}"
+    watch:
+      # Still running past its time: said of the card, and nothing stops.
+      - after: "${params.warn_after}"
+        emit:
+          topic: card.slow
+          card: "${params.item}"
+          project: "${params.project}"
+          title: "${params.title}"
+          command: "${params.command}"
+          after: "${params.warn_after}"
+          running_ms: ${self.duration_ms}
+          asking: "${params.asking}"
+
+  comes:
+    description: "What its ending comes to: the card goes on, goes back with the end of what was printed, or is left for a person."
+    do: segments.ran
+    with:
+      item: "${params.item}"
+      command: "${params.command}"
+      ok: ${steps.ran.ok}
+      fails: "${params.fails}"
+      printed: "${ steps.ran.out.stdout ?? '' }"
+      also: "${ steps.ran.out.stderr ?? '' }"
+      why: "${ steps.ran.error ?? '' }"
+      unrun: "${steps.at.out.why}"
+
+  head:
+    description: The commit the command ran on, where that is a repository.
+    when: ${ params.record_to != "" && !steps.ran.skipped }
+    allow_failure: true
+    do: place.head
+    with: { item: "${params.item}", dir: "${steps.at.out.dir}" }
+
+  row:
+    description: "What is kept of the run: a run id, the day and time it began, the card, the commit, the command, whether it passed and with what code, how long it took and the last of what it printed."
+    when: ${ params.record_to != "" && !steps.ran.skipped }
+    do: segments.recorded
+    with:
+      item: "${params.item}"
+      command: "${params.command}"
+      ok: ${steps.ran.ok}
+      code: "${ steps.ran.out.code ?? '' }"
+      duration_ms: ${steps.ran.duration_ms}
+      printed: "${ steps.ran.out.stdout ?? '' }"
+      also: "${ steps.ran.out.stderr ?? '' }"
+      why: "${ steps.ran.error ?? '' }"
+      commit: "${ steps.head.out.commit ?? '' }"
+
+  kept:
+    description: "The run kept as a row of the table its row names, which is made the first time with these fields. One that cannot be kept changes nothing of what the card comes to."
+    when: ${ params.record_to != "" && !steps.ran.skipped }
+    allow_failure: true
+    do: record.add
+    with:
+      collection: "${params.record_to}"
+      fields: ${steps.row.out.row}
+      by_hand: false
+      # A run is known by its id, when it began and the card, and sorted by it.
+      declaring:
+        title: { type: text, indexed: true }
+        day: { type: date }
+        time: { type: text }
+        card: { type: record, of: board }
+        result: { type: choice, of: [passed, failed] }
+        code: { type: number }
+        seconds: { type: number }
+        command: { type: text }
+        commit: { type: text }
+        printed: { type: text, hidden: true }
+
+outputs:
+  came: "${steps.comes.out.came}"
+  says: "${steps.comes.out.says}"

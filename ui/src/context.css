@@ -1,0 +1,51 @@
+/* What the tools panel beside a channel shows in its tabs (`views/context.tsx`): a card or a page
+   read there, the way back, a bot's commands, and everybody of the channel. The panel itself
+   and its tabs are in style.css, which this follows. */
+/* A card being read in it. */
+.context-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.context-card-title { font-size: calc(15px * var(--size)); line-height: 1.35; }
+.context-card .row { flex-wrap: wrap; gap: 6px; }
+.context-card .agent { color: var(--agent); }
+.context-card-body { white-space: pre-wrap; overflow-wrap: anywhere; padding: 8px 10px; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+/* A page being looked at in it. */
+.context-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; min-width: 0; }
+.context-page .view-frame { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); }
+.context-page .row { min-width: 0; }
+.context-page .row a { flex: none; white-space: nowrap; }
+.context-page .row button.link { flex: none; height: auto; padding: 0; white-space: nowrap; }
+.context-back { font-size: calc(18px * var(--size)); line-height: 1; }
+/* Where somebody read about is: under People, with the way back to the rest. */
+.context-crumbs { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: calc(12.5px * var(--size)); }
+.context-crumbs .link { height: auto; padding: 0; flex: none; }
+/* What a bot takes: how it is written, and under it what it does; pressed to begin writing it. */
+.context-command { display: grid; gap: 2px; justify-items: start; height: auto; padding: 6px 8px; border: 1px solid var(--line); border-radius: calc(7px * var(--round)); background: var(--bg1); text-align: left; white-space: normal; }
+.context-command:hover:not(:disabled) { background: var(--bg2); }
+.context-command:disabled { opacity: 1; cursor: default; }
+.context-command code { font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+.context-command .muted { font-size: calc(12px * var(--size)); }
+/* Which blueprint had a bot say a thing, beside when it said it. */
+.context-from { height: auto; padding: 0; font-size: calc(12px * var(--size)); max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.context-pictures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.context-pictures button { height: auto; aspect-ratio: 1; padding: 0; overflow: hidden; border-radius: calc(6px * var(--round)); }
+.context-pictures img { width: 100%; height: 100%; object-fit: cover; }
+/* Everybody of a channel, a card each: their picture, as it is drawn beside what they say, and beside it who and what they are. */
+.context-members { display: grid; gap: calc(6px * var(--density)); min-width: 0; }
+.context-member { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; column-gap: 9px; padding: 9px 10px; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+.context-member > .avatar { flex: none; }
+.context-member-says { display: grid; gap: 3px; min-width: 0; align-self: center; }
+/* It is pressed whole, to be read about: a button that is drawn as the block it was. */
+button.context-member { width: 100%; height: auto; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.context-member:hover { background: var(--bg2); }
+.context-member-says > .row { min-width: 0; }
+.context-name { font-weight: 650; color: var(--agent); }
+.context-member.user .context-name { color: var(--text); }
+.context-member.bot .context-name { color: var(--info); }
+.context-member.system .context-name { color: var(--accent); }
+/* An agent's name there is pressed to read about it: words, and not a box. */
+button.context-name { height: auto; padding: 0; border: 0; border-radius: calc(3px * var(--round)); background: transparent; font: inherit; font-weight: 650; cursor: pointer; }
+button.context-name:hover { background: transparent; text-decoration: underline; }
+.context-doing { font-size: calc(12.5px * var(--size)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.context-doing.working { color: var(--ok); }
+/* What opens it, beside adding a member. Open, it is told from closed by
+   its mark alone: the part at the right filled in, in the accent. */
+.context-fold[aria-pressed="true"] svg { color: var(--accent); }

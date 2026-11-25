@@ -1,0 +1,13 @@
+{
+  "reply": "It printed: ready-from-a-tool",
+  "session": "session_0f1e2d3c-0000-4000-8000-000000000001",
+  "model": null,
+  "shown": [
+    "[Bash]",
+    "It printed: ready-from-a-tool"
+  ],
+  "cost_usd": null,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "failure": null
+}

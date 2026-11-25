@@ -1,0 +1,228 @@
+/* A table and the ways it is laid out: a grid, a list, a gallery, and the
+ * menu that chooses among them. Drawn from fields and records, whatever
+ * they are of (`views/table.tsx`). Colours are the theme's. */
+
+/* The grid. Its head stays while its rows scroll under it. What stays in
+   it stays inside the room it leaves at its sides and foot, so what is
+   to stay at its very edge is told how much room that is (`heads.css`). */
+.grid-scroll { --side: 20px; --foot: 20px; min-height: 0; overflow: auto; padding: 0 var(--side) var(--foot); }
+/* Read a window at a time it takes the keys that scroll; it is the table, and is not marked as having them. */
+.grid-scroll:focus { outline: none; }
+.grid { border-collapse: separate; border-spacing: 0; min-width: 100%; }
+.grid th, .grid td { position: relative; height: calc(34px * var(--tall)); padding: 0; text-align: left; font-weight: 400; border-bottom: 1px solid var(--line); min-width: 130px; max-width: 280px; }
+.grid th { position: sticky; top: 0; z-index: 3; background: var(--bg0); }
+.grid.lined th + th, .grid.lined td + td { border-left: 1px solid var(--line); }
+.grid .grid-title { min-width: 260px; max-width: 420px; }
+.grid td.grid-title { font-weight: 600; }
+.grid tbody tr:hover td { background: var(--bg1); }
+.grid-head { display: flex; align-items: center; gap: 7px; width: 100%; height: calc(33px * var(--tall)); padding: 0 9px; border: 0; border-radius: 0; background: transparent; color: var(--dim); font-size: calc(12.5px * var(--size)); justify-content: flex-start; }
+.grid-head:hover { background: var(--bg2); color: var(--text); }
+.grid-head svg { flex: none; color: var(--faint); }
+/* A cell is pressed to be changed, and looks like what is in it until then. */
+.cell { display: flex; align-items: center; width: 100%; min-height: calc(33px * var(--tall)); height: auto; padding: calc(5px * var(--density)) 9px; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; text-align: left; justify-content: flex-start; cursor: pointer; }
+.cell:hover { background: transparent; }
+/* A cell of a table whose rows are not written by hand is read, and is nothing to press. */
+.cell.read { cursor: default; }
+/* A tick is as wide as itself, where a cell's words begin: an input is as wide as its place unless told, and a box told that is drawn in the middle of it. It is told its size, a little over the browser's own, which was small beside a line of words. */
+.cell > input[type="checkbox"] { flex: none; width: calc(16px * var(--tall)); height: calc(16px * var(--tall)); margin: 0; }
+.cell:focus-visible { outline: 2px solid var(--dim); outline-offset: -2px; }
+.cell-words { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grid.wrapped .cell-words { white-space: pre-wrap; overflow-wrap: anywhere; }
+.cell-tags { display: inline-flex; gap: 4px; }
+.grid.wrapped .cell-tags { flex-wrap: wrap; }
+.cell-who.agent { color: var(--agent); }
+/* What a cell names, when the record it named has been taken away. */
+.cell-names.gone { color: var(--faint); }
+/* The cell being changed is drawn over its neighbours, not cut off by them. */
+.grid td.editing { z-index: 4; }
+.cell-edit { padding: 2px; }
+.cell-edit > input, .cell-edit > select { width: 100%; height: calc(29px * var(--tall)); border: 0; background: transparent; box-shadow: none !important; }
+.cell-edit .select-field { border: 0; background: transparent; box-shadow: none; min-height: calc(29px * var(--tall)); }
+/* A cell being filled in has no frame: it is told from the rest by its
+   ground. Where its value is chosen, what is chosen and what there is to
+   choose from are one panel that lies over the cell, beginning at its
+   corner and as wide as it at least, with no border anywhere: the box a
+   choice is typed in brings a rounded one of its own, and its options hung
+   from it by another. */
+.grid td.editing { box-shadow: none; background: var(--bg2); }
+.grid td.editing:has(.select) { background: transparent; }
+.cell-edit:has(.select) { position: relative; min-height: calc(33px * var(--tall)); padding: 0; }
+.cell-edit .select, .cell-edit .select.open { position: absolute; z-index: 6; top: 0; left: 0; width: auto; min-width: max(260px, 100%); border: 0; border-radius: calc(8px * var(--round)); background: var(--bg2); box-shadow: var(--shadow); }
+/* The line typed in is the popup's own top, flat and of its colour, with a line under it: a band of its own drew a rounded box inside the popup. */
+.cell-edit .select .select-field { min-height: calc(36px * var(--tall)); padding: 6px 9px; border-radius: 0; background: transparent; border-bottom: 1px solid var(--line); }
+.cell-edit .select-menu { position: static; min-width: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+/* What opens a record, at the end of what it is known by, when its row is pointed at. */
+.grid-open { position: absolute; right: 6px; top: 6px; display: none; height: calc(22px * var(--tall)); padding: 0 7px; font-size: calc(11px * var(--size)); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--dim); background: var(--bg2); }
+.grid tr:hover .grid-open, .grid-open:focus-visible { display: inline-flex; }
+/* What turns a row open into the rows of the tables that name it, before what it is known by. */
+.grid-turn { position: absolute; left: 3px; top: 5px; z-index: 1; width: 22px; height: calc(23px * var(--tall)); padding: 0; border: 0; background: transparent; color: var(--dim); font-size: calc(11px * var(--size)); }
+.grid-turn:hover { background: var(--bg2); color: var(--text); }
+.grid td.grid-turns .cell, .grid td.grid-turns .cell-edit { padding-left: 29px; }
+/* What it is opened into, under it: not a row of the table, and as wide as the table. */
+.grid tr.grid-within td, .grid tbody tr.grid-within:hover td { height: auto; max-width: none; padding: 4px 9px 8px 26px; background: var(--bg1); }
+.within { display: grid; gap: 1px; min-width: 0; }
+.within .within { margin-left: 10px; padding-left: 11px; border-left: 1px solid var(--line); }
+.within-head { padding: 5px 0 2px 28px; font-size: calc(11px * var(--size)); letter-spacing: 0.04em; text-transform: uppercase; }
+.within-line { display: flex; align-items: center; gap: 8px; min-height: calc(28px * var(--tall)); min-width: 0; }
+.within-turn { flex: none; display: inline-flex; align-items: center; justify-content: center; width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); padding: 0; border: 0; background: transparent; color: var(--dim); font-size: calc(11px * var(--size)); }
+button.within-turn:hover { background: var(--bg2); color: var(--text); }
+.within-name { min-width: 0; height: calc(26px * var(--tall)); padding: 0 6px; border: 0; background: transparent; color: var(--text); font-weight: 500; justify-content: flex-start; }
+.within-name:hover { background: var(--bg2); }
+.within-of { margin-left: auto; padding-left: 12px; font-size: calc(11px * var(--size)); }
+.within-none { padding: 4px 0 4px 28px; font-size: calc(12px * var(--size)); }
+/* Writing a new one that names what this is under. */
+.within-new { justify-self: start; height: calc(26px * var(--tall)); margin-left: 24px; padding: 0 6px; border: 0; background: transparent; color: var(--faint); font-size: calc(12px * var(--size)); }
+.within-new:hover { background: transparent; color: var(--text); }
+.within-writing input { flex: 1; min-width: 0; max-width: 360px; height: calc(28px * var(--tall)); }
+.within-writing button { height: calc(28px * var(--tall)); }
+/* A line of a list with what turns it open before it, and what it opens into under it. */
+.rows-turned { display: flex; align-items: center; border-bottom: 1px solid var(--line); }
+.rows-turned .rows-line { flex: 1; min-width: 0; border-bottom: 0; }
+.rows-within { padding: 4px 9px 8px 22px; background: var(--bg1); border-bottom: 1px solid var(--line); }
+.grid tfoot td { border-bottom: 0; }
+/* Read a window at a time (`views/windowed.tsx`), the rows not drawn are room as tall as they would be: above and
+   below what is drawn, and where a row is still being read. Nothing of it is a row, is pointed at or is in the way. */
+.grid tr.grid-room td, .grid tbody tr.grid-room:hover td { min-width: 0; max-width: none; padding: 0; border: 0; background: transparent; }
+.grid-unread { color: var(--bad); }
+/* A row that changed while it was on the screen is drawn where it is (`rowslive.ts`): faintly marked where it would now
+   stand elsewhere, faint and struck where the view no longer shows it, until the view is read again. */
+.grid tr.grid-moved td:first-child { box-shadow: inset 3px 0 0 var(--line-strong); }
+.grid tr.grid-struck td .cell-words { opacity: 0.5; text-decoration: line-through; }
+/* What became of it, at the right of its title where Open is drawn when pointed at: it makes the row no taller. */
+.grid-live-said { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); padding: 0 4px; background: var(--bg1); font-size: calc(11px * var(--size)); font-weight: 400; white-space: nowrap; pointer-events: none; }
+.grid tr:hover .grid-live-said { display: none; }
+/* The row gone to. */
+.grid tr.grid-gone-to td { background: var(--accent-soft); }
+/* What changed, counted at the top of the rows: it lies over them and moves nothing, as tall as nothing where it is. */
+.grid-live { position: sticky; left: 0; z-index: 6; height: 0; width: 100%; display: flex; align-items: flex-start; justify-content: center; pointer-events: none; }
+.grid-live-line { margin-top: 6px; display: inline-flex; align-items: center; gap: 10px; padding: calc(4px * var(--density)) 6px calc(4px * var(--density)) 12px; border: 1px solid var(--line-strong); border-radius: calc(16px * var(--round)); background: var(--bg2); font-size: calc(12px * var(--size)); white-space: nowrap; pointer-events: auto; box-shadow: var(--shadow); }
+.grid-live-line button { height: calc(24px * var(--tall)); padding: 0 10px; font-size: calc(12px * var(--size)); }
+.grid-new { height: calc(33px * var(--tall)); padding: 0 9px; border: 0; background: transparent; color: var(--faint); }
+.grid-new:hover { background: transparent; color: var(--text); }
+.grid-count { margin-left: 16px; font-size: calc(12px * var(--size)); }
+/* With nothing before it (no new row is written here), it begins where a cell's words do. */
+.grid-count:first-child { display: inline-block; margin-left: 9px; line-height: calc(33px * var(--tall)); }
+
+/* The same rows as a list and as a gallery. */
+.rows-page { min-height: 0; overflow: auto; padding: 0 20px 20px; display: grid; align-content: start; gap: 8px; }
+.rows-list { display: grid; }
+.rows-line { display: flex; align-items: center; gap: 8px; height: calc(36px * var(--tall)); padding: 0 9px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; text-align: left; }
+.rows-line:hover { background: var(--bg1); }
+.rows-line .id { font: calc(11px * var(--size)) var(--mono); }
+/* A library: its documents by folder, each a line that opens it, with a way to what was said on it beside it. */
+.library-shelf { display: grid; gap: 4px; }
+.library-shelf h2 { margin: 14px 0 0; padding: 0 9px; font: 600 calc(12px * var(--size)) var(--mono); color: var(--dim); }
+.library-line { display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); }
+.library-line .rows-line { flex: 1; min-width: 0; border-bottom: 0; }
+.rows-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.rows-card { display: grid; align-content: start; gap: 7px; height: auto; min-height: 96px; padding: 12px; text-align: left; white-space: normal; border: 1px solid var(--line); border-radius: calc(10px * var(--round)); background: var(--bg1); }
+.rows-card:hover { background: var(--bg2); }
+.rows-card-words { color: var(--dim); font-size: calc(12.5px * var(--size)); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.rows-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.rows-none { padding: 18px 9px; }
+
+/* Choosing how it is laid out: a tile a way, and under them what can be
+   said of the way in use. It lies over the page and moves nothing. */
+.layout-menu { position: absolute; z-index: 20; right: 0; top: calc(100% + 6px); width: 276px; padding: 10px; display: grid; gap: 4px; background: var(--bg2); border: 1px solid var(--line-strong); border-radius: calc(10px * var(--round)); box-shadow: var(--shadow); }
+.layout-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; }
+.layout-tile { display: grid; justify-items: center; gap: 5px; height: auto; padding: 10px 4px 8px; font-size: calc(12px * var(--size)); color: var(--dim); background: transparent; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); }
+.layout-tile:hover { background: var(--bg3); color: var(--text); }
+.layout-tile[aria-checked="true"] { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.layout-option { display: flex; align-items: center; gap: 10px; min-height: calc(30px * var(--tall)); padding: 0 2px; font-weight: 600; }
+/* A flag of a record's form: its name, and its switch a little past it. Every flag's name is a column as
+   wide as the form says (`--flag-column`, `flagColumn` in `table.ts`: one letter past the longest flag's name), so that
+   the switches stand at one place down the form, near what they name and never at its far edge. A name longer than the
+   column wraps in it; drawn where nothing says a width, the switch stands just past its own name. */
+.flag-field { grid-template-columns: minmax(0, var(--flag-column, max-content)) auto; justify-content: start; align-items: center; column-gap: 8px; row-gap: 0; min-height: calc(30px * var(--tall)); }
+.flag-field > .flag-name { min-width: 0; overflow-wrap: anywhere; }
+/* On or off, as a switch. */
+.switch { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 30px; height: calc(18px * var(--tall)); padding: 0; border: 0; border-radius: calc(9px * var(--round)); background: var(--bg3); box-shadow: inset 0 0 0 1px var(--line-strong); cursor: pointer; transition: background 0.12s; }
+.switch::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--text); transition: transform 0.12s; }
+.switch:checked { background: var(--accent); box-shadow: none; }
+.switch:checked::after { transform: translateX(12px); background: var(--accent-ink); }
+
+/* The views saved of a table: a tab each, under what the table is called. */
+/* No line under the tabs: the one that is showing is marked by its own, and a rule across the page under them and another over the heads boxed the table in twice. */
+.view-tabs { flex-basis: 100%; display: flex; align-items: center; gap: 2px; margin-top: 2px; }
+.view-tabs-list { display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.view-tab { gap: 6px; height: calc(30px * var(--tall)); padding: 0 10px; border: 0; border-radius: calc(6px * var(--round)) calc(6px * var(--round)) 0 0; background: transparent; color: var(--dim); box-shadow: inset 0 -2px 0 transparent; }
+.view-tab:hover { background: var(--bg2); color: var(--text); }
+.view-tab[aria-selected="true"] { color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+/* A row of tabs with a thin line under the whole of it, as a code-hosting site draws a repository's: its tabs reach down to the line,
+   and the accent's line under the one showing is drawn over it, being the tab's own and the tab drawn after the row. */
+.tabs-ruled { box-shadow: inset 0 -1px 0 var(--line); }
+.view-add { left: 0; right: auto; }
+.layout-name { width: 100%; margin-bottom: 8px; font-weight: 600; }
+/* The columns a view shows, under what else is said of a table: a switch each, and no taller than leaves the rest in reach, in a short window too. */
+.layout-columns { margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--line); }
+.layout-columns-all { display: grid; gap: 0; max-height: clamp(96px, calc(100dvh - 450px), 240px); overflow: auto; }
+.layout-columns .layout-option { font-weight: 400; }
+.layout-heading { display: flex; align-items: baseline; gap: 8px; padding: 0 2px 2px; font-size: calc(11px * var(--size)); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+.layout-heading .faint { font-weight: 400; letter-spacing: 0; text-transform: none; }
+.layout-remove { justify-content: flex-start; margin-top: 4px; padding: 0 2px; color: var(--bad); }
+
+/* A calendar: a month of days, the records on the days they are on. */
+.cal { min-height: 0; overflow: auto; padding: 0 20px 20px; display: grid; grid-template-rows: auto 1fr auto; gap: 8px; }
+.cal-head { display: flex; align-items: center; gap: 6px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: minmax(92px, auto); border-top: 1px solid var(--line); border-left: 1px solid var(--line); min-height: 0; }
+.cal-grid .cal-weekday { grid-row: 1; }
+.cal-weekday { height: calc(26px * var(--tall)); align-self: start; display: grid; place-items: center; font-size: calc(11px * var(--size)); font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.cal-grid { grid-template-rows: 26px; }
+.cal-day { display: grid; align-content: start; gap: 3px; min-width: 0; padding: 4px 5px 6px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.cal-day.other { background: var(--bg1); }
+.cal-day.other .cal-date { color: var(--faint); }
+.cal-day.over { box-shadow: inset 0 0 0 2px var(--accent); }
+.cal-date { justify-self: end; min-width: 20px; height: calc(20px * var(--tall)); display: grid; place-items: center; font-size: calc(11.5px * var(--size)); color: var(--dim); border-radius: 50%; }
+.cal-day.today .cal-date { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.cal-card { min-width: 0; height: calc(22px * var(--tall)); padding: 0 7px; justify-content: flex-start; font-size: calc(12px * var(--size)); border: 1px solid var(--line-strong); border-left: 3px solid var(--card); border-radius: calc(5px * var(--round)); background: var(--bg2); }
+.cal-card.dragging { opacity: 0.4; }
+.cal-nowhere { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cal-nowhere .cal-card { max-width: 240px; }
+
+/* Measurements side by side: a group of columns for each value of a label,
+   told apart by a line down the page. Many values are scrolled across. */
+.compare-scroll { overflow-x: auto; }
+.compare th, .compare td { white-space: nowrap; }
+.compare th.compare-value { text-align: center; font-size: calc(12.5px * var(--size)); letter-spacing: 0; text-transform: none; color: var(--text); border-left: 1px solid var(--line); }
+.compare .compare-edge { border-left: 1px solid var(--line); }
+.compare-which { font-weight: 400; letter-spacing: 0; text-transform: none; }
+.compared-counts .compared-kind th { padding-top: 14px; }
+.compared-counts .compared-kind th:first-child { text-align: left; color: var(--text); }
+.compared-counts .compared-given td { font-weight: 600; }
+.compared-legend { margin: 8px 2px 0; font-size: calc(12.5px * var(--size)); }
+.compare td.compare-part { padding-left: 26px; color: var(--dim); }
+
+/* A comparison the daemon makes: its ways, and what was measured under each. */
+.compared table + table { margin-top: 10px; }
+/* A panel is no wider than the page it is on, whatever its tables hold: one
+   that is wider is scrolled across in itself, and what a way does wraps in
+   its cell. Left to its tables, a way that read words of the project's own
+   made every comparison wider than the page, and the page scrolled across. */
+.compare.compared { min-width: 0; }
+/* And so is every panel of Measurements: what is wider than the page is scrolled across where it is. */
+.view-body.measured > * { min-width: 0; }
+.measured-scroll { overflow-x: auto; }
+.compare td.compared-does { white-space: normal; overflow-wrap: anywhere; min-width: calc(14ch * var(--size)); }
+/* Its shares, the rule they change by and each time they were said again: sentences, which wrap and are never scrolled across. */
+.compared-rolled { margin: 10px 2px; font-size: calc(13px * var(--size)); white-space: normal; overflow-wrap: anywhere; }
+.compared-rolled p { margin: 4px 0; }
+.compared-changes { margin: 6px 0 0; padding-left: 18px; }
+.compared-changes li { margin: 3px 0; }
+/* Asks for more across than a dialog usually does: a way is a row. */
+.modal:has(.compared-start) { width: min(700px, 94vw); }
+.compared-start textarea { min-width: 220px; font-family: var(--mono); font-size: calc(12.5px * var(--size)); }
+.compared-written { gap: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
+.reached-left { gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--bg1); font-size: calc(12.5px * var(--size)); align-items: flex-start; }
+
+/* A row's form (`Whole` in `views/records.tsx`): a little room between one
+   field and the next, as a card's form has between its own (`.stack`), by
+   the density as the rest of a form's room is, so that a label is not read
+   as said of the box over it. */
+.form > :is(label, .field-many, .field-closed) + :is(label, .field-many, .field-closed) { margin-top: calc(12px * var(--density)); }
+
+/* What a table read a window at a time is searched by and gone about by (`views/rowsfind.tsx`), in its head. */
+.rows-find { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.rows-find input { width: calc(150px * var(--size)); min-width: 0; max-width: 100%; }
+.rows-find .rows-find-go { width: calc(110px * var(--size)); }
+.rows-find-said { font-size: calc(12px * var(--size)); }
+.rows-find-said .link { margin-left: 6px; }

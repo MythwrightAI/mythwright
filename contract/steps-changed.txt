@@ -1,0 +1,8 @@
+# Every time a step that a database's tables are made by was changed
+# where it stood, and meant to be: the day, the list, which step, what
+# it came to, what it comes to, and why. A step is otherwise only ever
+# added after the last (contract/steps.txt). A test adds to this when it
+# is asked to and nothing is taken off it:
+#   BREAK_STEPS="why" cargo test -p api the_steps
+# It is built into the program: a database that ran the step as it was
+# is taken to have run it, and is not run it again as it is now.

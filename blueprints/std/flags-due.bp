@@ -1,0 +1,36 @@
+# Tells whose each of a project's feature flags is that it is past the day
+# it was to be taken out, once for each flag and day (`once`): called by
+# `std/flags` as it is first there, as a row of its table is written, and
+# once a day. Which are past their day, and the words, are a block's
+# (`flags.due`); a row that names nobody is told to whoever applied the
+# flags. It keeps nothing.
+blueprint: std/flags-due
+version: 1
+description: "Tell whose each of a project's flags is that it is past the day it was to be taken out."
+permissions: [projects, records, inbox]
+durable: false
+
+params:
+  project: { type: string, description: "The project whose flags these are." }
+
+steps:
+  rows:
+    do: rows.read
+    with: { project: "${params.project}", collection: flags }
+
+  due:
+    description: Which are past their day, whom each is told to and in what words.
+    do: flags.due
+    with: { rows: "${steps.rows.out.rows}" }
+
+  told:
+    description: Each told to whose it is, once for each flag and day.
+    for_each: ${steps.due.out.due}
+    allow_failure: true
+    do: inbox.tell
+    with:
+      to: "${item.to}"
+      says: "${item.says}"
+      about: "${item.record}"
+      why: due
+      once: "${item.record}/${item.until}"

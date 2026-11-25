@@ -1,0 +1,9 @@
+/* The Trash's page: a line a thing, what it is over where it was and when it
+   goes, and what can be done with it at its right, which goes under it in a
+   narrow page rather than over it. */
+.trash-thing { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 16px; padding: 10px 16px; border-top: 1px solid var(--line); }
+.trash-what { display: grid; gap: 2px; flex: 1 1 16rem; min-width: 0; }
+.trash-called, .trash-where, .trash-when { overflow-wrap: anywhere; }
+.trash-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.trash-taken { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.trash-kept { margin: 0; }

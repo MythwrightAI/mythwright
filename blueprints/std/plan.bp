@@ -1,0 +1,166 @@
+# The tickets of a plan, added to the board as cards.
+#
+# A plan is a document in the project. Whoever writes it, an agent or a
+# person, ends it with its tickets, as a block of this form:
+#
+#   ```tickets
+#   [
+#     { "title": "Lay the floor", "body": "What is wanted, and how one would know it is done." },
+#     { "title": "Put the shelves up", "after": [1] }
+#   ]
+#   ```
+#
+# Applied to such a document, this adds a card for each ticket, each
+# saying which cards it waits on: `after` lists tickets by their place in
+# the block, counted from 1, and becomes the ids of their cards. Cards
+# that wait on nothing of each other are worked side by side. Then the
+# block is replaced, in the document, by the list of the cards it came
+# to: from then on the plan says which cards are its own, and applying
+# this to it again adds nothing. A block written into the document later
+# is added the same way.
+#
+# So whoever plans needs to do nothing but write the file. An agent that
+# may change files and run no command can plan; nothing it writes is run.
+#
+# The cards are added to the board's first column, and with `ready` are
+# made ready once each says what it waits on, and not before.
+#
+# Every ticket here is a new card. A ticket that is a card on the board
+# already (`"card"`, its id) is a feature's to say (`std/feature`), which
+# is told which cards it gathers; one written in a document is not taken
+# up by this.
+blueprint: std/plan
+version: 4
+description: Add the tickets a plan lists to the board as cards, each waiting on the cards it says.
+permissions: [board, channels, projects]
+
+params:
+  project: { type: string, description: "The project it works in." }
+
+  path:
+    type: string
+    description: "The plan, from the top of the project: `docs/plans/cart.md`."
+
+  ready:
+    type: bool
+    default: false
+    description: "Make the cards ready once they are added: each is begun as soon as the cards it waits on are done. Otherwise they stay in the board's first column until someone moves them."
+
+  channel:
+    type: string
+    default: ""
+    description: "Where it is said that they were added; nowhere if empty."
+
+  wrote:
+    type: string
+    default: ""
+    description: "Who wrote the plan, where known: an agent (`agent:<name>`) is said in each card's history."
+
+state:
+  tickets: []
+
+steps:
+  doc:
+    do: fs.read
+    with: { path: "${params.path}", missing_ok: true }
+
+  tickets:
+    description: The tickets, as the document's block of them says them.
+    do: tickets.read
+    with: { content: "${ steps.doc.out.content ?? '' }" }
+
+  none:
+    description: A document that lists no tickets has none to add. One whose tickets were added already is such a document.
+    when: ${ steps.tickets.out.came == "none" }
+    do: end
+    with: { reason: "${params.path} lists no tickets" }
+
+  read:
+    description: The tickets are kept, to go through.
+    needs: [none]
+    when: ${ steps.tickets.out.came == "read" }
+    do: set
+    with:
+      tickets: ${steps.tickets.out.tickets}
+
+  unread:
+    description: A block that cannot be read is said where the work is reported, with why. Nothing is added.
+    when: ${ steps.tickets.out.came == "unread" && params.channel != "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.path}: its tickets could not be read, and no card was added (${steps.tickets.out.why}). They are a list written as JSON between a line that says ```tickets and one that says ```: each a mapping with a `title`, and where wanted a `body` and `after`, the places in the list of the tickets it waits on."
+
+  given_up:
+    when: ${ steps.tickets.out.came == "unread" }
+    do: end
+    with: { reason: "the tickets of ${params.path} could not be read" }
+
+  added:
+    description: "A card for each ticket, where cards begin. None is made ready yet: a card is not to be begun before it says what it waits on."
+    needs: [given_up]
+    for_each: ${state.tickets}
+    do: board.add
+    with:
+      project: "${params.project}"
+      title: "${item.title}"
+      body: "${ item.body ?? '' }\n\nFrom the plan ${params.path}."
+      fields: { after: [] }
+      wrote: "${params.wrote}"
+    on_fail:
+      # Said where the work is reported, with what usually is the matter.
+      - when: ${ params.channel != "" }
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${params.path}: its tickets could not be added as cards: ${self.error}. A board that keeps no `after` of its cards was made before a card could wait on others: apply `std/board` to the project again, and then save the plan again."
+
+  filing:
+    description: What the tickets came to. Which cards each waits on, as the ids of the cards the places it named came to; and the plan, saying which cards came of it where its tickets were listed.
+    do: tickets.filed
+    with:
+      content: "${steps.doc.out.content}"
+      tickets: ${state.tickets}
+      made: ${steps.added.out}
+      in_place: "The tickets of this plan are on the board: {ids}."
+
+  linked:
+    description: Each card says which cards it waits on.
+    for_each: ${steps.filing.out.links}
+    do: board.update
+    with:
+      id: "${item.id}"
+      fields: { after: "${item.after}" }
+
+  readied:
+    description: Where they are to be worked without anyone saying so, they are made ready, now that each says what it waits on.
+    when: ${params.ready}
+    for_each: ${steps.added.out}
+    do: board.move
+    with: { id: "${item.id}", to: ready }
+
+  filed:
+    description: The plan says which cards came of it, where its tickets were listed. Applied to it again, this adds nothing.
+    do: fs.write
+    with:
+      path: "${params.path}"
+      content: "${steps.filing.out.content}"
+
+  said:
+    description: Said where the work is reported, of cards that were made ready.
+    when: ${ params.channel != "" && params.ready }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.path}: ${steps.added.count} cards were added from its tickets: ${steps.filing.out.listed}. They are ready: each is begun when the cards it waits on are done."
+
+  said_waiting:
+    description: And of cards that wait where they were added, with what to do.
+    when: ${ params.channel != "" && !params.ready }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.path}: ${steps.added.count} cards were added from its tickets: ${steps.filing.out.listed}. They are in ${ steps.added.out[0].status }, where nothing is done with them. Move them to ready to have them worked."
+
+outputs:
+  cards: ${ steps.filing.out.ids ?? [] }

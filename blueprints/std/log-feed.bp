@@ -1,0 +1,65 @@
+# Attach this to an instance and every service it starts gets a log feed: a
+# small component of its own that follows the service's log and ships it
+# somewhere.
+#
+#   uses:
+#     logs: std/log-feed
+#     # or, to send it somewhere:
+#     logs: { blueprint: std/log-feed, with: { to: "nc logs.internal 5140" } }
+#
+# The feed is a separate service in a slot of its own, so changing how logs
+# are shipped (re-applying with a different `to`) replaces the feed and
+# nothing else: the service it follows is never touched.
+blueprint: std/log-feed
+version: 2
+description: Follow the logs of an instance's services, each with a feed that can be changed on its own.
+permissions: [fleet, blueprints]
+
+params:
+  to:
+    type: string
+    default: ""
+    description: "A command that reads lines on standard input. Without it, each service's log is appended to <service>.feed.log in the project."
+
+on:
+  started:
+    event: service.started
+    # `target` is the instance this is attached to, without this feed's own
+    # services: a feed does not get a feed.
+    scope: target
+    steps:
+      source:
+        do: service.status
+        with: { service: "${event.data.service}" }
+
+      feed:
+        description: With nowhere said to send it, the log is added to a file beside the project's own.
+        when: ${ params.to == "" }
+        call: std/slot
+        as: "feed-${event.data.service}"
+        with:
+          name: "${event.data.service}-feed"
+          expose: false
+          rollout: replace
+          service:
+            run: "tail -n +1 -F '${steps.source.out.log}' >> ${event.data.service}.feed.log"
+            restart: always
+
+      feed_to:
+        description: The same feed, under the same name, handing each line to the command that was given.
+        when: ${ params.to != "" }
+        call: std/slot
+        as: "feed-${event.data.service}"
+        with:
+          name: "${event.data.service}-feed"
+          expose: false
+          rollout: replace
+          service:
+            run: "tail -n +1 -F '${steps.source.out.log}' | ${params.to}"
+            restart: always
+
+  stopped:
+    event: service.stopped
+    scope: target
+    do: stop
+    with: { instance: "feed-${event.data.service}" }

@@ -1,0 +1,67 @@
+/* An agent the factory does not start: the dialog that invites one and shows its invitation once, and what is said of one where it is read about. And what a person holds beyond their role. */
+.invite-agent h2 { margin: 0; overflow-wrap: anywhere; }
+.invite-agent p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+/* Each thing asked is as wide as the dialog and no wider: a choice is as wide as its longest word unless it is told. */
+.invite-agent .field { min-width: 0; }
+.invite-agent .field > input, .invite-agent .field > select { box-sizing: border-box; width: 100%; min-width: 0; }
+.invite-agent .holds-table { width: 100%; }
+/* The invitation and the command, each beside what copies it: the words break where they must, and are selected whole by a press. */
+.invite-shown { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+.invite-shown .code-box { min-width: 0; overflow-wrap: anywhere; word-break: break-all; user-select: all; }
+/* Where agents are added, at the end of the panel's head. */
+.agents-listed .panel-head { flex-wrap: wrap; row-gap: 6px; }
+.agents-listed .panel-head .muted { min-width: 0; }
+button.add-or-invite-agent { flex: none; }
+/* The word for one where another agent says what it runs on. */
+.agent-runs[data-external] { color: var(--faint); }
+/* The cards given to it, and what it did of late. */
+.external-cards, .external-did { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.external-cards li { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: calc(12.5px * var(--size)); }
+.external-cards .external-card { flex: none; color: var(--text); }
+.external-cards .faint { flex: none; }
+.external-did li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 4px 14px; font-size: calc(13px * var(--size)); overflow-wrap: anywhere; }
+/* What a person holds beyond their role, in their line of People: what is said gives way, and what is pressed is whole. */
+.beyond { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.beyond-said { min-width: 0; overflow-wrap: anywhere; font-size: calc(12.5px * var(--size)); }
+.beyond-given { display: inline-flex; align-items: center; gap: 2px; min-width: 0; }
+.beyond-given code { overflow-wrap: anywhere; }
+.beyond-give { display: inline-flex; align-items: center; gap: 6px; flex: none; max-width: 100%; }
+.beyond-give select { min-width: 0; max-width: 100%; }
+/* The line under a person's: no rule between it and theirs, and it reads from where their name does. */
+.people-panel tr.account-line td { border-bottom: none; }
+.people-panel tr.account-holds td { padding-top: 0; }
+/* Beside a channel, which agent it is, chosen at the head of the dialog that adds one: side by side, and one over the other where there is no room. */
+.add-agent-ways { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+label.add-agent-way { display: flex; align-items: flex-start; gap: 8px; min-width: 0; padding: calc(9px * var(--density)) 10px; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); color: var(--text); cursor: pointer; }
+label.add-agent-way.chosen { border-color: var(--accent); background: var(--accent-soft); }
+label.add-agent-way:focus-within { box-shadow: 0 0 0 1px var(--dim); }
+.add-agent-way input { flex: none; width: auto; margin: 2px 0 0; padding: 0; }
+.add-agent-way-words { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.add-agent-way-words strong { font-size: calc(13px * var(--size)); }
+.add-agent-way-words .muted { font-size: calc(12px * var(--size)); line-height: 1.4; }
+.add-agent .add-agent-said, .add-agent .add-agent-there, .invited-into { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+/* The agents there are, under the name of one added beside a channel: the composer's list of names, lying over the
+   dialog by where the field is (placed there, on the screen, as it is drawn), and as wide as the field. */
+.mentions.agents-offered { position: fixed; bottom: auto; z-index: 25; box-sizing: border-box; min-width: 0; max-width: none; }
+.agents-offered .agents-offered-new { margin: 0; padding: 6px 8px 4px; border-top: 1px solid var(--line); font-size: calc(12px * var(--size)); line-height: 1.4; overflow-wrap: anywhere; }
+.agents-offered .agents-offered-new:first-child { border-top: none; }
+/* Beside a channel, who is added, chosen at the head of the one dialog: three side by side, and fewer to a row where there is no room. */
+.add-agent-ways.add-member-kinds { grid-template-columns: repeat(auto-fit, minmax(min(100%, 116px), 1fr)); }
+/* A person with an account, a line each: the name giving way and the button whole, and the daemon's refusal under them. */
+.add-people { display: grid; gap: 4px; max-height: calc(180px * var(--tall)); overflow-y: auto; }
+label.add-person-line { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: calc(30px * var(--tall)); padding: 0 10px; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); color: var(--text); cursor: pointer; }
+label.add-person-line.chosen { border-color: var(--accent); background: var(--accent-soft); }
+label.add-person-line:focus-within { box-shadow: 0 0 0 1px var(--dim); }
+.add-person-line input { flex: none; width: auto; margin: 0; padding: 0; }
+/* What may be set of whoever is added, a section each, under who they are. */
+.member-settings { gap: 12px; }
+.member-setting { display: grid; gap: 6px; min-width: 0; }
+.member-setting > strong { font-size: calc(13px * var(--size)); }
+.member-setting .member-setting-said { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.add-person-invite { gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.add-person p, .add-bot p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+/* A finger's size wherever the page is laid out for one, as the composer's list of names is under a finger. */
+@media (pointer: coarse), (max-width: 760px) {
+  label.add-person-line { min-height: calc(42px * var(--tall)); }
+  .mentions.agents-offered button { min-height: calc(42px * var(--tall)); }
+}

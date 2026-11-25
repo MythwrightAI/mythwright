@@ -1,0 +1,195 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "xtask", "examples/kv-cache", "desktop"]
+# `desktop` links the system webview, so it is built on request
+# (`cargo build -p desktop`) and never by a plain `cargo build` or a gate.
+default-members = ["crates/*", "xtask", "examples/kv-cache"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+publish = false
+# Either, as whoever uses it chooses: LICENSE-MIT and LICENSE-APACHE.
+license = "MIT OR Apache-2.0"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+too_many_arguments = "allow"
+new_without_default = "allow"
+
+# Every dependency, internal or third-party, is declared here and nowhere else.
+# Member manifests say `{ workspace = true }` and never add features, so a crate
+# is compiled with one feature set whether the command is `build` or `test`.
+# (On the previous codebase a single feature that differed between the two
+# recompiled 21 crates, about 64 s, on every switch. `cargo xtask check`
+# enforces the rule.)
+[workspace.dependencies]
+brand = { path = "crates/brand" }
+link = { path = "crates/link" }
+reader = { path = "crates/reader" }
+blueprint = { path = "crates/blueprint" }
+kernel = { path = "crates/kernel" }
+journal = { path = "crates/journal" }
+runs = { path = "crates/runs" }
+texts = { path = "crates/texts" }
+environments = { path = "crates/environments" }
+people = { path = "crates/people" }
+manual = { path = "crates/manual" }
+windowed = { path = "crates/windowed" }
+conductor = { path = "crates/conductor" }
+projects = { path = "crates/projects" }
+pages = { path = "crates/pages" }
+blocks = { path = "crates/blocks" }
+talk = { path = "crates/talk" }
+workspaces = { path = "crates/workspaces" }
+search = { path = "crates/search" }
+comparisons = { path = "crates/comparisons" }
+hosting = { path = "crates/hosting" }
+studio = { path = "crates/studio" }
+deciding = { path = "crates/deciding" }
+trash = { path = "crates/trash" }
+places = { path = "crates/places" }
+told = { path = "crates/told" }
+outline = { path = "crates/outline" }
+topics = { path = "crates/topics" }
+extensions = { path = "crates/extensions" }
+agents = { path = "crates/agents" }
+sandbox = { path = "crates/sandbox" }
+gateway = { path = "crates/gateway" }
+folders = { path = "crates/folders" }
+setup = { path = "crates/setup" }
+served = { path = "crates/served" }
+api = { path = "crates/api" }
+
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "sync", "time", "process", "net", "io-util", "fs", "signal"] }
+getrandom = "0.4.3"
+regex-lite = "0.1.9"
+argon2 = "0.6.0"
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio", "matched-path"] }
+futures-util = { version = "0.3.34", default-features = false }
+tower = { version = "0.5.3", default-features = false, features = ["util"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "stream"] }
+sha2 = "0.11.1"
+hmac = "0.13.0"
+# The Noise handshake between two installations (`link::sealed`). Only
+# what `Noise_IK_25519_ChaChaPoly_BLAKE2s` needs, in Rust throughout: no C or
+# assembly is built for it.
+chacha20poly1305 = { version = "0.10.1", default-features = false, features = ["alloc"] }
+snow = { version = "0.10.0", default-features = false, features = ["default-resolver", "use-curve25519", "use-chacha20poly1305", "use-blake2", "use-getrandom"] }
+# An invitation as one string, and a sealed frame as a line of the link.
+base64 = "0.23.1"
+sysinfo = { version = "0.40.1", default-features = false, features = ["system", "disk"] }
+rusqlite = { version = "0.41.1", features = ["bundled", "hooks", "backup"] }
+# Asking a program and everything it started to stop is a call to the
+# system (a signal to its process group), which the standard library does
+# not have and which is `unsafe` written by hand; this is that call behind
+# a safe name (`hosting::group`). In its place the daemon ran `kill` as a
+# program, found along a path. Unix only: nothing of it is built on Windows.
+rustix = { version = "1.1.5", default-features = false, features = ["std", "process"] }
+# The same on Windows, where a program and everything it started is a job
+# object, which the standard library does not have either: this is a job
+# made, a process put in it and "everything in it ends when it is let go
+# of" behind safe names (`hosting::group`). Windows only: nothing of it is
+# built anywhere else.
+win32job = "2.1.0"
+# Times in a named zone, following its daylight saving, for the one word
+# of the language that says a time of day (`at:` of a handler, read and
+# worked out in `blueprint::at`). The daemon knows no other zone. The zones
+# are read from the system's own database where it has one (Linux,
+# macOS) and from a copy built in on Windows, which has none.
+jiff = { version = "0.2.38", default-features = false, features = ["std", "tzdb-bundle-platform", "tzdb-zoneinfo", "tzdb-concatenated"] }
+# Markdown to HTML, for a document as the page it would be published as.
+pulldown-cmark = { version = "0.13.6", default-features = false, features = ["html"] }
+# Being told by the operating system that a file changed (inotify, FSEvents,
+# ReadDirectoryChangesW), so that nothing has to look.
+notify = "8.2.2"
+# A reader of YAML that is not ours, for one test: every blueprint that
+# ships is read by it as this program reads it (`api`'s suite, `schema`).
+# Nothing that ships is built with it. Without `encoding`, which reads
+# files in other encodings: it is handed text.
+yaml-rust2 = { version = "0.13.0", default-features = false }
+# The desktop shell only. Nothing else may depend on these: they pull in the
+# system's GUI toolkit, which takes minutes to build and is not on servers.
+wry = "0.57.2"
+tao = "0.37.2"
+
+# Profiles. Each line here is a measured result from the previous codebase, not
+# a preference; see docs/build-times.md before changing one.
+[profile.dev]
+# 80% of the bytes in the old test binaries were DWARF. Line tables keep
+# backtraces useful at a fraction of the size.
+debug = "line-tables-only"
+# Deliberately absent: `lto` (off is already the default; thin was 19x slower
+# in dev) and `codegen-units` (setting it at all split host and target
+# artifacts and compiled 64 crates twice).
+
+# C and crypto code that tests exercise heavily is worth optimising once.
+[profile.dev.package.libsqlite3-sys]
+opt-level = 3
+[profile.dev.package.argon2]
+opt-level = 3
+[profile.dev.package.sha2]
+opt-level = 3
+# A handshake between two installations is four exchanges of keys on each
+# side; unoptimised, one took about 25 ms and the tests make thousands.
+[profile.dev.package.curve25519-dalek]
+opt-level = 3
+[profile.dev.package.chacha20]
+opt-level = 3
+[profile.dev.package.poly1305]
+opt-level = 3
+[profile.dev.package.blake2]
+opt-level = 3
+# Every apply reads, checks and lays out texts, and a fleet is a dozen of
+# them, one over a thousand lines: unoptimised, reading one took about a
+# tenth of a second, and the suites apply and take up thousands.
+[profile.dev.package.blueprint]
+opt-level = 3
+# The runner and what it stands on are where the suites spend their
+# time: a play of the runner's suite is some two hundred turns of the
+# database, there are seven thousand plays, and every node of the other
+# suites goes through the same code. Unoptimised it was most of what a
+# run of every test took; lightly optimised, a rebuild takes what it
+# did (docs/build-times.md, 2026-11-20).
+[profile.dev.package.kernel]
+opt-level = 1
+[profile.dev.package.journal]
+opt-level = 1
+[profile.dev.package.runs]
+opt-level = 1
+[profile.dev.package.texts]
+opt-level = 1
+[profile.dev.package.conductor]
+opt-level = 1
+# And the three libraries every piece of that work goes through: the
+# runtime, the database's binding, and what reads and writes JSON.
+[profile.dev.package.tokio]
+opt-level = 3
+[profile.dev.package.rusqlite]
+opt-level = 3
+[profile.dev.package.serde_json]
+opt-level = 3
+
+# What ships.
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"
+
+# Optimised builds for a machine that rebuilds all day. On the old codebase a
+# one-file rebuild of the daemon took 35 s with this instead of 284 s with
+# `release`, for a binary 39% larger. `cargo xtask install` uses it.
+[profile.fast]
+inherits = "release"
+lto = false
+codegen-units = 16
+incremental = true
+debug = 0
+strip = "none"

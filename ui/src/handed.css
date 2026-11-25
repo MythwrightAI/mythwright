@@ -1,0 +1,13 @@
+/* What a time a blueprint was applied was handed, in its History: one line over the text while it is folded, and unfolded each name in the faint column
+   with its value beside it, scrolling in itself where it is long (views/history.tsx). */
+.handed { margin: 6px 16px 0; min-width: 0; }
+.handed-head { gap: 6px; height: calc(26px * var(--tall)); padding: 0 6px; margin-left: -6px; color: var(--dim); font-size: calc(12.5px * var(--size)); font-weight: 600; }
+.handed-lines { max-height: 150px; overflow: auto; padding: 2px 0 4px 18px; }
+.handed-line { display: grid; grid-template-columns: 9em minmax(0, 1fr); gap: 0 14px; align-items: start; min-height: calc(22px * var(--tall)); font-size: calc(12.5px * var(--size)); line-height: 1.5; }
+.handed-name { padding-top: 1px; overflow-wrap: anywhere; }
+.handed-value { padding-top: 1px; font-family: var(--mono); font-size: calc(12px * var(--size)); white-space: pre-wrap; overflow-wrap: anywhere; }
+.handed-inside { display: grid; min-width: 0; }
+.handed-fold { justify-self: start; gap: 6px; height: calc(22px * var(--tall)); padding: 0 6px; margin-left: -6px; color: var(--dim); font-size: calc(12px * var(--size)); }
+.handed-fold:disabled { opacity: 1; cursor: default; }
+.handed-under { padding-left: 4px; }
+.handed-under .handed-line { grid-template-columns: 6em minmax(0, 1fr); }

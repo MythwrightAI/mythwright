@@ -1,0 +1,16 @@
+{
+  "says": "An issue made for a card by a run the daemon stopped in, before the link could say which it was, carries the card's mark: the link finds it by that, and no second issue is made.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"given": {"issues/1/title": "Add a cart", "issues/1/body": "Customers need one.\n\n<!-- card shop-1 -->", "issues/1/state": "OPEN", "issues/1/stamp": "s1"}},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"holds": {"issues/1": {"title": "Add a cart", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "s1"}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "issue: 1"}
+  ]
+}

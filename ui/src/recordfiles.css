@@ -1,0 +1,17 @@
+/* What is attached to a record, the Attachments tab of a card's drawer and of a row's form
+   (`views/recordfiles.tsx`): where a file is dropped or a picture pasted, then each with its name, how big, who
+   added it and when, and what is opened in place under it. Everything wraps where the drawer is narrow, a
+   picture or a video is no wider than the tab, and nothing leaves it. */
+.record-files { display: grid; gap: 8px; min-width: 0; padding: 2px; border-radius: calc(8px * var(--round)); }
+.record-files.over { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.record-files-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; padding: calc(10px * var(--density)) 12px; border: 1px dashed var(--line-strong); border-radius: calc(8px * var(--round)); }
+.record-files-add > span { min-width: 0; overflow-wrap: anywhere; }
+.record-file { display: grid; gap: 4px; min-width: 0; padding: 8px; border-radius: calc(6px * var(--round)); background: var(--bg0); }
+.record-file-head { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 4px; min-width: 0; }
+.record-file-name { justify-self: start; min-width: 0; max-width: 100%; height: auto; min-height: calc(24px * var(--tall)); padding: 0 4px; border: 0; background: transparent; color: var(--text); font-weight: 600; text-align: left; }
+.record-file-name:hover { background: var(--bg2); }
+.record-file-said { min-width: 0; font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+.record-file-save, .record-file-remove { font-size: calc(12.5px * var(--size)); }
+.record-file button.record-file-remove { height: auto; padding: 0 4px; border: 0; background: transparent; color: var(--bad); }
+.record-file-shown { display: block; max-width: 100%; max-height: 60vh; border-radius: calc(4px * var(--round)); }
+.record-file-words { max-height: 50vh; margin: 0; overflow: auto; padding: 8px; border-radius: calc(4px * var(--round)); background: var(--bg1); font-size: calc(12px * var(--size)); white-space: pre-wrap; overflow-wrap: anywhere; }

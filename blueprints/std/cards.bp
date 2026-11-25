@@ -1,0 +1,355 @@
+# The cards of a board: what a card can do, beyond being moved.
+#
+# A card is a row of its board's table and nothing more. Nothing runs for
+# it while nobody is doing anything with it: a card in backlog is a row.
+# This is the one thing that looks after all of them. There is one for a
+# board, started by the board (`std/board`); it hears what is said of any
+# card, and what it has to keep of a card it keeps on the card's own row,
+# where a person and the client can read it.
+#
+# What a card can do is said here, a handler each:
+#
+# - **Hold a question.** An agent that cannot tell what is wanted asks
+#   instead of guessing (whatever gave it the card says so: `card.asked`).
+#   The question is put on the card, with who asked, and what someone else
+#   then says on the card is the answer (`card.answered`). Saying something
+#   on a record is general, and any record can be spoken on; that a
+#   question is open, who may answer it and what follows are only this
+#   text.
+# - **Say why it waits**, in its `waiting`, where only so many cards are
+#   worked at once, until its turn comes (`card.taken`).
+# - **Count how often it was sent back**, by a person or by an agent that
+#   reviews, in its `rounds`: what a fleet reads to decide that an agent
+#   sending it back once more is one time too many.
+# - **Wait on other cards.** Its `after` names them, and it is not begun
+#   until each of them is done (`due`, below).
+# - **Say that it is finished** (`card.finished`), for whatever waits on it.
+#
+# What is heard of one card is done one thing at a time (`turn`), and
+# what is heard of another is done beside it: a card holds up no card but
+# itself.
+#
+# Nothing is remembered here between whiles. What a card keeps it keeps on
+# its own row, and what any of it means (whether a move was a sending
+# back, whether what was said is an answer, whether a card may begin) is
+# asked of the board (`board.came`, `board.said`, `board.waits`,
+# `board.after`, `board.held`), which reads the rows and says.
+#
+# To change what a card can do, or to add to it, copy this file to
+# `blueprints/std/cards.bp` in the project and apply the board again.
+blueprint: std/cards
+version: 5
+description: "What the cards of a board can do beyond being moved: hold a question, say why they wait, count how often they were sent back, and wait on other cards."
+permissions: [board, records]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  done: { type: string, default: done, description: "The column a card is finished in." }
+
+# Applied again with its board, it goes on where it is.
+on_update: []
+
+on:
+  # A card was moved. Only where there may be something to do: a person
+  # moved it, which answers what was asked on it; it was put where cards
+  # are worked, taken or sent back; it is finished; or it was moved on
+  # from where work is looked over, which may be a sending back to
+  # wherever its stage says a card that did not pass goes.
+  moved:
+    event: board.item.moved
+    for: { project: "${params.project}" }
+    when: ${ event.data.through == null || event.data.to in ["doing", params.done] || event.data.from == "review" }
+    turn: "${event.data.id}"
+    steps:
+      what:
+        description: What the move means for what the card keeps, by its row and the columns named here.
+        do: board.came
+        with:
+          id: "${event.data.id}"
+          from: "${event.data.from}"
+          to: "${event.data.to}"
+          by_hand: ${ event.data.through == null }
+          worked: doing
+          looked: review
+          done: "${params.done}"
+
+      settled:
+        description: Moved to another column by a person, a card is no longer waiting on what was asked on it. Where they put it is their answer; a blueprint's own move answers nothing.
+        when: ${steps.what.out.settles}
+        do: board.update
+        with: { id: "${event.data.id}", fields: { question: "" } }
+
+      taken:
+        description: The column it was first taken from to be worked, where nothing that took it has said. Put in doing from anywhere else, afterwards, it was sent back.
+        when: ${ steps.what.out.came == "taken" }
+        allow_failure: true
+        do: board.update
+        with: { id: "${event.data.id}", fields: { taken: "${event.data.from}" } }
+
+      counted:
+        description: Sent back, from review or from whatever looked at it after, by anyone and to whichever column its stage says, it has gone round once more, and says how many times that is. A board that keeps no `rounds` of its cards cannot say.
+        when: ${ steps.what.out.came == "back" }
+        allow_failure: true
+        do: board.update
+        with:
+          id: "${event.data.id}"
+          fields: { rounds: "${steps.what.out.rounds}" }
+
+      finished:
+        when: ${ steps.what.out.came == "finished" }
+        do: emit
+        with:
+          topic: card.finished
+          card: "${event.data.id}"
+          project: "${params.project}"
+          stage: "${event.data.to}"
+
+      rested:
+        description: A card that is finished waits for nothing, whatever it was waiting for.
+        when: ${steps.what.out.rests}
+        allow_failure: true
+        do: board.update
+        with: { id: "${event.data.id}", fields: { waiting: "" } }
+
+      asks:
+        description: Each card that waits on the one that is finished is looked at again (`due`).
+        when: ${ steps.what.out.came == "finished" }
+        for_each: ${steps.what.out.holds}
+        do: emit
+        with: { topic: after.again, card: "${item}", project: "${params.project}" }
+
+  # An agent asked instead of guessing. Who asked is kept on the card
+  # first, and then the question, which is what marks it as waiting: by
+  # the time anyone can see the question it is known whose it is, so that
+  # their own words are not taken for the answer.
+  asked:
+    event: card.asked
+    for: { project: "${params.project}" }
+    turn: "${event.data.card}"
+    steps:
+      whose:
+        description: A board that keeps no `asker` of its cards takes whatever anyone then says for the answer.
+        allow_failure: true
+        do: board.update
+        with: { id: "${event.data.card}", fields: { asker: "${event.data.asker}" } }
+
+      put:
+        description: A board that keeps no `question` of its cards cannot show one, and says so here.
+        do: board.update
+        with: { id: "${event.data.card}", fields: { question: "${event.data.question}" } }
+
+  # Something was said on a card. While a question is open, what someone
+  # other than whoever asked says is the answer: the question comes off
+  # the card and the answer is said, for whatever gave the card to the
+  # asker to hear. What a blueprint says for itself answers nothing, and
+  # neither does anything said on a card nobody asked anything on.
+  said:
+    event: record.commented
+    for: { project: "${params.project}", collection: board }
+    when: ${ event.data.through == null }
+    turn: "${event.data.id}"
+    steps:
+      what:
+        description: Whether it answers what was asked on the card.
+        do: board.said
+        with: { id: "${event.data.id}", by: "${event.data.by}" }
+
+      answer:
+        when: ${ steps.what.out.came == "answer" }
+        task:
+          taken:
+            do: board.update
+            with: { id: "${event.data.id}", fields: { question: "" } }
+
+          answered:
+            do: emit
+            with:
+              topic: card.answered
+              card: "${event.data.id}"
+              project: "${params.project}"
+              asker: "${steps.what.out.asker}"
+              body: "${event.data.body}"
+
+  # A card has to wait its turn where a limited number are worked at once
+  # (`std/pool`, which says what the waiting is about and whose pool it
+  # is), or the pool it waits in was told to start nothing for now, or
+  # gives another number of places: the card says so, and why. A board
+  # that keeps no `waiting` of its cards cannot show it, and the history
+  # still says it.
+  waits:
+    event: pool.waiting
+    for: { project: "${params.project}" }
+    turn: "${event.data.about}"
+    steps:
+      what:
+        description: Whether what waits is a card of this board, and what it is to say.
+        do: board.waits
+        with:
+          id: "${event.data.about}"
+          project: "${params.project}"
+          why: "${ event.data.why ?? '' }"
+          limit: ${event.data.limit}
+
+      put:
+        when: ${steps.what.out.mine}
+        allow_failure: true
+        do: board.update
+        with:
+          id: "${event.data.about}"
+          fields: { waiting: "${steps.what.out.says}" }
+
+      told:
+        when: ${steps.what.out.mine}
+        do: emit
+        with:
+          topic: card.waiting
+          card: "${event.data.about}"
+          project: "${params.project}"
+          what: "${steps.what.out.says}"
+
+  # Its turn came: what it said it waited for comes off it.
+  taken:
+    event: card.taken
+    for: { project: "${params.project}" }
+    turn: "${event.data.card}"
+    steps:
+      put:
+        allow_failure: true
+        do: board.update
+        with: { id: "${event.data.card}", fields: { waiting: "" } }
+
+  # Whether the cards a card waits on are done. Something that would
+  # begin a card asks (`after.asked`), and is answered when nothing the
+  # card waits on is left (`after.clear`): at once, or when the last of
+  # them is finished. Meanwhile the card says what it waits for, which is
+  # also what says it was asked. And a card is looked at again
+  # (`after.again`) when one it waits on is finished or taken away, when
+  # what it waits on is said again, and when the board starts: then one
+  # that says it waits is told when nothing is left, and one that does not
+  # is left as it is, nobody having asked.
+  due:
+    event: after.*
+    for: { project: "${params.project}" }
+    when: ${ event.topic != "after.clear" }
+    turn: "${event.data.card}"
+    steps:
+      what:
+        description: The cards it waits on as they are now, each by its id; one that is done, or that names no card any more, is not waited for.
+        do: board.after
+        with:
+          id: "${event.data.card}"
+          done: "${params.done}"
+          asked: ${ event.topic == "after.asked" }
+
+      lifted:
+        description: What it said it waited for comes off it, when the last of them is done.
+        when: ${steps.what.out.lifts}
+        allow_failure: true
+        do: board.update
+        with: { id: "${event.data.card}", fields: { waiting: "" } }
+
+      freed:
+        when: ${steps.what.out.lifts}
+        do: emit
+        with: { topic: card.freed, card: "${event.data.card}", project: "${params.project}" }
+
+      put:
+        description: It says what it waits for. A board that keeps no `waiting` of its cards cannot show it, and the history still says it.
+        when: ${steps.what.out.news}
+        allow_failure: true
+        do: board.update
+        with:
+          id: "${event.data.card}"
+          fields: { waiting: "${steps.what.out.says}" }
+
+      told:
+        description: Said once for what it waits on, and again when that is something else.
+        when: ${steps.what.out.news}
+        do: emit
+        with:
+          topic: card.waiting
+          card: "${event.data.card}"
+          project: "${params.project}"
+          what: "${steps.what.out.says}"
+
+      clear:
+        description: Nothing it waits on is left, which is said for whatever asked.
+        when: ${steps.what.out.answers}
+        do: emit
+        with: { topic: after.clear, card: "${event.data.card}", project: "${params.project}" }
+
+  # When it comes up, and each time it is applied again: a card that says
+  # it waits on others is looked at again, by its row, so a board stopped
+  # and applied again finds it as one that went on does.
+  first:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id }
+    steps:
+      said:
+        description: "One coming up as the daemon started was not listening when that was said: a card moved with nobody told has its move said now (`board.settle`), once for a start whoever asks."
+        allow_failure: true
+        do: board.settle
+        with: { project: "${params.project}" }
+
+      open:
+        description: The cards that say they wait on others, by the board's rows as they are.
+        allow_failure: true
+        do: board.held
+        with: { project: "${params.project}", done: "${params.done}" }
+
+      each:
+        when: ${steps.open.ok}
+        for_each: ${steps.open.out.ids}
+        do: emit
+        with: { topic: after.again, card: "${item}", project: "${params.project}" }
+
+  # And when the daemon has started: a card finished as it went down, with
+  # nobody told, is said to be now, and what waited on it looked at again.
+  started:
+    event: system.started
+    steps:
+      said:
+        description: "A card that was moved as the daemon went down, with nobody told, has its move said now (`board.settle`): whatever a stage does with it, and what is counted of it here, follows as from any move."
+        allow_failure: true
+        do: board.settle
+        with: { project: "${params.project}" }
+
+      open:
+        description: The cards that say they wait on others, by the board's rows as they are.
+        allow_failure: true
+        do: board.held
+        with: { project: "${params.project}", done: "${params.done}" }
+
+      each:
+        when: ${steps.open.ok}
+        for_each: ${steps.open.out.ids}
+        do: emit
+        with: { topic: after.again, card: "${item}", project: "${params.project}" }
+
+  # A card was taken off the board: those that waited on it wait on it no
+  # more, and are looked at again.
+  taken_away:
+    event: board.item.removed
+    for: { project: "${params.project}" }
+    steps:
+      open:
+        description: The cards that wait on the one taken away.
+        do: board.held
+        with:
+          project: "${params.project}"
+          done: "${params.done}"
+          by: "${event.data.id}"
+
+      each:
+        for_each: ${steps.open.out.ids}
+        do: emit
+        with: { topic: after.again, card: "${item}", project: "${params.project}" }
+
+  # What a card waits on was said again: it is looked at again.
+  planned_again:
+    event: board.item.updated
+    for: { project: "${params.project}" }
+    when: ${ "after" in event.data.changed }
+    do: emit
+    with: { topic: after.again, card: "${event.data.id}", project: "${params.project}" }

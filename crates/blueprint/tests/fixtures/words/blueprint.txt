@@ -1,0 +1,404 @@
+The words of a blueprint, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== blueprint.blueprint
+--- written
+blueprint:   w
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: [w]
+steps:
+    a: {do: noop}
+--- refused 1:12
+`blueprint` must be text, found a list
+
+=== blueprint.description
+--- written
+blueprint: w
+description:    What it is for.
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+description: What it is for.
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+description: [a]
+steps:
+    a: {do: noop}
+--- refused 2:14
+`description` must be text, found a list
+
+=== blueprint.durable
+--- written
+blueprint: w
+durable: false
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+durable: false
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+durable: sometimes
+steps:
+    a: {do: noop}
+--- refused 2:10
+`durable` must be true or false
+
+=== blueprint.env
+--- written
+blueprint: w
+env: {REGION: eu}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+env: { REGION: eu }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+env: [a]
+steps:
+    a: {do: noop}
+--- refused 2:6
+`env` must be a mapping, found a list
+
+=== blueprint.max_parallel
+--- written
+blueprint: w
+max_parallel: 2
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+max_parallel: 2
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+max_parallel: many
+steps:
+    a: {do: noop}
+--- refused 2:15
+`max_parallel` must be a whole number, 1 or more
+
+=== blueprint.on
+--- written
+blueprint: w
+on:
+    poke: {event: w.poke, do: noop}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+on:
+  poke: { event: w.poke, do: noop }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+on: [a]
+steps:
+    a: {do: noop}
+--- refused 2:5
+`on` must be a mapping of handler name to handler
+
+=== blueprint.on_fail
+--- written
+blueprint: w
+on_fail:
+    - {do: noop}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+on_fail:
+  - { do: noop }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+on_fail: 3
+steps:
+    a: {do: noop}
+--- refused 2:10
+a hook must be a mapping, found a number
+
+=== blueprint.on_finish
+--- written
+blueprint: w
+on_finish:
+    - {do: noop}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+on_finish:
+  - { do: noop }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+on_finish: 3
+steps:
+    a: {do: noop}
+--- refused 2:12
+a hook must be a mapping, found a number
+
+=== blueprint.on_stop
+--- written
+blueprint: w
+on_stop:
+    - {do: noop}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+on_stop:
+  - { do: noop }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+on_stop: 3
+steps:
+    a: {do: noop}
+--- refused 2:10
+a hook must be a mapping, found a number
+
+=== blueprint.on_success
+--- written
+blueprint: w
+on_success:
+    - {do: noop}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+on_success:
+  - { do: noop }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+on_success: 3
+steps:
+    a: {do: noop}
+--- refused 2:13
+a hook must be a mapping, found a number
+
+=== blueprint.on_update
+--- written
+blueprint: w
+on_update:
+    - {do: noop}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+on_update:
+  - { do: noop }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+on_update: 3
+steps:
+    a: {do: noop}
+--- refused 2:12
+a hook must be a mapping, found a number
+
+=== blueprint.one_at_a_time
+--- written
+blueprint: w
+one_at_a_time: true
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+one_at_a_time: true
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+one_at_a_time: maybe
+steps:
+    a: {do: noop}
+--- refused 2:16
+`one_at_a_time` must be true or false
+
+=== blueprint.outputs
+--- written
+blueprint: w
+outputs: {v: 1}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+outputs: { v: 1 }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+outputs: [a]
+steps:
+    a: {do: noop}
+--- refused 2:10
+`outputs` must be a mapping, found a list
+
+=== blueprint.params
+--- written
+blueprint: w
+params:
+    who: {type: string, default: me}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+params:
+  who: { type: string, default: me }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+params: [a]
+steps:
+    a: {do: noop}
+--- refused 2:9
+`params` must be a mapping of name to default or spec
+
+=== blueprint.permissions
+--- written
+blueprint: w
+permissions: [shell]
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+permissions: [shell]
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+permissions: 3
+steps:
+    a: {do: noop}
+--- refused 2:14
+`permissions` must be a list of names
+
+=== blueprint.state
+--- written
+blueprint: w
+state: {n: 0}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+state: { n: 0 }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+state: [a]
+steps:
+    a: {do: noop}
+--- refused 2:8
+`state` must be a mapping, found a list
+
+=== blueprint.steps
+--- written
+blueprint: w
+steps:
+    a: {do: noop}
+    b: {do: noop}
+--- laid
+blueprint: w
+
+steps:
+  a: { do: noop }
+  b: { do: noop }
+--- wrong
+blueprint: w
+steps: [a]
+--- refused 2:8
+`steps` must be a mapping of step name to step
+
+=== blueprint.uses
+--- written
+blueprint: w
+uses:
+    other: {blueprint: other}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+uses:
+  other: { blueprint: other }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+uses: 3
+steps:
+    a: {do: noop}
+--- refused 2:7
+`uses` must be a mapping of name to blueprint
+
+=== blueprint.version
+--- written
+blueprint: w
+version: 2
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+version: 2
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+version: [1]
+steps:
+    a: {do: noop}
+--- refused 2:10
+`version` must be text, found a list

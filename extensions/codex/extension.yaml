@@ -1,0 +1,132 @@
+# Codex as an agent.
+#
+# Nothing in the application knows this program. Everything about it is in
+# this file: how a turn is started, how what it prints is read, and how it is
+# asked which models it offers.
+extension: codex
+title: Codex
+description: Agents that run on the Codex command line, signed in as whoever runs the daemon or with a sign-in the factory holds.
+
+agent:
+  program: codex
+
+  # How one turn is started. `turn` is what the slot asks for.
+  args:
+    - ["exec", "--json", "--skip-git-repo-check"]
+    - when: ${ turn.permission == "read" }
+      args: ["--sandbox", "read-only"]
+    # An agent acts on the fleet with the command-line client, which talks to
+    # the daemon; without the network that is cut off along with everything
+    # else.
+    - when: ${ turn.permission == "edit" }
+      args: ["--sandbox", "workspace-write", "-c", "sandbox_workspace_write.network_access=true"]
+    - when: ${ turn.permission == "full" }
+      args: ["--dangerously-bypass-approvals-and-sandbox"]
+    - when: ${ turn.model != null }
+      args: ["--model", "${ turn.model }"]
+    - when: ${ turn.session != null }
+      args: ["resume", "${ turn.session }"]
+    # "-": what it is asked is read from standard input.
+    - ["-"]
+
+  # It has no separate place for standing instructions, so a conversation
+  # opens with them; a turn that carries one on does not repeat them.
+  input: '${ turn.session == null ? turn.system + "\n\n" + turn.prompt : turn.prompt }'
+
+  # What it prints: one JSON value a line, each called `event` here.
+  output:
+    - when: ${ event.type == "thread.started" }
+      session: ${ event.thread_id }
+    - when: ${ event.type == "item.started" && event.item.type == "command_execution" }
+      show: '${ "[" + event.item.command + "]" }'
+    # It may say several things in a turn; the last is its answer.
+    - when: ${ event.type == "item.completed" && event.item.type == "agent_message" }
+      show: ${ event.item.text }
+      reply: ${ event.item.text }
+    - when: ${ event.type == "turn.completed" }
+      input_tokens: ${ event.usage.input_tokens }
+      output_tokens: ${ event.usage.output_tokens }
+    - when: ${ event.type == "turn.failed" }
+      failed: true
+      error: ${ event.error.message }
+    - when: ${ event.type == "error" }
+      failed: true
+      error: ${ event.message }
+
+  # How it is handed a sign-in the factory holds, for an agent that is told
+  # to draw one. Written from the program's documentation and NOT tried
+  # against the program: see the README beside this file before relying
+  # on it.
+  signin:
+    # A key for the API, which `codex exec` reads from its environment.
+    key: CODEX_API_KEY
+    # The folder it keeps everything in, its sign-in among it.
+    folder: CODEX_HOME
+    # With a key it is given a folder of the slot's own in place of the
+    # usual one, so that the sign-in kept there is not used instead.
+    home: CODEX_HOME
+    # It has no long-lived token of a subscription to be handed, so there
+    # is no `token`. `limit` is left out: what it prints at a limit, and
+    # how it says when the limit lifts, is not known here for certain.
+
+  # What its program must be shown behind a wall, besides what any is.
+  # Installed as a package of scripts, the file that is run is two folders
+  # down in the package (`bin/` in it), and the rest of the package is
+  # what it runs: `beside` says so, from where that file is. Installed as
+  # one file, that shows nothing more than was there. In the home of
+  # whoever runs it, it keeps everything in `.codex`. Written from how the
+  # program is laid out on Linux. Behind a wall, installed as a package of
+  # scripts, it has been started and has answered which models it offers
+  # (2026-11-14); it has not been given a piece of work there.
+  #
+  # Of what it keeps, its sign-in is one file, `.codex/auth.json`, and with
+  # it what it is set up with and which installation it is,
+  # `.codex/config.toml` and `.codex/installation_id`: an agent that signs
+  # in as whoever runs the daemon is shown those three, where they are, in
+  # each home of its own (its ordinary one, and each kept channel's), and
+  # the rest of what the program keeps (its sessions, their history, its
+  # own databases) is that home's own. One that draws a sign-in the
+  # factory holds is shown none of it. Written from the names of what the
+  # program keeps on Linux (2026-11-19); it has not been tried with the
+  # program in a home laid out so. A file that is shown is written where
+  # it is, and cannot have another file put in its place from behind the
+  # wall: if the program renews its sign-in that way, it will fail to
+  # renew it from any of an agent's homes, and its turns fail as those of
+  # a program that is not signed in, until whoever runs the daemon renews
+  # it by running the program themselves. An agent handed a key the
+  # factory holds (`signin`, above) keeps no sign-in in a file, and is not
+  # so.
+  #
+  # What it reads as its own standing instructions, in every project it is
+  # run in, is `AGENTS.md` in the folder it keeps everything in, `.codex`
+  # in its home (its global guidance, as its documentation calls it;
+  # `AGENTS.override.md` beside it would be read in its place, and the
+  # factory writes none). The factory writes what an agent is and how it
+  # stands there before each turn, in the agent's own home, and hands the
+  # program what it was asked with one line more. With a key handed, the
+  # program reads `CODEX_HOME` in place of `.codex`, and the agent is told
+  # everything ahead of what it is asked, as before. Written from the
+  # program's documentation (2026-11-22); it has not been tried with the
+  # program.
+  wall:
+    beside: ["../.."]
+    keeps: [".codex"]
+    signin: [".codex/auth.json", ".codex/config.toml", ".codex/installation_id"]
+    instructions: ".codex/AGENTS.md"
+
+  # The same list its own model picker shows, for the account it is signed
+  # in with. Asking sends it no prompt.
+  models:
+    ask:
+      args: ["app-server"]
+      send:
+        - { id: 1, method: initialize, params: { clientInfo: { name: models, title: models, version: "0" } } }
+        - { method: initialized }
+        - { id: 2, method: "model/list", params: {} }
+      answer: ${ line.id == 2 }
+      list: ${ line.result.data }
+      id: ${ model.id }
+      label: ${ model.displayName }
+      note: ${ model.description }
+      hidden: ${ model.hidden == true }
+      default: ${ model.isDefault == true }

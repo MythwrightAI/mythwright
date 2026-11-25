@@ -1,0 +1,10 @@
+[
+  {"permission": "read", "args": ["--print", "--output-format", "stream-json", "--verbose", "--append-system-prompt", "<system>", "--permission-mode", "plan", "--allowedTools", "Bash(<cli> *),Bash(<cli-path> *)"]},
+  {"permission": "edit", "model": "example-model", "session": "0f1e2d3c-0000-4000-8000-000000000001", "args": ["--print", "--output-format", "stream-json", "--verbose", "--append-system-prompt", "<system>", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(<cli> *),Bash(<cli-path> *)", "--model", "example-model", "--resume", "0f1e2d3c-0000-4000-8000-000000000001"]},
+  {"permission": "full", "args": ["--print", "--output-format", "stream-json", "--verbose", "--append-system-prompt", "<system>", "--permission-mode", "bypassPermissions"]},
+  {"permission": "edit", "cli": false, "args": ["--print", "--output-format", "stream-json", "--verbose", "--append-system-prompt", "<system>", "--permission-mode", "acceptEdits"]},
+  {"permission": "edit", "web": true, "args": ["--print", "--output-format", "stream-json", "--verbose", "--append-system-prompt", "<system>", "--permission-mode", "acceptEdits", "--allowedTools", "Bash(<cli> *),Bash(<cli-path> *),WebSearch,WebFetch"]},
+  {"permission": "read", "web": true, "args": ["--print", "--output-format", "stream-json", "--verbose", "--append-system-prompt", "<system>", "--permission-mode", "plan", "--allowedTools", "Bash(<cli> *),Bash(<cli-path> *),WebSearch,WebFetch"]},
+  {"permission": "edit", "web": true, "cli": false, "args": ["--print", "--output-format", "stream-json", "--verbose", "--append-system-prompt", "<system>", "--permission-mode", "acceptEdits", "--allowedTools", "WebSearch,WebFetch"]},
+  {"permission": "full", "web": true, "args": ["--print", "--output-format", "stream-json", "--verbose", "--append-system-prompt", "<system>", "--permission-mode", "bypassPermissions"]}
+]

@@ -1,0 +1,39 @@
+shop/makes
+
+What it is
+  Give a project its things.
+  This is version 3 of it.
+  What it is doing is written down as it goes, so that it is taken up where it was after a restart.
+  It goes on running once its steps are done, for what it hears.
+  Whoever applies it may tell it 2 things:
+    - name: What the second thing is called. It has to be said.
+    - kinds: The kinds there are, each given a thing of its own. Unless it is said: `red` and `green`.
+
+What it makes
+  Another blueprint, `shop/watch`, attached to it as `watcher`. [watcher]
+  A thing called `shelf`. [first]
+  A thing called what the param `name` says. [second]
+  A thing called `bin-<the item>`. One for each of the param `kinds`. [each]
+  Another blueprint, `shop/helper`, started under it as `helper` and left running. [helper]
+  The blueprint the param `name` names, run under it as `count-<the param name>` and waited for. [counted]
+  A thing called `spare`. Each time its handler `made` comes to it. [again]
+
+What it does when it is applied
+  1. The thing everything else is kept in. [first]
+  2. Make sure a thing is there. [second]
+  3. Make sure a thing is there. Once for each of the param `kinds`. [each]
+  4. Read a thing. [read]
+  5. Start `shop/helper` and go on. [helper]
+  6. Run the blueprint the param `name` names and wait for it to finish. [counted]
+
+What it hears, and what it then does
+  When this happens: a thing was made (`thing.made`). Heard from its own project, and from the factory itself. [made]
+    1. Make sure a thing is there. [again]
+
+What it may do
+  It runs as whoever applies it, and can do no more than they can.
+  Of what they can do, it uses only what it lists: `things` and `blueprints`.
+  Read things. [things:read]
+  Make and change things. [things:write]
+  Start, apply and stop blueprint instances. [blueprints:run]
+  What the blueprints it starts may do is said of each of them: `shop/helper` and the blueprint the param `name` names.

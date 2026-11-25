@@ -1,0 +1,31 @@
+{
+  "says": "Told a label that links issues, an issue that has it on GitHub is given a card and a link, in the first column or the last by whether it is open, filled as the issue stands whoever wrote it: whoever put the label on has standing there. One that has not the label is left where it is. Whether it has is read from the issue as it is, and never from what a call says of it.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"apply": "issues", "project": "shop", "sets_off": "look", "params": {"in_label": "factory"}},
+    {"given": {"signing.txt": "s3cret"}},
+    {"run": ["secret", "set", "hub-signing", "--file", "{here}/signing.txt"]},
+    {"run": ["caller", "set", "hub", "--topic", "issues.called", "--secret", "hub-signing", "--header", "X-Hub-Signature-256", "--prefix", "sha256="]},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"given": {"issues/1/title": "Refunds", "issues/1/body": "People ask for them.", "issues/1/state": "OPEN", "issues/1/stamp": "s1", "issues/1/labels": "factory\nbug"}},
+    {"given": {"issues/2/title": "Typos", "issues/2/body": "In the footer.", "issues/2/state": "OPEN", "issues/2/stamp": "s1", "issues/2/labels": "bug"}},
+    {"given": {"issues/3/title": "Not ours", "issues/3/body": "Somebody else's.", "issues/3/state": "OPEN", "issues/3/stamp": "s1"}},
+    {"given": {"issues/4/title": "Old news", "issues/4/body": "Done long ago.", "issues/4/state": "CLOSED", "issues/4/stamp": "s1", "issues/4/labels": "factory"}},
+    {"given": {"issues/1/author": "mallory"}},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 2}, "repository": {"full_name": "acme/shop"}}, "sets_off": "heard"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=2 {issue-whole}"]},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 3, "labels": [{"name": "factory"}]}, "repository": {"full_name": "acme/shop"}}, "sets_off": "heard"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=3 {issue-whole}"]},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 1}, "repository": {"full_name": "acme/shop"}}, "sets_off": "keep"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Refunds"},
+    {"run": ["record", "show", "shop-1"], "says": "status: backlog"},
+    {"run": ["record", "show", "shop-links-1"], "says": "card: shop-1"},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 4}, "repository": {"full_name": "acme/shop"}}, "sets_off": "keep"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=4 {issue-whole}", "api graphql -F owner={owner} -F repo={repo} -F number=4 {issue-whole}", "api graphql -F owner={owner} -F repo={repo} -F number=4 {issue-whole}"]},
+    {"run": ["record", "show", "shop-2"], "says": "status: done"},
+    {"run": ["board", "add", "shop", "Next"], "says": "shop-3"}
+  ]
+}

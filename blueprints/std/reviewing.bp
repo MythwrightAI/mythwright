@@ -1,0 +1,662 @@
+# A column where cards are reviewed: what a fleet does with the cards of
+# a column whose role looks work over (`does: review` in a row of the
+# project's `stages`; `std/fleet`, `std/arrangement`).
+#
+# The agents of the row's role look at what was done, each for itself,
+# and the card passes when enough of them approve (`std/review`): a
+# council of as many as the role has, or as `seats` says. Passed, the
+# card goes to `pass` (merged first, with `merge`); sent back, to `fail`,
+# with what each said is wrong. With nobody in the role, or too few, the
+# card waits for a person, and that is said (`card.waits`). What the
+# project's `segments` lays before the review, and after it, is gone
+# through for the card (`std/segments`).
+#
+# The row can be changed while reviews are under way, and this takes
+# what it now says where it is; what becomes of a review in session
+# when the way of reviewing changes is the row's `in_flight`.
+blueprint: std/reviewing
+version: 13
+description: "What a fleet does with the cards of a column where they are reviewed: the agents of a role look each over, and it goes on, goes back or is left for a person."
+permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
+# One thing at a time, but what a card's review or hand merge comes to, which takes its card's turn.
+one_at_a_time: true
+
+params:
+  project: { type: string, description: "The project it works in." }
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+  pool: { type: string, default: "", description: "The pool its cards take turns in (`std/pool`)." }
+  segments: { type: list, default: [], description: "The rows of the project's `segments`." }
+  merged_by_hand: { type: list, default: [], description: "Columns whose stage merges by hand." }
+
+  row:
+    type: object
+    description: "The stage's row of the project's `stages`, as the fleet read it, with what the fleet says of every stage beside it: `column`, `role`, `agents` (how many the role has), `seated` (how many look at each card), `needed`, `pass`, `fail`, `rounds`, `merge`, `by_hand`, `picks`, `in_flight`, `reports`, `after_restart`, `restarts`, and `review`, the blueprint that reviews one card."
+
+state:
+  # Whether the cards that were in its column when its role came to have
+  # agents are still to be looked at.
+  catch_up: false
+  # The cards it sent back, an entry for each time (`card`, and `at`, the
+  # verdict that sent it back), until they pass.
+  back: []
+  # The cards that have a review under way from here, each with which
+  # review it is and where in the things done here (`card`, `review`,
+  # `row`, `order`, `usual`), until it says how it came out, is over, or
+  # the card leaves. One left for a person is kept with no review named,
+  # and one that waits for a person to review it says so (`person`).
+  reviewing: []
+
+steps:
+  begun:
+    description: A stage has the cards already in its column to take up, once it is listening (`first`), or to say that they wait for a person where nobody is there to look.
+    do: set
+    with: { catch_up: true }
+
+# Taken where it is when its row changes, and never begun again: what it
+# was in the middle of is finished first.
+on_update:
+  # What its row said before of how cards are looked at, beside what it
+  # says now: what that comes to is asked when it is listening again
+  # (`taken`), since nothing here can ask.
+  - do: emit
+    with:
+      topic: stage.taken
+      project: "${params.project}"
+      stage: "${params.row.column}"
+      was: "${was.params.row.review}/${was.params.row.seats}/${was.params.row.needed}"
+      now: "${params.row.review}/${params.row.seats}/${params.row.needed}"
+      seats: ${params.row.seats}
+      needed: ${params.row.needed}
+      agents: ${params.row.agents}
+      had: ${was.params.row.agents}
+      in_flight: "${params.row.in_flight}"
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.agents == 0 }
+    with: { catch_up: true }
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.column != params.row.column }
+    with: { catch_up: true }
+  # What is pressed on a card here changed: a card it no longer holds is due.
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.actions != params.row.actions }
+    with: { catch_up: true }
+  # Its row changed and somebody is there to look: a card that waited for
+  # a person to review it, there having been nobody or too few, is due a
+  # review again, or to be said to wait again.
+  - do: drop
+    when: ${ params.row.agents > 0 && was.params.row != params.row }
+    with: { from: reviewing, by: person, is: true }
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row != params.row }
+    with: { catch_up: true }
+
+on:
+  # The stage took what its row now says (`on_update`). Where cards are
+  # looked at another way from now, the reviews under way are told what is
+  # to become of them (`std/review`), and it is said where the stage
+  # reports.
+  taken:
+    event: stage.taken
+    scope: own
+    for: { project: "${params.project}", stage: "${params.row.column}" }
+    steps:
+      comes:
+        description: What it came to, held against what the row said before.
+        do: column.changed
+        with:
+          column: "${event.data.stage}"
+          now: "${event.data.now}"
+          taken: ${event.data}
+
+      arranged:
+        when: ${ steps.comes.out.came == "arranged" }
+        do: emit
+        with:
+          topic: review.arranged
+          project: "${params.project}"
+          stage: "${event.data.stage}"
+          arranged: "${event.data.now}"
+          in_flight: "${event.data.in_flight}"
+
+      told:
+        when: ${ steps.comes.out.told != "" && params.channel != "" }
+        do: channel.post
+        with: { channel: "${params.channel}", body: "${steps.comes.out.told}" }
+
+  # Each time the stage is as its row now says, its row is looked at.
+  looked:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && params.channel != "" }
+    steps:
+      wrong:
+        description: This stage's row is checked, and what in it would leave a card stuck is said where the fleet reports (`std/looked`). It is said for as long as it is so.
+        call: std/looked
+        as: looked
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          channel: "${params.channel}"
+          row: ${params.row}
+          reviews: true
+          segments: ${params.segments}
+          usual:
+            - { order: 10, does: "${params.row.review}" }
+            - { order: 20, does: std/merge, only: "${params.row.merge}" }
+
+  # A card's moves into the column and out of it are heard by one handler,
+  # in the card's turn and so in the order said: out of it, it has no review
+  # under way from here; into it, it is due one. Heard apart, one taken out
+  # and put straight back could be due before its leaving was taken in.
+  came:
+    event: board.item.moved
+    for: { project: "${params.project}" }
+    when: ${ params.row.column in [event.data.from, event.data.to] }
+    turn: "${event.data.id}"
+    steps:
+      left:
+        description: Where nothing is kept as under way, there is nothing to take off.
+        when: ${ event.data.from == params.row.column && state.reviewing[0] != null }
+        do: drop
+        with: { from: reviewing, by: card, is: "${event.data.id}" }
+
+      due:
+        when: ${ event.data.to == params.row.column }
+        do: emit
+        with:
+          topic: review.due
+          card: "${event.data.id}"
+          project: "${params.project}"
+          stage: "${params.row.column}"
+          note: "${ event.data.note ?? '' }"
+
+  # The last of what held a card here was pressed: it is due a review.
+  pressed:
+    event: board.item.pressed
+    for: { project: "${params.project}", status: "${params.row.column}" }
+    when: ${event.data.released}
+    do: emit
+    with:
+      topic: review.due
+      card: "${event.data.id}"
+      project: "${params.project}"
+      stage: "${params.row.column}"
+      note: ""
+
+  # Taken off the board, a card has no review under way either.
+  dropped:
+    event: board.item.removed
+    for: { project: "${params.project}" }
+    do: drop
+    with: { from: reviewing, by: card, is: "${event.data.id}" }
+
+  # When the stage is first listening with somebody in its role, and each
+  # time it becomes so again with somebody where there was nobody.
+  first:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && state.catch_up }
+    steps:
+      taken:
+        description: Marked as looked at, so that the column is looked at once each time there is reason to.
+        do: set
+        with: { catch_up: false }
+
+      look:
+        description: The cards that were in the column before anyone was there for them are looked at, and each is due what the stage does (`std/due`).
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}", reviews: true }
+
+  # And when the fleet has been arranged again, where that is said later.
+  staffed:
+    event: fleet.arranged
+    for: { project: "${params.project}" }
+    when: ${state.catch_up}
+    steps:
+      taken:
+        do: set
+        with: { catch_up: false }
+
+      look:
+        description: The column is looked at as when the stage is first there (`std/due`).
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}", reviews: true }
+
+  # A card here is due a review, where there is anyone to give it: with
+  # nobody in the role it waits for a person.
+  due:
+    event: review.due
+    for: { project: "${params.project}", stage: "${params.row.column}" }
+    turn: "${event.data.card}"
+    steps:
+      card:
+        do: board.get
+        with: { id: "${event.data.card}" }
+
+      owed:
+        description: What the card is owed, by its row and what this stage keeps. A review of it begins, where there are enough to look and to approve; or it is left for a person, having been sent back as often as is allowed; or nothing, it having a review under way or having been left already (the stage's look at its column and the saying of its move may both find it; a move said late), nobody being there, or the card having gone on. Only a review that says itself that another is to begin is taken past one under way (`again`, as reviews are now arranged).
+        do: review.owed
+        with:
+          item: "${event.data.card}"
+          found: ${steps.card.ok}
+          status: "${steps.card.out.status}"
+          here: "${params.row.column}"
+          rounds: ${ steps.card.out.more.rounds ?? 0 }
+          back: ${state.back}
+          kept: ${ state.reviewing ?? [] }
+          said: ${event.data}
+          # Who looks and how many, how often a card is sent back at most; and, of the things done here, which the review is and whether the project's `segments` lays anything before it for this card.
+          own: ${params.row}
+          rows: ${params.segments}
+          of: { stage: "${params.row.title}" }
+          usual:
+            - { order: 10, does: "${params.row.review}", spawned: true }
+            - { order: 20, does: std/merge, only: "${params.row.merge}" }
+          labels: ${ steps.card.out.labels ?? [] }
+          part_of: "${ steps.card.out.more.part_of ?? '' }"
+          # What this column offers to be pressed on it (`actions` of its row), and what was: a card something holds is not looked at.
+          pressed: ${ steps.card.out.pressed ?? [] }
+          moved: ${ steps.card.out.moved ?? [] }
+          # One agent a rung of the project's chain names to review it, where nobody of the role is there to.
+          by: "${ event.data.by ?? '' }"
+
+      hold:
+        description: A card that waits for something this column offers to be pressed says so, on itself and to whoever is told what waits for a person, once for each time it comes here. When the last of it is pressed it is due again (`pressed`).
+        when: ${ steps.owed.out.came == "held" }
+        do: board.hold
+        with: { id: "${event.data.card}" }
+
+      enough:
+        description: Sent back as often as is allowed, it is left for a person, and that is said.
+        when: ${ steps.owed.out.came == "left" && params.channel != "" }
+        do: channel.post
+        with: { channel: "${params.channel}", body: "${steps.owed.out.said}" }
+
+      left:
+        description: Kept as a card with a review under way is, with no review named, so that it is said once for each time the card comes; and so is one that waits for a person to review it, saying so. Said to be due again while it is still there (the stage's look at its column and the saying of its move may both find it), it is still left, and that is not said again.
+        when: ${ steps.owed.out.came in ["left", "person"] }
+        do: keep
+        with:
+          in: reviewing
+          by: card
+          what:
+            card: "${event.data.card}"
+            review: ""
+            person: '${ steps.owed.out.came == "person" }'
+
+      waits:
+        description: Nobody is there to look at it, or too few, and it waits for a person to review it. That is said as an event of the card's, once for each time it comes, for its history and for whoever is told what waits for a person.
+        when: ${ steps.owed.out.came == "person" }
+        do: emit
+        with:
+          topic: card.waits
+          card: "${event.data.card}"
+          project: "${params.project}"
+          stage: "${params.row.column}"
+          kind: review
+          why: "${steps.owed.out.said}"
+
+      said:
+        description: And said as an event of the card's, once for each time it is left, for whatever counts what comes of cards.
+        when: ${ steps.owed.out.came == "left" }
+        do: emit
+        with:
+          topic: card.left
+          card: "${event.data.card}"
+          project: "${params.project}"
+          rounds: ${steps.owed.out.rounds}
+
+      listed:
+        description: "Where the project's `segments` lays something before the review for this card, the list is gone through for it: from the first of it, or from where this was said to be due for (`row`, `order`), each thing called in order until there is a review to begin or the list has ended. It keeps nothing, and is called again where the daemon was stopped in the middle of it. The card's turn is held meanwhile, so what else is said of the card waits. One that cannot be gone through has not failed this: that it could not is said on, and the card is left for a person. A card with nothing before its review has none of this: its review is begun at once."
+        when: ${ steps.owed.out.came == "review" && steps.owed.out.lists }
+        allow_failure: true
+        call: std/segments
+        as: "list-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          here: "${params.row.column}"
+          rows: ${params.segments}
+          of: { stage: "${params.row.title}" }
+          usual:
+            - { order: 10, does: "${params.row.review}", spawned: true }
+            - { order: 20, does: std/merge, only: "${params.row.merge}" }
+          row: "${steps.owed.out.row}"
+          order: ${steps.owed.out.order}
+          own: ${params.row}
+          journey:
+            title: "${ steps.card.out.title ?? '' }"
+            note: "${ event.data.note ?? '' }"
+            asking: "${event.seq}"
+            from: "${params.row.column}"
+            to: "${params.row.pass}"
+
+      came:
+        description: "What the things done before anybody looks came to, said of the card: a review of it begins, or the word they ended with."
+        when: ${ steps.listed.failed || (steps.listed.out.came ?? "") != "" }
+        do: emit
+        with:
+          topic: stage.came
+          card: "${event.data.card}"
+          project: "${event.data.project}"
+          stage: "${event.data.stage}"
+          row: "${ steps.listed.out.row ?? '' }"
+          order: ${ steps.listed.out.order ?? 0 }
+          segment: "${ steps.listed.out.title ?? '' }"
+          came: "${ steps.listed.out.came ?? 'left' }"
+          says: "${ steps.listed.out.says ?? steps.listed.error ?? '' }"
+
+      ended:
+        description: "They ended by themselves, with no review to begin: the card goes on, goes back or is left, which is done where what a review comes to is done (`decided`), and said as an event of the stage's own for that."
+        when: ${ steps.listed.failed || (steps.listed.out.ends ?? false) }
+        do: emit
+        with:
+          topic: review.came
+          card: "${event.data.card}"
+          project: "${params.project}"
+          came: "${ steps.listed.out.came ?? 'left' }"
+          says: "${ steps.listed.out.says ?? steps.listed.error ?? '' }"
+
+      begun:
+        description: A review of it is under way from here, and is kept before it is begun, with where in the things done here it is, so that one that says at once how it came out finds it. A card that has one under way is given no other, however often it is said to be due (the stage's look at its column and the saying of its move may both find it; a move said late); but where its review says itself that it is to begin again (`again`, as reviews are now arranged).
+        when: ${ steps.owed.out.came == "review" && (steps.listed.out.begins ?? true) && !steps.listed.failed }
+        do: keep
+        with:
+          in: reviewing
+          by: card
+          what:
+            card: "${event.data.card}"
+            review: "review-${event.data.card}-${event.seq}"
+            row: "${ steps.listed.out.row ?? steps.owed.out.row }"
+            order: ${ steps.listed.out.order ?? steps.owed.out.order }
+            usual: ${ steps.listed.out.usual ?? steps.owed.out.usual }
+
+      review:
+        description: Reviewed as now arranged, or as the row that names this review says (who looks, and how many have to approve). Each review of a card is an instance of its own, named after what asked for it. One that ships is told what becomes of what its agents had in hand at a restart; one of the project's own is given what it always was.
+        when: ${steps.begun.ok}
+        allow_failure: true
+        spawn: "${params.row.review}"
+        as: "review-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          stage: "${params.row.column}"
+          pool: "${params.pool}"
+          arranged: "${params.row.review}/${params.row.seats}/${params.row.needed}"
+          ...: ${ steps.listed.out.with ?? steps.owed.out.with }
+
+      unbegun:
+        description: A review that could not be begun is not under way.
+        when: ${steps.review.failed}
+        do: drop
+        with: { from: reviewing, by: card, is: "${event.data.card}" }
+
+      refused:
+        description: And that it could not is what this fails with, for whoever reports it.
+        when: ${steps.review.failed}
+        do: fail
+        with:
+          message: "${ steps.review.error ?? 'the review could not be begun' }"
+
+  # A review that is over is no longer under way, however it ended. Which
+  # way is not worked out here: one that ended by itself (not one that
+  # says which it is, which `decided` ends once taken off) may come before
+  # what it said is heard. So that it is over is said again, as the
+  # stage's own, and heard where what it said is: after it, in order.
+  ended:
+    event: instance.finished
+    scope: own
+    when: ${ state.reviewing[0] != null && (event.data.key ?? "") != "" && (event.data.outputs.came ?? "") == "" }
+    steps:
+      whose:
+        description: Whose review it was, as this stage kept it; nobody's, where another has taken its place or what it said has been heard.
+        do: review.over
+        with:
+          kept: "${ state.reviewing ?? [] }"
+          review: "${event.data.key}"
+          here: "${params.row.column}"
+
+      over:
+        description: "That it is over, said where what it said is heard, after whatever it said: what its card then comes to is worked out there."
+        when: ${ steps.whose.out.item != "" }
+        do: emit
+        with:
+          topic: review.ended
+          card: "${steps.whose.out.item}"
+          project: "${params.project}"
+          stage: "${params.row.column}"
+          review: "${event.data.key}"
+
+  # What a review of a card came to, as the review says it; that it asks
+  # for another in its place (`review.due`, saying which it is); or, said
+  # by this stage, that the things done before anybody looks ended with no
+  # review to begin (`review.came`), or that a review is over
+  # (`review.ended`: heard after whatever it said, so it said nothing only
+  # where it is kept still). One answer says what each comes to
+  # (`review.decided`), and what follows is done here in the card's turn,
+  # not behind another card's: it goes on once what is done after the
+  # looking has been (`std/merge`, `segments`), goes back, or is left.
+  decided:
+    event: review.*
+    scope: own
+    turn: "${event.data.card}"
+    for: { project: "${params.project}" }
+    when: ${ event.topic in ["review.passed", "review.failed", "review.undecided", "review.came", "review.ended"] || (event.data.review ?? "") != "" }
+    steps:
+      card:
+        description: "The card as it now is: it may have been moved, or taken away."
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.card}" }
+
+      comes:
+        description: "What it comes to, by the card's row, this stage's, and where in the things done here the review was, which this stage kept with it: more is done with the card first, it goes on, it goes back with what was said, it is left for a person, or nothing, it having been moved since or there being nowhere for it to go on to. And what is said of it where the stage reports, where its row says that what reviews come to is said there."
+        do: review.decided
+        with:
+          topic: "${event.topic}"
+          item: "${event.data.card}"
+          found: ${steps.card.ok}
+          status: "${ steps.card.out.status ?? '' }"
+          here: "${params.row.column}"
+          own: ${params.row}
+          lists: ${ params.segments[0] != null }
+          # What was heard: who decided and what they said, how the looking came out; or the word the things done came to.
+          said: ${event.data}
+          title: "${ steps.card.out.title ?? '' }"
+          asking: "${event.seq}"
+          kept: ${ state.reviewing ?? [] }
+          usual: 10
+          back: ${ state.back ?? [] }
+
+      over:
+        description: "Its review is over: the card has none under way from here."
+        when: ${ event.topic != "review.ended" && event.topic != "review.due" }
+        do: drop
+        with: { from: reviewing, by: card, is: "${event.data.card}" }
+
+      off:
+        description: "A review that is over, or has asked for another in its place, is taken off by what it was called: one that said how it came out was taken off then, and another may be under way for the card by now."
+        when: ${ event.topic in ["review.ended", "review.due"] }
+        do: drop
+        with: { from: reviewing, by: review, is: "${event.data.review}" }
+
+      closed:
+        description: "A review that said how it came out, and which it is, has done all it is for, and is ended here, once taken off: ended by itself, its ending could be heard first, with it kept still."
+        when: ${ event.topic in ["review.passed", "review.failed", "review.undecided"] && (event.data.review ?? "") != "" }
+        allow_failure: true
+        do: stop
+        with: { instance: "${event.data.review}", missing_ok: true }
+
+      waits:
+        description: "Over with nothing said of how it came out, and its card here still, the card waits for a person, as where nobody is there to look."
+        when: ${ steps.comes.out.came == "waits" }
+        do: emit
+        with:
+          topic: card.waits
+          card: "${event.data.card}"
+          project: "${params.project}"
+          stage: "${params.row.column}"
+          kind: review
+          why: "${steps.comes.out.says}"
+
+      counted:
+        description: Counted, for whoever asks how often what is shown here passes (`metrics review.verdict`).
+        when: ${steps.comes.out.counts}
+        do: measure
+        with:
+          name: review.verdict
+          labels: { stage: "${params.row.title}", verdict: "${steps.comes.out.verdict}" }
+
+      said:
+        description: "Said of the card, for its history: who approved it, and why."
+        when: ${steps.comes.out.approves}
+        do: emit
+        with:
+          topic: card.approved
+          card: "${event.data.card}"
+          project: "${params.project}"
+          by: "${event.data.by}"
+          words: "${event.data.words}"
+
+      told:
+        description: Said where the stage reports too, where its row says that what reviews come to is said there. Not being able to say it stops nothing.
+        when: ${ steps.comes.out.told != "" && params.channel != "" }
+        allow_failure: true
+        do: channel.post
+        with: { channel: "${params.channel}", body: "${steps.comes.out.told}" }
+
+      listed:
+        description: "Approved, what the project's `segments` and this stage say is done with a card after the review is gone through, from where the review was: each thing called in order, the merge among them where that is asked for, until the list has ended or there is another review to begin."
+        when: ${steps.comes.out.lists}
+        call: std/segments
+        as: "after-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          here: "${params.row.column}"
+          rows: ${params.segments}
+          of: { stage: "${params.row.title}" }
+          usual:
+            - { order: 10, does: "${params.row.review}", spawned: true }
+            - { order: 20, does: std/merge, only: "${params.row.merge}" }
+          begin: false
+          row: "${steps.comes.out.row}"
+          order: ${steps.comes.out.order}
+          says: "${steps.comes.out.says}"
+          own: ${params.row}
+          journey: ${steps.comes.out.journey}
+
+      merged:
+        description: Approved, with nothing laid about it by the project, its work is put into the project's own branch before it goes on, as a commit of its own that says which card (`std/merge`).
+        when: ${steps.comes.out.merges}
+        call: std/merge
+        as: "merge-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          title: "${ steps.card.out.title ?? '' }"
+          ...: ${steps.comes.out.with}
+
+      again:
+        description: There is another review of it to begin, as a row of the project's says. The card is due it, said as it is said to be due a review, so that it is begun the one way.
+        when: ${ steps.listed.out.begins ?? false }
+        do: emit
+        with:
+          topic: review.due
+          card: "${event.data.card}"
+          project: "${params.project}"
+          stage: "${params.row.column}"
+          again: true
+          row: "${steps.listed.out.row}"
+          order: ${steps.listed.out.order}
+
+      counted_back:
+        description: Sent back from here, by those who looked or by something done once it was approved, it is counted, an entry for each time.
+        when: ${ (steps.listed.out.came ?? steps.merged.out.came ?? steps.comes.out.came) == "back" }
+        do: keep
+        with:
+          in: back
+          by: at
+          what: { card: "${event.data.card}", at: "${event.seq}" }
+
+      back:
+        description: And it goes back to whoever worked it, with what was said.
+        when: ${ (steps.listed.out.came ?? steps.merged.out.came ?? steps.comes.out.came) == "back" }
+        do: board.move
+        with:
+          id: "${event.data.card}"
+          to: "${params.row.fail}"
+          note: "${ steps.listed.out.says ?? steps.merged.out.says ?? steps.comes.out.says }"
+
+      kept:
+        description: Left for a person by what was done before anybody looked, it is kept as a card left is, with no review named, so that nothing is begun for it again until it is put here again.
+        when: ${ steps.comes.out.came == "left" && steps.comes.out.keeps }
+        do: keep
+        with:
+          in: reviewing
+          by: card
+          what: { card: "${event.data.card}", review: "" }
+
+      left:
+        description: Left for a person (nobody decided, or something is in the way of what is done once it is approved), and why is said where the stage reports. Not being able to say it stops nothing.
+        when: ${ (steps.listed.out.came ?? steps.merged.out.came ?? steps.comes.out.came) == "left" && params.channel != "" }
+        allow_failure: true
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${ steps.listed.out.says ?? steps.merged.out.says ?? steps.comes.out.says }"
+
+      gone:
+        description: And said as an event of the card's, with why, as one sent back as often as it may be is.
+        when: ${ (steps.listed.out.came ?? steps.merged.out.came ?? steps.comes.out.came) == "left" }
+        do: emit
+        with:
+          topic: card.left
+          card: "${event.data.card}"
+          project: "${params.project}"
+          why: "${ steps.listed.out.says ?? steps.merged.out.says ?? steps.comes.out.says }"
+
+      onward:
+        description: Passed, and all that is done with it here done, the card goes on.
+        when: ${ (steps.listed.out.came ?? steps.merged.out.came ?? steps.comes.out.came) == "on" }
+        do: board.move
+        with:
+          id: "${event.data.card}"
+          to: "${params.row.pass}"
+          note: "${ steps.listed.out.says ?? steps.merged.out.says ?? steps.comes.out.says }"
+
+      forgotten:
+        description: Passed, how often it was sent back from here is no longer counted, where it was.
+        when: ${ (steps.listed.out.came ?? steps.merged.out.came ?? steps.comes.out.came) == "on" && steps.comes.out.sent }
+        do: drop
+        with: { from: back, by: card, is: "${event.data.card}" }
+
+  # A person passed a card themselves, moving it on from here. Its branch
+  # is left as it is unless the row says `by_hand: merge`: merged for whoever
+  # moved it (`std/pass-by-hand`), in the card's turn and holding no other.
+  handed:
+    event: board.item.moved
+    for: { project: "${params.project}", from: "${params.row.column}" }
+    when: ${ params.row.by_hand == "merge" }
+    turn: "${event.data.id}"
+    steps:
+      pass:
+        when: ${ event.data.to == params.row.pass && event.data.through == null }
+        call: std/pass-by-hand
+        as: "by-hand-${event.data.id}"
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          item: "${event.data.id}"
+          title: "${event.data.title}"
+          channel: "${params.channel}"
+          from: "${params.row.column}"
+          to: "${params.row.pass}"
+          fail: "${params.row.fail}"
+          # Who moved it, as the event says: set by the route that took
+          # the move, and by nothing anybody sent.
+          actor: "${ event.source.actor ?? '' }"

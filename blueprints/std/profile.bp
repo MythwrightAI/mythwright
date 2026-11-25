@@ -1,0 +1,53 @@
+# The variables of this factory's profile: what its owner says is true of
+# it, for every blueprint here to read.
+#
+# A factory has a profile (`prod`, `dev1`), and a blueprint that runs
+# in both should not have to be edited for each. So what differs is said
+# once, of the factory, and read wherever it is needed:
+#
+#   mw --profile prod apply std/profile --param 'vars={"api":"https://api.example","replicas":3}'
+#   mw --profile dev1 apply std/profile --param 'vars={"api":"http://127.0.0.1:8080","replicas":1}'
+#
+# and then, in any blueprint in either:
+#
+#   with: { url: "${ profile.vars.api }", count: ${ profile.vars.replicas ?? 1 } }
+#
+# A variable that was not set reads as nothing, so `??` gives what to use
+# instead. A value is plain: text, a number, or true or false.
+#
+# The set is replaced whole. Apply this again with other variables and
+# those are what there is; apply it with none (`mw apply std/profile`)
+# and there are none. Nothing is run again because of it: a blueprint
+# reads the new value the next time it works an expression out.
+#
+# They are NOT FOR SECRETS. They are shown to whoever may read blueprints
+# and instances, kept in the database as they are, and may appear in
+# events. A command a `shell` step runs is not handed them either: a
+# blueprint passes what it wants with `env:`.
+#
+# A copy of a factory (`std/snapshot`) does not carry them: they are said
+# of this factory, and are set again in the new one by applying this there.
+#
+# Only the owner can apply this: it takes `admin`.
+blueprint: std/profile
+version: 1
+description: Say what is true of this factory's profile, for every blueprint here to read as profile.vars.
+permissions: [admin]
+
+params:
+  vars:
+    type: object
+    default: {}
+    description: "The variables, each a name and a plain value (text, a number, true or false), such as {\"api\": \"https://api.example\", \"replicas\": 3}. They replace whatever was set; none clears them. Not for secrets."
+
+steps:
+  set:
+    description: The variables, in place of whatever was set. Nothing is run again because of it.
+    do: profile.set
+    with: { vars: "${params.vars}" }
+
+outputs:
+  names: ${steps.set.out.names}
+  set: ${steps.set.out.set}
+  changed: ${steps.set.out.changed}
+  removed: ${steps.set.out.removed}

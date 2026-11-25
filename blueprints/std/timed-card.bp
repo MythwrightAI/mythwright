@@ -1,0 +1,37 @@
+# How long one card took, kept as its row of the project's table of that
+# (`std/timed`), where it is in the board's last column: read from its
+# history, and kept under the card's own number, so that its row is found
+# by its id alone however many cards are done. Each step is the same done
+# twice, so it keeps nothing as it goes: stopped anywhere, it is called
+# again and comes to the same.
+blueprint: std/timed-card
+version: 2
+description: "Keep how long one card took as its row of the project's table of how long cards took, where it is done."
+durable: false
+permissions: [board, records]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  id: { type: string, description: "The card." }
+
+  columns:
+    type: list
+    description: "The board's columns, left to right, as its table keeps a time for them."
+
+  working: { type: string, default: doing, description: "The column cards are worked in." }
+
+steps:
+  timed:
+    description: What its history comes to.
+    do: timed.read
+    with: { id: "${params.id}", columns: "${params.columns}", working: "${params.working}" }
+
+  kept:
+    description: "Its row, kept under the card's own number: added where there is none, changed where there is, and found again by its id alone, however many cards are done."
+    when: ${ steps.timed.out.came == 'done' }
+    do: record.keep
+    with:
+      project: "${params.project}"
+      collection: timed
+      number: ${steps.timed.out.number}
+      fields: "${steps.timed.out.row}"

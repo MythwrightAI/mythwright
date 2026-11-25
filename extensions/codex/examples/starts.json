@@ -1,0 +1,22 @@
+[
+  {
+    "permission": "read",
+    "args": ["exec", "--json", "--skip-git-repo-check", "--sandbox", "read-only", "-"]
+  },
+  {
+    "permission": "edit",
+    "model": "example-model",
+    "session": "0f1e2d3c-0000-4000-8000-000000000001",
+    "args": [
+      "exec", "--json", "--skip-git-repo-check",
+      "--sandbox", "workspace-write", "-c", "sandbox_workspace_write.network_access=true",
+      "--model", "example-model",
+      "resume", "0f1e2d3c-0000-4000-8000-000000000001",
+      "-"
+    ]
+  },
+  {
+    "permission": "full",
+    "args": ["exec", "--json", "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox", "-"]
+  }
+]

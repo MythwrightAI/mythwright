@@ -1,0 +1,116 @@
+# One stretch of a discussion in a channel's thread, which `std/discuss`
+# starts: its agents take turns until it is agreed, needs a person or has
+# had as many turns as the channel allows, and what is said as it ends is
+# said. With a lead that agreed, the lead answers the person in the
+# channel; otherwise the factory's bot says how it ended in the thread.
+# Whoever is to be told is told in their inbox, the line opening where it
+# ended.
+#
+# It is kept: a daemon stopped in the middle of its turns has it call them
+# again from the first of the stretch, each agent's turn found again by
+# which turn it was, and nobody asked twice. Stopped after its steps were
+# over and before it was, it goes through them once more, and what was
+# said as it ended is not said again (`says` of `discussion.end`).
+blueprint: std/discussion
+version: 1
+description: Hold one stretch of a discussion between a channel's agents, and say how it ended.
+permissions: [channels, agents, inbox, blueprints]
+
+params:
+  channel: { type: string, description: "The channel's id." }
+  channel_name: { type: string, description: "What it is called." }
+  root: { type: string, description: "The message its thread hangs from." }
+  stretch: { type: int, description: "Which stretch of the discussion this is." }
+  agents: { type: list, description: "Who take part, whoever speaks first first." }
+  spoken: { type: list, default: [], description: "Who has said something in it already." }
+  first: { type: string, default: "", description: "Who speaks first." }
+
+  settings:
+    type: object
+    description: "What the channel offers, as `discussion.offer` keeps it."
+
+steps:
+  first:
+    description: Whose turn is first, and what it is asked.
+    do: discussion.next
+    with:
+      settings: ${params.settings}
+      stretch: { agents: "${params.agents}", spoken: "${params.spoken}", first: "${params.first}" }
+
+  turns:
+    description: The agents' turns, one after another, until the stretch ends.
+    call: std/discussion-turn
+    as: "turns-${params.root}-${params.stretch}"
+    with:
+      channel: "${params.channel}"
+      root: "${params.root}"
+      stretch: ${params.stretch}
+      settings: ${params.settings}
+      slot: "${steps.first.out.slot}"
+      nth: ${steps.first.out.nth}
+      asked: "${steps.first.out.asked}"
+      then: ${steps.first.out.then}
+
+  ending:
+    description: What is said as it ends, and whether the person is told.
+    do: discussion.ending
+    with:
+      settings: ${params.settings}
+      came: "${steps.turns.out.came}"
+      agents: ${params.agents}
+      turns: ${steps.turns.out.turns}
+      channel: "${params.channel_name}"
+      words: "${steps.turns.out.words}"
+
+  ended:
+    description: How it ended is written down, and whom that is told to.
+    do: discussion.end
+    with:
+      root: "${params.root}"
+      stretch: ${params.stretch}
+      came: "${steps.turns.out.came}"
+      status: "${steps.ending.out.status}"
+
+  answer:
+    description: Agreed with a lead, the lead answers the person in the channel with what was agreed.
+    when: ${ steps.ended.out.says && steps.ending.out.lead != "" }
+    do: agent.task
+    needs: [ended]
+    with:
+      slot: "${params.settings.lead}"
+      channel: "${params.channel}"
+      thread: "thread:${params.root}"
+      answers: "${params.root}"
+      prompt: "${steps.ending.out.lead}"
+      asking: "${params.root}:${params.stretch}:answer"
+
+  line:
+    description: Otherwise the factory's bot says in the thread how it ended.
+    when: ${ steps.ended.out.says && steps.ending.out.lead == "" }
+    do: channel.post
+    needs: [ended]
+    with:
+      channel: "${params.channel}"
+      thread: "${params.root}"
+      body: "${steps.ending.out.line}"
+
+  told:
+    description: Whoever is to decide, or asked, is told in their inbox, the line opening where it ended.
+    when: ${ steps.ended.out.says && steps.ending.out.tells && steps.ended.out.to != "" }
+    do: inbox.tell
+    needs: [answer, line]
+    with:
+      to: "${steps.ended.out.to}"
+      says: "${steps.ending.out.says}"
+      why: discussed
+      about: "${params.root}"
+      place: "${params.channel}"
+      parts:
+        - kind: message
+          channel: "${params.channel}"
+          message: "${ steps.line.out.id ?? params.root }"
+
+  over:
+    description: This stretch is over.
+    do: stop
+    needs: [told]

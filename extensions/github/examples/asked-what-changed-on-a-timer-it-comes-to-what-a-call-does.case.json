@@ -1,0 +1,22 @@
+{
+  "says": "Applied with `timer`, something of its own asks GitHub what changed as it begins to listen and once a minute after, for a factory GitHub cannot reach. Asked what changed, it reads the issues that changed since their links last saw them and brings each together with its card, as a call would have had it do.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look", "params": {"timer": "true"}},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}", "{issues-changed}"]},
+    {"run": ["instances"], "says": "github/issues-timer"},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"given": {"issues/1/title": "Add a trolley", "issues/1/stamp": "s5"}},
+    {"run": ["emit", "issues.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["{issues-changed}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Add a trolley"},
+    {"run": ["emit", "issues.look", "project=shop"], "sets_off": "look"},
+    {"ran": ["{issues-changed}"]},
+    {"apply": "issues", "project": "shop", "sets_off": "heard"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]}
+  ]
+}

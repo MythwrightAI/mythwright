@@ -1,0 +1,19 @@
+# Every time something a blueprint could depend on was taken away or
+# changed: the day, what it was, what became of it, and why. A test adds
+# to this when it is asked to (see offered.txt); nothing is taken off it.
+# The daemon reads it to say why a text it kept no longer checks.
+2026-11-12	action board.comment	was taken away	Saying something on a record is `record.comment`, for a card as for any other record.
+2026-11-12	action board.ask	was taken away	What a question is belongs to blueprints: `std/lane-round` says `card.asked` and `std/card` puts it on the card.
+2026-11-12	event board.item.commented	is no longer emitted	What is said on a record is `record.commented`.
+2026-11-12	event board.item.asked	is no longer emitted	A question is said as `card.asked`, by the blueprint that asks.
+2026-11-13	event instance.finished: `outputs`	is no longer always there	`finished` is what is said after any ending, with how it went (`status`), and not only when it went well. `instance.finished` is said after `instance.failed` and `instance.stopped` too, where there are no outputs, and `step.finished` after `step.failed` and `step.cancelled` too. What listened for one to mean it went well reads `event.data.status`.
+2026-11-19	event device.sample: `free_disk_mb`	is no longer always there	device.sample never could promise its load or its free room: a system that keeps no load average (Windows) says none, and a folder on no volume the system lists has no room to say; the description said both were always there, and every node on Windows failed its own check of what it emits
+2026-11-19	event device.sample: `load1`	is no longer always there	device.sample never could promise its load or its free room: a system that keeps no load average (Windows) says none, and a folder on no volume the system lists has no room to say; the description said both were always there, and every node on Windows failed its own check of what it emits
+2026-11-20	action work.left: `looked`	is no longer given out	std/stage taken out: nothing ran it and no compatibility was owed before the preview; work.left said only for the fleet from before it what was being looked at and the sentence for it
+2026-11-20	action work.left: `says`	is no longer given out	std/stage taken out: nothing ran it and no compatibility was owed before the preview; work.left said only for the fleet from before it what was being looked at and the sentence for it
+2026-11-20	action work.left: `looked`	is no longer an argument	std/stage taken out: nothing ran it and no compatibility was owed before the preview; work.left said only for the fleet from before it what was being looked at and the sentence for it
+2026-11-22	action environment.set	was taken away	renamed before the first release
+2026-11-22	event system.copied: `environment`	is no longer carried	renamed before the first release
+2026-11-22	event system.environment	is no longer emitted	renamed before the first release
+2026-11-22	event system.snapshot: `environment`	is no longer carried	renamed before the first release
+2026-11-22	event system.started: `environment`	is no longer carried	renamed before the first release

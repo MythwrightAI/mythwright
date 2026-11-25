@@ -1,0 +1,269 @@
+# What a build may take, and how much may be compiled.
+#
+# The `budget` gate holds the last line of docs/build-history.csv to these,
+# and `cargo xtask build-times` measures and adds a line. The codebase
+# before this one reached builds of fifty minutes a little at a time; these
+# are here so that the same cannot happen unnoticed. Raise one only after
+# finding out what made a build slower, and say why where you raise it.
+
+# After a change to the crate everything is built on, in seconds. Half a
+# minute on a machine that has built before is the most that is acceptable.
+rebuild_bottom_s = 30
+
+# After a change to the crate built on everything.
+rebuild_top_s = 10
+
+# From nothing. Only measured when asked for (`--clean`).
+clean_dev_s = 300
+
+# Running every test, once everything is built. This is most of what the
+# gate takes, and it grows the way a build does: two tests that each did by
+# the thousand what a dozen would show were half of it for a day (69 s; 33 s
+# without them, measured 2026-11-15). `cargo xtask timings` names the
+# slowest tests of the last gate.
+#
+# Raised from 60 on 2026-11-16, at 75 s, for the simulation: twelve
+# scenarios that come to some fifty plays, each a factory of its own set
+# up, played, stopped at a place and started again, about three seconds
+# apiece and four at a time in a process. That is what the suite gained,
+# and what found every fault at a restart that has been put right. What
+# was looked for first and taken out: one play in fifty waited half a
+# minute for something it had already been told (ten seconds of this
+# figure, and thirty-odd of whichever test it fell in). The gate itself
+# runs the suites side by side and takes about half a minute of tests on
+# a machine with room; this figure is one program at a time, as cargo
+# runs them.
+#
+# Raised from 90 on 2026-11-16, at 112 s, for the runner's plays: twenty-eight
+# small blueprints, each stopped after every event it keeps, two ways, and
+# stopped a second time as the conductor comes back up: some 2,400 plays,
+# about a minute and a half of this figure, in the runner's own suite with
+# no factory around them. They are what holds that a daemon stopped at any
+# instant comes back as one never stopped, and what found every fault of
+# that kind put right since. The slowest single play is the one with
+# children side by side (about a minute). What is owed for it: the restart
+# scenarios that start a whole factory are to be thinned where a play now
+# holds the same thing.
+#
+# Raised from 130 on 2026-11-18. The Rust had grown a tenth since the
+# line before (83,076 lines to 91,876, the tests from 71,621 to 87,074:
+# hearing by project, the giver of numbers, rows told apart by project,
+# a journal for each project, and the plays and scenarios that hold
+# each), which is when the gate asks for a line. Measured with nothing
+# else running, every test takes 269 s where it took 112 two days
+# before: 173 s the API's suite, 132 s the runner's and 28 s the command
+# line's, as a gate ran each. The fifteen slowest are all plays of the
+# runner stopped at every place (34 to 70 s each beside the others) and
+# restart scenarios of a whole factory (34 to 45 s). A first line taken
+# that day with the machine at a load of thirty said 328 s and is not
+# kept: it said more of the machine than of the tests. This is a ceiling
+# over what is there, not what it ought to take: the thinning said above
+# is owed, and the figure comes down with it.
+#
+# It came down on 2026-11-19, from 300. That day every test took 296 s in
+# the morning and 107 s by the afternoon (71 s the API's suite, 19 s the
+# runner's, 10 s the command line's), with no test taken out: the
+# database library had been taking one lock for the whole program at
+# every allocation, and a test's factory had been waiting for the disk
+# (docs/build-times.md has the finding). At 300 the figure warned of
+# nothing any more; 150 is room for what is added and for a busy machine,
+# and is passed long before the tests are as slow as they were.
+#
+# Raised on 2026-11-23, from 150 to 200, at 179.6 s measured with the
+# machine at a load of 9 to 15 (the API's suite 112.7 s, the runner's
+# 35.9 s, the command line's 16.9 s). What made it slow, by `cargo xtask
+# timings`: the A/B scenarios of the simulation,
+# a card worked two ways at once and judged and a shadow test, each
+# stopped at every place: 47 to 60 s apiece (486 to 668 places), the
+# API suite's longest tests, which the suite is never done before.
+# They are what holds an A/B test to coming to the same wherever the
+# daemon is stopped, and worth having. What is owed: the longest of
+# them shared out across the suite's processes.
+#
+# Raised on 2026-11-24, from 200 to 240, at 237.8 s measured with the
+# machine at a load of 23 to 33 from other work (four measurements, 227.7
+# to 255.1 s; the API's suite 149 to 172 s against 112.7 s at a load of 9
+# to 15), and measured beside it at 255.5 s with the machine at a load of
+# 28 to 39 (three other pieces of work building and crowding their tests
+# beside it; the API's suite 170.7 s, the runner's 40.7 s, the command
+# line's 23.0 s), the Rust a tenth longer than at the last line (165,342 to
+# some 182,500 lines: with groups of people
+# and agents, whose own tests take some 3 s, and a forum's topics, whose
+# tests take under three seconds together), and nothing new slow: `cargo
+# xtask timings` names the same longest tests as before (the A/B scenarios
+# of the simulation, 47 s). What is owed: measuring again on a quiet
+# machine, and lowering this to what that says.
+test_run_s = 240
+
+# Packages in Cargo.lock. Every one is compiled by everyone on every clean
+# build, so the count is watched: the gate says it on every run. It is a
+# tripwire and not a wall. There is room here for a dependency that is
+# worth having (raised from 360 on 2026-11-12, at 357, so that one is not
+# held up); raise it again when the room is used, and say why.
+#
+# Raised from 400 on 2026-11-23, at 409, for one zone library (`jiff`),
+# for pipeline triggers at a time of day written with their zone (`at:`
+# of a handler). Of the ten names it brings
+# to the lock, two are built here (`jiff`, `jiff-core`), two on Windows
+# alone, which has no zone database of its own (`jiff-tzdb`,
+# `jiff-tzdb-platform`), and six on none of the three systems: what is
+# for machines with no atomic pointer (`portable-atomic`,
+# `portable-atomic-util`), a macro crate no feature turns on
+# (`jiff-static`), and an optional logger cargo lists all the same
+# (`defmt`, `defmt-macros`, `defmt-parser`).
+#
+# Raised from 410 on 2026-11-23, at 412, for two crates of our own and no
+# dependency: a crate of a project and its files out of studio, and one of
+# what a package says and how its program is run (`extensions`) out of
+# agents, each at its ceiling (the splits plan). Everything they are built
+# with was in the lock.
+#
+# Raised from 412 on 2026-11-24, at 413, for one crate of our own and no
+# dependency: what the program says of itself (`manual`: the help of its
+# command line, which came out of `cli` for it, its guides, and all of it
+# written out as pages). Everything it is built with was in the
+# lock.
+#
+# Raised from 413 on 2026-11-24, at 414, for one crate of our own and no
+# dependency: a forum's topics beside the channels (`topics`: the keeper
+# of the factory's own table of them, what goes with each change of one
+# and its own doors). Everything it is built with was in the
+# lock.
+#
+# Raised from 414 on 2026-11-24, at 415, for one crate of our own and no
+# dependency: how a page is made, with a library written out as pages and
+# a document and a mockup as files (`pages`), out of studio, which a
+# forum's topics had taken over its ceiling. Everything it is built with
+# was in the lock.
+#
+# Raised from 415 on 2026-11-24, at 416, for one crate of our own and no
+# dependency: a table's rows read a window at a time (`windowed`), out of
+# studio with `pages`. Everything it is built with was in the lock.
+#
+# Raised from 416 on 2026-11-24, at 417, for one crate of our own and no
+# dependency: what the daemon serves beside the routes of its API and
+# what every request is held to first (`served`: the client's files, the
+# names it answers to, what is sent past a route's limit, a library's
+# pages, mockups and the store program), out of api, which was within
+# 450 lines of its ceiling. Everything it is built with was in the lock.
+#
+# Raised from 417 on 2026-11-24, at 418, for one crate of our own and no
+# dependency: the language as it is read (`reader`: the text as a tree,
+# what is wrong with it, expressions, holes, durations and times of day),
+# out of blueprint, which was within 280 lines of its ceiling. Everything
+# it is built with was in the lock.
+packages = 418
+
+# How much the Rust may grow, in percent, before a build has to be measured
+# again for the history to mean anything.
+remeasure_after_growth_percent = 10
+
+# What one card costs the factory, by the journal's own counts: the test
+# `what_a_card_costs_the_factory_is_held_to_its_budget` (the API suite's
+# `costed.rs`) works cards through the fleet that ships with stand-ins,
+# one at a time in a factory at rest before and after, and fails where a
+# card comes to more than this. A card is `plain` (worked, reviewed by
+# one seat and merged), `command` (with a command a row of `segments`
+# lays into its round) or `council` (with a second review of two seats a
+# row lays in after the first). For each: the events said, the instances
+# made, the runs, the pieces of work the journals' databases did and how
+# many of them wrote, the commits, and the frames (a page each) written
+# to the project's log. No time is held: it is the machine's.
+#
+# Each is five in a hundred over the most seen, rounded up. Events,
+# instances and runs are as they were first measured on 2026-11-21, from
+# forty-eight runs six at a time held to two processors, which came to
+# the same every time (220, 8, 25; 228, 10, 27; 316, 10, 32). The rest
+# were measured again the same way, 480 runs, once a step whose action
+# is the same done twice had its ending written with the next thing its
+# run writes (`conductor::holds`), and came down: the pieces of work
+# from 634 to 643, 684 to 696 and 921 to 933 to 610 to 624, 661 to 678
+# and 885 to 902; the writes, all of them the runner's, from 243 to 249,
+# 258 to 263 and 357 to 361 to 221 to 228, 238 to 241 and 322 to 330;
+# commits as many as the writes, and fewer where the journal gathers;
+# and the frames from 1158 to 1262, 1274 to 1379 and 1692 to 1864 to
+# 1110 to 1228, 1206 to 1347 and 1616 to 1816, as the ids a card is given
+# fall in its indexes' pages. Two of the 480 council cards had a run
+# more and five events more (321, 33), both in the first round, with a
+# simulation beside them; none of the other 478.
+# `docs/build-times.md` (*What a card is held to*) says how to find what
+# grew. Raise one only for something worth having, and
+# say beside it what that was.
+#
+# Lowered again on 2026-11-21, when what the runner says of its own
+# steps and runs came to be passed on and kept only where a text could
+# hear it (`conductor::owed`): the writes, the commits and the frames,
+# five in a hundred over the most seen in 240 runs with that and the
+# ending held together, six at a time held to two processors (writes and
+# commits 212 to 219, 228 to 231, 311 to 321; frames 834 to 950, 946 to
+# 1051, 1207 to 1348), where 240 runs of the ending held alone came to
+# 221 to 229, 238 to 241, 321 to 334 and 1114 to 1224, 1210 to 1341,
+# 1627 to 1786. The events said, the instances, the runs and the pieces
+# of work are what they were. Once in some 3,600 runs since it was
+# first passed on, a card with a second review had its usual review
+# begun twice (417 events, 12 instances, 40 runs, 458 writes): it is
+# over every ceiling here, as it was over those before.
+#
+# Lowered again on 2026-11-22, and no longer noisy: the pieces of work,
+# the writes and the commits are held to what the card asked for
+# itself, with what the factory does whichever card's moment it falls in
+# counted apart: a handler's place kept for events it passed
+# over (`conductor::PLACES_KEPT`), a step's record written by itself for
+# another step of its run at work (`conductor::WRITTEN_BESIDE`), an
+# instance's row read for want of it in hand (`runs::LOOKED_UP`), a page
+# a follower read back from the log (`journal::READ_BACK`), and a turn
+# read by its id in every file or by whoever waits for it
+# (`agents::TURN_LOOKED_UP`, `agents::TURN_WAITED`). So counted, 30 runs
+# held to two processors three at a time came to 590, 635 and 849
+# pieces of work and 204, 214 and 296 writes and commits, the same in
+# every run; each figure is five in a hundred over that, rounded up. The
+# card with its usual review begun twice came to 864 and 301.
+# The frames are what they were, and still have the keepings in them.
+#
+# The frames lowered on 2026-11-23. An id was random after its
+# millisecond, and a test's clock stands still, so every id of a factory
+# fell anywhere among the pages of what is kept by it, and how many pages
+# a card's writes touched went by where: the council card came to 1283 to
+# 1426 frames in 60 runs held to two processors three at a time, over its
+# 1416 in two of them. Ids made in one millisecond now follow one another
+# (`kernel::id`), so each row is put after the last, and 240 runs the
+# same way came to 818 to 848, 941 to 986 and 1245 to 1327 (180 before:
+# 842 to 942, 979 to 1094 and 1283 to 1426, five of them over). The 1327
+# is a council card with two runs more (341 events, once in the 240),
+# whose events and pieces of work are over their figures as the 437 of
+# a council card measured earlier are; nothing of that is frames. What is left goes by the
+# order that runs side by side write in, which is the machine's to say:
+# where a page splits and how many of a step's records share a page,
+# with the writes themselves the same every run. Each figure is five
+# in a hundred over what was seen, rounded up.
+#
+# The pieces of work of a card with a command laid in raised by two on
+# 2026-11-24, 667 to 669: a card's round, once it is over,
+# lets go of what it asked of its agent before a restart and did not
+# ask for again (`unasked` in `std/working`, `agent.let_go`), so that
+# work begun again for a card somebody moved away is called off. It is
+# one step more for each round, two pieces of work (666 to 668 by the
+# card's own count, the same in each of four runs); the other cards are
+# still under their figures.
+[card]
+plain_events = 231
+plain_instances = 9
+plain_runs = 27
+plain_done = 620
+plain_writes = 215
+plain_commits = 215
+plain_frames = 891
+command_events = 240
+command_instances = 11
+command_runs = 29
+command_done = 669
+command_writes = 225
+command_commits = 225
+command_frames = 1036
+council_events = 332
+council_instances = 11
+council_runs = 34
+council_done = 892
+council_writes = 311
+council_commits = 311
+council_frames = 1394

@@ -1,0 +1,46 @@
+# Do the same thing on each device of a list, one device at a time.
+#
+# The first device is the canary. If the command fails there, or the check
+# after it never passes, the rollout stops: the devices after it are never
+# touched, and the run's error names the device and says why. That is the
+# whole of a rolling update: go in order, look before going on, stop at the
+# first sign of trouble.
+#
+#   apply std/rolling --param 'devices=["builder-1","builder-2"]' \
+#                     --param run="systemctl --user restart worker" \
+#                     --param check="curl -fsS localhost:8080/health"
+#
+# A device's own name, or `local`, means the device the blueprint runs on.
+blueprint: std/rolling
+version: 2
+description: Run a command on each device in turn, stopping at the first that fails.
+permissions: [shell, blueprints]
+
+params:
+  devices: { type: list, description: "Device names, in the order to go." }
+  run: { type: string, description: "The command to run on each device." }
+
+  check:
+    type: string
+    default: ""
+    description: "A command that must succeed afterwards; none if empty."
+
+  settle:
+    type: duration
+    default: 0s
+    description: "How long to leave a device before moving on to the next."
+
+steps:
+  each:
+    description: One device at a time, in the order given.
+    for_each: ${params.devices}
+    call: std/rolling-step
+    as: "on-${item}"
+    with:
+      device: "${item}"
+      run: "${params.run}"
+      check: "${params.check}"
+      settle: "${params.settle}"
+
+outputs:
+  devices: ${steps.each.count}

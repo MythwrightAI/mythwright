@@ -1,0 +1,349 @@
+# One A/B test of a card, done: what `std/contest` has done where the
+# card is worked, and what anything else that has a card tried several
+# ways at once calls.
+#
+# Each contender is a way of the comparison the test is counted under,
+# and works the card in a place of its own, cut from what the card had
+# so far, all of them at once (`std/entry`, each spawned, and waited for
+# together). The judging the test names is then called with what each
+# did; what it comes to is written on each entry's row, which is what
+# the comparison counts; the winner's place becomes the card's (in a
+# shadow test its incumbent's, whatever is judged), the rest are kept as
+# branches or thrown away as the test says, and the card is given to
+# that one's agent. What is decided is the blocks' (`contest.*`).
+#
+# It keeps nothing as it goes: called again where the daemon stopped, it
+# finds what was done done (the comparison, the rows, the places, each
+# agent's turn by its asking) and goes on.
+blueprint: std/contended
+version: 5
+description: "Have a card worked several ways at once, each contender in a place of its own, judged as its test says, and the winner's work made the card's."
+durable: false
+permissions: [board, records, agents, shell, projects, blueprints, channels]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+
+  test:
+    type: object
+    description: "The test's row, as `rows.read` gives it with what it leaves unsaid filled in."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which round of the card this is, for asking each agent once."
+
+  answer:
+    type: bool
+    default: false
+    description: "What was said as the card came is a person's answer to which entry is taken."
+
+  note: { type: string, default: "", description: "What was said as the card came." }
+
+  channel:
+    type: string
+    default: ""
+    description: "Where the contenders report; nowhere if empty."
+
+  finish:
+    type: list
+    default: []
+    description: "How the card is finished where it is worked, as its stage's row says (`std/turn`): each contender is told it."
+
+  later:
+    type: list
+    default: []
+    description: "With `finish`: what somebody else checks after a contender."
+
+  lasts:
+    type: string
+    default: ""
+    description: "How long a contender's turn may take, as `45m`."
+
+steps:
+  had:
+    description: The ways the comparison it is counted under has already, where it names a shared one.
+    when: ${ (params.test.compared ?? '') != '' }
+    allow_failure: true
+    do: compare.start
+    with: { name: "${params.test.compared}", of: std/work, per: entry, ways: [] }
+
+  begun:
+    description: What each contender's row says already, where the test is taken up again.
+    do: rows.read
+    with:
+      project: "${params.project}"
+      collection: entries
+      saying: { contest: "${params.test.id}" }
+
+  ways:
+    description: What the contenders come to as ways, letters and places, or what is wrong with the test.
+    needs: [had, begun]
+    do: contest.ways
+    with:
+      known: ${ steps.had.out.ways ?? [] }
+      rows: ${ steps.begun.out.chosen ?? [] }
+      item: "${params.item}"
+      contest: "${params.test.id}"
+      contenders: ${ params.test.contenders ?? [] }
+      compared: "${ params.test.compared ?? '' }"
+      judges: "${ params.test.judges ?? '' }"
+      blind: ${ params.test.known_by != "ways" }
+      shadow: "${ params.test.shadow ?? '' }"
+      finish: ${params.finish}
+      later: ${params.later}
+      lasts: "${params.lasts}"
+
+  wrong:
+    description: A test set up wrongly says so on its row, and the card is left for a person.
+    when: ${ steps.ways.out.came == "wrong" }
+    do: record.update
+    with:
+      id: "${params.test.id}"
+      fields: { state: left, why: "${steps.ways.out.why}" }
+
+  board:
+    description: The board's columns, the last of which is where a card is done.
+    do: board.list
+    with: { project: "${params.project}", ids: [] }
+
+  compared:
+    description: The comparison it is counted under, each contender a way of it, its things the entries' rows; what the judges said of each is counted there, and the card's work once a contender's is the card's.
+    needs: [board]
+    when: ${ steps.ways.out.came == "ready" && params.test.state != "asking" }
+    do: compare.start
+    with:
+      name: "${steps.ways.out.comparison}"
+      of: std/work
+      per: entry
+      # Work on the card after it is written down as the winner's (`went`) is the winner's way's.
+      also: [std/work]
+      also_per: item
+      ways: ${steps.ways.out.ways}
+      counts:
+        - { name: judged, topic: record.updated, thing: id, by: [chose.verdict] }
+        # Of the card, once it is written down as the winner's: its review passing, or its coming to the
+        # board's last column, is its being accepted.
+        - { name: reviewed, topic: card.approved, thing: card, accepts: [approved] }
+        - name: moved
+          topic: board.item.moved
+          thing: id
+          by: [to]
+          accepts: ["${steps.board.out.last}"]
+        # What came after the card's work was merged: reverted, its files changed again soon, or a
+        # later card that says it fixes it; each once for the card that did it.
+        - { name: after, topic: card.reverted, thing: card, once: [by] }
+        - { name: after, topic: card.changed_again, thing: cards, once: [by] }
+        - { name: after, topic: card.fixed, thing: card, once: [by] }
+
+  rows:
+    description: A row for each contender, unless it has one.
+    needs: [compared]
+    when: ${steps.compared.ok}
+    do: rows.start
+    with: { project: "${params.project}", collection: entries, rows: "${steps.ways.out.rows}" }
+
+  working:
+    description: The test says it is under way.
+    needs: [rows]
+    when: ${steps.rows.ok}
+    do: record.update
+    with: { id: "${params.test.id}", fields: { state: working } }
+
+  each:
+    description: Every contender works the card at once, each in a place of its own, but one whose work is over already.
+    needs: [working]
+    when: ${steps.working.ok}
+    for_each: ${steps.ways.out.starts}
+    spawn: std/entry
+    as: "${item.as}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      way: "${item.way}"
+      key: "${item.key}"
+      name: "${item.name}"
+      counted: "${steps.ways.out.comparison}"
+      hidden: ${item.hidden}
+      patch: ${item.patch}
+      asking: "${item.way}-${params.asking}"
+      channel: "${params.channel}"
+      finishing: ${steps.ways.out.finishing}
+
+  all:
+    description: And is waited for, until every one of them has ended.
+    needs: [each]
+    when: ${steps.each.ok}
+    do: wait
+    with: { ended: "${steps.ways.out.children}" }
+
+  entries:
+    description: What each did, as its row says.
+    needs: [all, wrong]
+    when: ${ steps.ways.out.came == "ready" }
+    do: rows.read
+    with:
+      project: "${params.project}"
+      collection: entries
+      saying: { contest: "${params.test.id}" }
+
+  first:
+    description: Whether there is anything to judge, or what a person answered comes to.
+    needs: [entries]
+    when: ${steps.entries.ok}
+    do: contest.outcome
+    with:
+      entries: ${steps.entries.out.chosen}
+      answer: "${params.note}"
+      answered: ${params.answer}
+      losers: "${params.test.losers}"
+      undecided: "${params.test.undecided}"
+      alone: "${params.test.alone}"
+      incumbent: "${steps.ways.out.incumbent}"
+      challengers: "${params.test.challengers}"
+
+  judged:
+    description: The judges look, as the test says.
+    needs: [first]
+    when: ${ steps.first.out.came == "judge" }
+    call: "${params.test.judging}"
+    as: "judged-${params.item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      entries: ${steps.first.out.judge}
+      judge_slot: "${steps.ways.out.judge_slot}"
+      judge_role: "${steps.ways.out.judge_role}"
+      seats: ${params.test.seats}
+      needed: ${params.test.needed}
+      council: "${params.test.council}"
+      stretches: ${params.test.stretches}
+      told: "${ params.test.told ?? '' }"
+      then: "${params.test.then}"
+      scale: ${params.test.scale}
+      blind: ${ params.test.known_by != "ways" }
+      not: ${steps.first.out.worked}
+      asking: "${params.asking}"
+
+  came:
+    description: What becomes of each entry and of the test, by what the judges came to, or as the first look said where there was nothing to judge.
+    needs: [judged, first]
+    when: ${steps.first.ok}
+    do: contest.outcome
+    with:
+      entries: ${steps.entries.out.chosen}
+      judged: "${ steps.judged.out.judged ?? '' }"
+      winner: "${ steps.judged.out.winner ?? '' }"
+      said: ${ steps.judged.out.said ?? [] }
+      answer: "${params.note}"
+      answered: ${params.answer}
+      why: "${ steps.judged.out.why ?? '' }"
+      question: "${ steps.judged.out.question ?? '' }"
+      by: "${ steps.judged.out.by ?? '' }"
+      losers: "${params.test.losers}"
+      undecided: "${params.test.undecided}"
+      alone: "${params.test.alone}"
+      incumbent: "${steps.ways.out.incumbent}"
+      challengers: "${params.test.challengers}"
+
+  verdicts:
+    description: What the judges said of each entry, kept on its row in the write that is counted under its way.
+    needs: [came]
+    when: ${steps.came.ok}
+    for_each: ${steps.came.out.entries}
+    do: record.update
+    with:
+      id: "${item.id}"
+      fields: { verdict: "${item.verdict}", scores: "${item.scores}" }
+
+  take:
+    description: The winner's place becomes the card's, once each entry says what it came to.
+    needs: [verdicts]
+    when: ${ steps.came.out.take != "" }
+    do: place.take
+    with: { item: "${params.item}", from: "${steps.came.out.take}" }
+
+  went:
+    description: The card is written down as the winner's in the comparison, so that what is said of it from now (its review passing) is counted under the way whose work it goes on with.
+    needs: [take]
+    when: ${ steps.came.out.take != "" }
+    allow_failure: true
+    do: compare.went
+    with:
+      name: "${steps.ways.out.comparison}"
+      thing: "${params.item}"
+      way: "${steps.came.out.winner}"
+
+  kept:
+    description: The others' places go, their branches kept.
+    needs: [take]
+    for_each: ${steps.came.out.keep}
+    allow_failure: true
+    do: place.clear
+    with: { item: "${item}" }
+
+  thrown:
+    description: Or thrown away, where the test says.
+    needs: [take]
+    for_each: ${steps.came.out.discard}
+    allow_failure: true
+    do: place.clear
+    with: { item: "${item}", discard: true }
+
+  given:
+    description: The card is the winner's agent's from now, so that a round after its review goes to it.
+    needs: [take]
+    when: ${ steps.came.out.agent != "" }
+    do: board.update
+    with: { id: "${params.item}", assignee: "agent:${steps.came.out.agent}" }
+
+  row:
+    description: The test says what it came to.
+    needs: [given, kept, thrown]
+    when: ${steps.came.ok}
+    do: record.update
+    with:
+      id: "${params.test.id}"
+      fields:
+        state: "${steps.came.out.state}"
+        winner: "${steps.came.out.winner}"
+        agent: "${steps.came.out.agent}"
+        why: "${steps.came.out.why}"
+
+  handed:
+    description: The card's rounds go to the winner's agent from now, the test's row of the card's list saying so (`std/ab`, asked); the fleet has taken that before the test is over, so that what the card comes to next is that agent's.
+    needs: [row]
+    when: ${ steps.came.out.agent != "" && params.test.state != steps.came.out.state }
+    do: wait
+    with:
+      event: fleet.arranged
+      timeout: 2m
+      say: { topic: contest.handed, test: "${params.test.id}", project: "${params.project}" }
+
+  said:
+    description: A line of the card's history, said by the run that changed what the test says, and so once.
+    needs: [row]
+    when: ${ steps.came.out.said != "" && params.test.state != steps.came.out.state }
+    do: emit
+    with:
+      topic: card.contested
+      card: "${params.item}"
+      project: "${params.project}"
+      said: "${steps.came.out.said}"
+
+  ended:
+    description: A comparison of the test's own that came to nothing is ended once what the judges said is written; one that came to a winner goes on counting what comes of the card until its review passes (`std/ab`).
+    needs: [row]
+    when: ${ (params.test.compared ?? '') == "" && steps.came.out.state == "left" }
+    do: compare.end
+    with: { name: "${steps.ways.out.comparison}" }
+
+outputs:
+  came: "${ steps.came.out.ends ?? 'left' }"
+  says: "${ steps.came.out.said ?? steps.ways.out.why ?? '' }"
+  why: "${ steps.came.out.why ?? steps.ways.out.why ?? '' }"
+  asker: "${params.test.id}"
+  question: "${ steps.came.out.question ?? '' }"
+  by: "${ steps.came.out.agent ?? '' }"
+  dir: "${ steps.take.out.dir ?? '' }"

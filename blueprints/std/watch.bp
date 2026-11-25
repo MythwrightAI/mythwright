@@ -1,0 +1,97 @@
+# A watch: what happens to something is said somewhere, as it happens.
+#
+# It knows nothing of what it watches. Anything that keeps a history can be
+# watched: a card today, and whatever a blueprint later declares with a
+# `history` of its own (a sprint, a release, a customer). Each line written
+# into that history is news the daemon tells of once, with the line in it;
+# this hears that news and says the line in a channel. Nothing is looked
+# for and nothing is read.
+#
+# One thing, by what it is called:
+#
+#   mw apply std/watch --param record=shop-12 --param channel=general --key watch-shop-12
+#
+# or every one of a kind in a project (every card of its board), or with
+# no `collection` everything in the project that keeps a history:
+#
+#   mw apply std/watch --project shop --param collection=board --param channel=general
+#
+# Several watches are several instances: give each a `--key` of its own.
+# Stopping the instance ends the watch.
+blueprint: std/watch
+version: 3
+description: Say in a channel what happens to something that keeps a history, one thing or every one of a kind.
+permissions: [channels]
+
+params:
+  channel: { type: string, description: "Where it is said." }
+
+  record:
+    type: string
+    default: ""
+    description: "The one thing to watch, by its id: a card's, say. Empty to watch every one of a kind."
+
+  collection:
+    type: string
+    default: ""
+    description: "With no `record`: the kind to watch in this project, by the name its blueprint gave it (`board`). Empty for everything in the project that keeps a history."
+
+  name: { type: string, default: watch, description: "What it is called in the channel." }
+
+  quiet:
+    type: list
+    default: [card.opened]
+    description: "News it does not pass on, by the topic of what happened. A card's own blueprint taking it up is said of every card the moment it is added, and tells a reader nothing the adding did not."
+
+steps:
+  channel:
+    do: channel.ensure
+    with: { name: "${params.channel}" }
+
+  join:
+    do: channel.join
+    with: { channel: "${steps.channel.out.id}", name: "${params.name}" }
+
+# What is watched is said as an address, so that a watch is woken for
+# what it watches: one thing by its id, or what happens in this project.
+# A watch of one thing is woken for its project's news too, and passes
+# none of it on; one of a kind hears nothing by an id, having none.
+on:
+  one:
+    event: collection.history
+    # One thing is watched by what it is called, whatever project this
+    # was applied for, or none: so it says that it hears the whole
+    # factory, and `for` holds it to the one record.
+    scope: fleet
+    for: { record: "${params.record}" }
+    when: ${ !(event.data.topic in params.quiet) }
+    steps:
+      say:
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          as: "${params.name}"
+          body: "${event.data.record}: ${event.data.said}"
+
+  kind:
+    event: collection.history
+    # Held to this project by `for`, as it always was. It says that it
+    # hears the whole factory so that a watch of one thing, applied for
+    # no project, is not told that this handler will hear nothing: there
+    # it is meant to hear nothing.
+    scope: fleet
+    for: { project: "${ instance.project ?? '' }" }
+    # With no one thing to watch; not what it was told to keep quiet about;
+    # and of the kind it watches, or of any where it was told none.
+    when: ${ params.record == "" && !(event.data.topic in params.quiet) && params.collection in ["", event.data.name] }
+    steps:
+      say:
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          as: "${params.name}"
+          body: "${event.data.record}: ${event.data.said}"
+
+on_stop:
+  - do: channel.leave
+    with: { channel: "${params.channel}", name: "${params.name}" }

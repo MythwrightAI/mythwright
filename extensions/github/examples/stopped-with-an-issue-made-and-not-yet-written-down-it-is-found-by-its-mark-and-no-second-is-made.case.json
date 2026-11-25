@@ -1,0 +1,15 @@
+{
+  "says": "A daemon stopped while the program is making an issue for a card, the issue made and the program not yet answered, has an issue nothing here says is the card's. Back, the step is not done twice; the issue is found by the card's mark, the link says which it is, and no second is made.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"stopped_inside": "issue create", "by": {"run": ["record", "add", "shop", "links", "card=shop-1"]}, "sets_off": "keep"},
+    {"holds": {"issues/1": {"title": "Add a cart", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "t1"}, "issues/2": {}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "issue: 1"},
+    {"run": ["record", "show", "shop-links-1"], "says": "url: https://github.example/acme/shop/issues/1"}
+  ]
+}

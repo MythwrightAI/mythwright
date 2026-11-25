@@ -1,0 +1,39 @@
+blueprint: shop/ends
+description: What is done as it stops, fails, or takes a new text.
+durable: false
+permissions: [things, post]
+
+state:
+  open: []
+
+steps:
+  made:
+    do: thing.make
+    with: { name: shelf }
+
+on_success:
+  - do: log
+    with: { message: well }
+on_fail:
+  - do: letter.send
+    with: { to: someone }
+on_finish:
+  - do: log
+    with: { message: over }
+on_update:
+  - do: set
+    with: { open: [] }
+  - do: letter.send
+    when: ${ was.version != "2" }
+    with: { to: someone }
+on_stop:
+  - do: thing.read
+    with: { id: shelf }
+
+outputs:
+  thing: ${steps.made.out.id}
+
+on:
+  changed:
+    event: thing.changed
+    do: noop

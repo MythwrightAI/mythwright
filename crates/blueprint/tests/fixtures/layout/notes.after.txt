@@ -1,0 +1,24 @@
+blueprint: notes
+
+steps:  # the work
+  first:  # why it is first
+    do: log
+    with: { message: "héllo wörld — ünïcode", "quoted key": 1 }  # after the braces
+
+  second:
+    do: shell
+    on_finish:
+      # the hook, said after its dash
+      - do: log
+        with: { message: done }
+      # said before the hook's first field
+      - emit: { topic: shop.done }
+    with:
+      cmd:  # after the list
+        - a  # one
+        - b
+      env: {}
+      # nothing but this
+
+outputs: {}
+# the end, at the edge

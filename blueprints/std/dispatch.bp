@@ -1,0 +1,47 @@
+# Who a piece of work goes to, of those that could take it.
+#
+# Work that is asked of a role, with nobody named and no conversation
+# already held, is somebody's to hand out. The daemon knows who is in the
+# role, who has what in hand and who was given what, and puts those who
+# could take the work in the order the asker's word says (`pick`, which a
+# stage's row gives as `picks`): one with nothing in hand before one at
+# work, and among equals the one brought up first, each in turn, the one
+# given the least, or the one ranked highest. Then it asks this.
+#
+# This is asked and never run: it has `params` and `outputs` and no
+# steps. As it ships it says the first of them, which is what the row's
+# word came to. A project that has a file of this name is asked its own,
+# and may go by anything it is shown: what the work is (`about`, which a
+# lane gives as the card, its title and its labels), and of each agent its
+# name, role, rank, model, what runs it, how much it has in hand
+# (`in_hand`), how many turns it was ever given (`given`) and which was
+# the last (`last`). Whoever it names must be one of those it was shown;
+# naming nobody is saying the first.
+#
+#   # cards labelled `frontend` to the agent called for it, the rest as the row says
+#   take: "${ 'frontend' in (params.about.labels ?? []) && len(where(params.agents, 'name', 'shop-front-1')) > 0 ? 'shop-front-1' : params.agents[0].name }"
+blueprint: std/dispatch
+version: 3
+description: Say which agent a piece of work goes to, of those that could take it. Asked each time work is given to a role; never run.
+
+params:
+  project: { type: string, default: "", description: "The project it works in." }
+  role: { type: string, default: "", description: "The role the work is asked of." }
+
+  picks:
+    type: string
+    default: first
+    description: "The asker's word for the order the agents are shown in."
+
+  about:
+    type: any
+    default: {}
+    description: "What the work is, as whoever gives it says: for a card, `card`, `title` and `labels`."
+
+  agents:
+    type: list
+    default: []
+    description: "Everyone who could take it, the one the order puts first first: each with `name`, `role`, `rank`, `model`, `adapter`, `in_hand`, `given`, `last` and `apart`."
+
+outputs:
+  take: "${ params.agents[0].name ?? '' }"

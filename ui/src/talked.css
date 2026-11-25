@@ -1,0 +1,22 @@
+/* What was said on a record apart from what happened to it, two tabs in
+   the one row of its form's tabs (`views/recordtabs.tsx`), and the box something is
+   said in with who can be named offered under it (`views/tagbox.tsx`). */
+.talked-panel { display: grid; gap: 8px; min-width: 0; }
+/* The comment a line of somebody's inbox opened, marked as the one asked for. */
+.journey li.journey-spoken.journey-at { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.tagbox { position: relative; display: grid; min-width: 0; }
+.tagbox > textarea { resize: vertical; }
+
+/* Whoever a line is of, with their picture beside their name: the two one thing pressed, read about
+   where anybody is. Inline in the line's words, so that what the line says reads as it did, the picture the size of
+   the words' line. */
+.journey .journey-by {
+  display: inline; height: auto; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-transform: none; cursor: default;
+}
+.journey button.journey-by { cursor: pointer; }
+.journey button.journey-by:hover .journey-who { text-decoration: underline; }
+.journey button.journey-by:focus-visible { outline: 2px solid var(--dim); outline-offset: 1px; border-radius: calc(4px * var(--round)); }
+.journey .journey-by .avatar.face { display: inline-grid; vertical-align: middle; margin-right: 5px; width: calc(18px * var(--tall)); height: calc(18px * var(--tall)); font-size: calc(8px * var(--size)); }
+.journey .journey-by .journey-who { overflow-wrap: anywhere; }
+.journey .journey-for { padding: 0; height: auto; font: inherit; color: var(--text); }
+.journey .journey-by .avatar.face::before { content: attr(data-letters); }

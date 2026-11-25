@@ -1,0 +1,130 @@
+{
+  "documents": {
+    "install": "# Installing it\n\nRead this first. Then run the second step, which is short.\n\n## On Linux\n\nThen run the second step, which is short.\nIt takes a **minute**, no more.\n\n- one item\n- the second step again\n\n## On Windows\n\n> Then run the second step\n> with care.\n",
+    "rewritten": "# Installing it\n\nRead this first.\n\n## On Linux\n\nRun the next step, which is short.\nIt takes a **minute**, no more.\n",
+    "moved": "# Installing it\n\n## On Windows\n\nThen run the second step, which is short.\n\n## On Linux\n\nFirst of all, the second step matters.\n",
+    "edited": "# Installing it\n\nRead this first.\n\n## On Linux\n\nBefore anything, then run the second step, which is quick.\nIt takes a **minute**, no more.\n",
+    "marked": "# Notes\n\nSee [the *guide*](https://example.org/g) and `code_here` or\nsnake_case_name, an ![picture](p.png) and \\*stars\\*.\n\n```sh\nmake   it\n  go\n```\n\nUnderlined\n----------\n\nBelow it.\n"
+  },
+  "blocks": [
+    [
+      "install",
+      [
+        ["Installing it", []],
+        ["Read this first. Then run the second step, which is short.", ["Installing it"]],
+        ["On Linux", ["Installing it"]],
+        ["Then run the second step, which is short. It takes a minute, no more.", ["Installing it", "On Linux"]],
+        ["one item", ["Installing it", "On Linux"]],
+        ["the second step again", ["Installing it", "On Linux"]],
+        ["On Windows", ["Installing it"]],
+        ["Then run the second step with care.", ["Installing it", "On Windows"]]
+      ]
+    ],
+    [
+      "marked",
+      [
+        ["Notes", []],
+        ["See the guide and code_here or snake_case_name, an and *stars*.", ["Notes"]],
+        ["make it go", ["Notes"]],
+        ["Underlined", ["Notes"]],
+        ["Below it.", ["Notes", "Underlined"]]
+      ]
+    ]
+  ],
+  "found": [
+    {
+      "said": "the quote with the words either side of it, under the same headings, is found there and not where the same words are said first",
+      "document": "install",
+      "anchor": { "quote": "the second step", "before": "Then run ", "after": ", which is short.", "under": ["Installing it", "On Linux"] },
+      "found": { "how": "exact", "block": 3, "before": "Then run " },
+      "source": "the second step"
+    },
+    {
+      "said": "with the words either side of it it is found under other headings, where they are no longer the same",
+      "document": "moved",
+      "anchor": { "quote": "the second step", "before": "Then run ", "after": ", which is short.", "under": ["Installing it", "On Linux"] },
+      "found": { "how": "exact", "block": 2, "before": "Then run " },
+      "source": "the second step"
+    },
+    {
+      "said": "the text edited round it, the quote alone is found under the same headings, by the words nearest it that are still the same",
+      "document": "edited",
+      "anchor": { "quote": "the second step", "before": "Then run ", "after": ", which is short.", "under": ["Installing it", "On Linux"] },
+      "found": { "how": "heading", "block": 3, "before": "Before anything, then run " },
+      "source": "the second step"
+    },
+    {
+      "said": "under headings that are gone, the quote is found anywhere, by its neighbours",
+      "document": "install",
+      "anchor": { "quote": "the second step", "before": "e short. ", "after": " with care.", "under": ["Gone"] },
+      "found": { "how": "anywhere", "block": 7, "before": "Then run " },
+      "source": "the second step"
+    },
+    {
+      "said": "words marked up in the file are found as they are shown, and the mark covers the marking; with nothing kept either side, the words alone are the words with all that was kept",
+      "document": "install",
+      "anchor": { "quote": "takes a minute, no", "under": ["Installing it", "On Linux"] },
+      "found": { "how": "exact", "block": 3, "before": "Then run the second step, which is short. It " },
+      "source": "takes a **minute**, no"
+    },
+    {
+      "said": "words quoted across a line of the file are one space apart, as they are shown",
+      "document": "install",
+      "anchor": { "quote": "short. It takes", "before": "step, which is ", "after": " a minute", "under": ["Installing it", "On Linux"] },
+      "found": { "how": "exact", "block": 3, "before": "Then run the second step, which is " },
+      "source": "short.\nIt takes"
+    },
+    {
+      "said": "space in what is quoted is read as one space",
+      "document": "install",
+      "anchor": { "quote": "  the second\n step  again " },
+      "found": { "how": "exact", "block": 5, "before": "" },
+      "source": "the second step again"
+    },
+    {
+      "said": "the words of a link are found, and not its address",
+      "document": "marked",
+      "anchor": { "quote": "the guide and code_here" },
+      "found": { "how": "exact", "block": 1, "before": "See " },
+      "source": "the *guide*](https://example.org/g) and `code_here"
+    },
+    {
+      "said": "the quoted words rewritten, nothing is found",
+      "document": "rewritten",
+      "anchor": { "quote": "the second step", "before": "Then run ", "after": ", which is short.", "under": ["Installing it", "On Linux"] },
+      "found": null
+    },
+    {
+      "said": "a quote that is nothing is found nowhere",
+      "document": "install",
+      "anchor": { "quote": "   " },
+      "found": null
+    }
+  ],
+  "anchored": [
+    {
+      "said": "the words chosen, with a few either side cut to what is kept, and the headings over them",
+      "document": "install",
+      "block": 3,
+      "from": 9,
+      "to": 24,
+      "anchor": { "quote": "the second step", "before": "Then run ", "after": ", which is short. It takes a min", "under": ["Installing it", "On Linux"] }
+    },
+    {
+      "said": "space at either end of what was chosen is left out, and nothing is said of what is not there",
+      "document": "install",
+      "block": 0,
+      "from": 0,
+      "to": 14,
+      "anchor": { "quote": "Installing it" }
+    },
+    {
+      "said": "nothing chosen is nothing to comment on",
+      "document": "install",
+      "block": 1,
+      "from": 4,
+      "to": 5,
+      "anchor": null
+    }
+  ]
+}

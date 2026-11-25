@@ -1,0 +1,65 @@
+# The fleet for __name__: the agents that work its board, and the way work
+# goes through them.
+#
+# Applied, it brings them up and stays. Who is in it and what they do
+# with a card are two tables of the project, which it makes the first
+# time: `agents`, a row for each kind of agent and how many, and
+# `stages`, a row for each column where something is done with a card.
+# What all of that is, is `std/fleet`, among the blueprints that ship.
+#
+# As the tables are first made it is close to the least a fleet can be:
+# an architect to talk to in the project's channel, one worker, and you
+# to review. Change a row, in the client or with `mw record set`, and the
+# fleet follows, while work is under way or not: give the reviewers a
+# count and work is looked over, sent back or merged without you; give
+# them three and that is a council of three, which passes what two
+# approve; give the workers three and three cards are worked at once.
+#
+# What is said here is where the fleet is and what it may send where.
+# Change a default below and apply this again.
+blueprint: fleet
+description: Runs the __name__ factory.
+permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
+
+params:
+  project: { type: string, default: __project__ }
+
+  channel:
+    type: string
+    default: __project__
+    description: "Where changes are talked over and work is reported."
+
+  planned:
+    type: string
+    default: backlog
+    enum: [backlog, ready]
+    description: "Where the cards of a plan end up: `backlog`, where they wait until someone moves them to ready, or `ready`, where each is begun as soon as the cards it waits on are done."
+
+  # Where a card's branch comes from, and whether it goes anywhere.
+  fetch:
+    type: bool
+    default: false
+    description: "Ask the repository's remote first when a card is begun: a branch it already has for the card is pulled down and taken up, and a new one is cut from the remote's own. Nothing is asked of a remote unless this is said."
+
+  push:
+    type: bool
+    default: false
+    description: "Send each card's branch to the repository's remote when its worker has finished. Nothing is sent anywhere unless this is said."
+
+  key:
+    type: string
+    default: ""
+    description: "A secret the factory keeps (`mw secret set <name>`) that the remote is asked and sent to with: a key of the service's own, such as a bot's. Left empty, the remote is reached as whoever runs the daemon."
+
+steps:
+  fleet:
+    description: The fleet itself. Called and not spawned, so that applying this is done when the fleet is as its tables say.
+    call: std/fleet
+    as: fleet
+    with:
+      project: "${params.project}"
+      channel: "${params.channel}"
+      planned: "${params.planned}"
+      fetch: ${params.fetch}
+      push: ${params.push}
+      key: "${params.key}"

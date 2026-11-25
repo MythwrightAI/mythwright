@@ -1,0 +1,24 @@
+/* The handle beside a block of a document (`write/handle.ts`): a `+` and a
+   grip in the margin to the left of the block, lying over the page in the
+   editor's scrolling box, so that nothing of the text moves as it comes and
+   goes. It is on the page before anything is pressed, hidden; carried, the
+   block is drawn fainter where it is and a line says where it would land,
+   which moves nothing either. */
+.page > .block-handle { position: absolute; z-index: 14; display: flex; align-items: center; gap: 2px; margin: 0; max-width: none; }
+.block-handle[data-shown="false"] { visibility: hidden; pointer-events: none; }
+.block-handle[data-room="grip"] .block-add { display: none; }
+.block-handle button { justify-content: center; width: calc(22px * var(--tall)); height: calc(24px * var(--tall)); padding: 0; border: 0; border-radius: calc(5px * var(--round)); background: transparent; color: var(--faint); font: calc(18px * var(--size))/1 var(--sans); }
+.block-handle button:hover, .block-handle button:focus-visible, .block-handle button[aria-expanded="true"] { background: var(--bg3); color: var(--dim); }
+.block-handle .block-grip { width: calc(18px * var(--tall)); cursor: grab; touch-action: none; user-select: none; }
+.block-grip svg { width: calc(10px * var(--size)); height: calc(16px * var(--size)); fill: currentColor; }
+.block-carrying, .block-carrying * { cursor: grabbing; }
+.writer .block-carried { opacity: 0.4; }
+.page > .block-drop { position: absolute; z-index: 13; height: 3px; margin: 0; max-width: none; border-radius: calc(2px * var(--round)); background: var(--accent); pointer-events: none; }
+
+/* A phone's width: the page leaves room at its left for the grip, which is a finger's size there and is of the block
+   the cursor is in. There is no `+`: a new line is begun where one is writing, and `/` asks for a block. */
+@media (max-width: 760px) {
+  .writer.page { padding-left: calc(40px * var(--tall)); }
+  .block-handle .block-grip { width: calc(30px * var(--tall)); height: calc(36px * var(--tall)); }
+  .block-handle .block-add { display: none; }
+}

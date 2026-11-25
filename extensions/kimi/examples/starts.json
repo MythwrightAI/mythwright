@@ -1,0 +1,17 @@
+[
+  {
+    "permission": "full",
+    "args": ["--output-format", "stream-json", "--prompt", "<system>\n\n<prompt>"]
+  },
+  {
+    "permission": "full",
+    "model": "example-model",
+    "session": "0f1e2d3c-0000-4000-8000-000000000001",
+    "args": [
+      "--output-format", "stream-json",
+      "--model", "example-model",
+      "--session", "0f1e2d3c-0000-4000-8000-000000000001",
+      "--prompt", "<prompt>"
+    ]
+  }
+]

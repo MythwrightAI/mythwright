@@ -1,0 +1,56 @@
+{
+  "ships": ["grid-iron", "rose-pine", "tokyo-midnight"],
+  "cases": [
+    [{ "ground": "#0c0c0c", "text": "#e9e9e9", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, null],
+    [{ "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, null],
+    [{ "ground": "#16161e", "text": "#c0caf5", "accent": "#7aa2f7", "ok": "#9ece6a", "bad": "#f7768e", "info": "#7dcfff", "agent": "#bb9af7", "card": "#e0af68" }, null],
+    [{ "ground": "#F4F3EF", "text": "#1D1F23", "accent": "#DC7B32", "ok": "#2E8B57", "bad": "#C0392B", "info": "#2D6FB5", "agent": "#556B85", "card": "#B8860B" }, null],
+    ["#191724", "A theme's colours are a mapping of eight: ground, text, accent, ok, bad, info, agent, card."],
+    [null, "A theme's colours are a mapping of eight: ground, text, accent, ok, bad, info, agent, card."],
+    [{ "ground": "#0c0c0c", "text": "#222222", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "The text is too near the ground to be read on it: make one lighter or the other darker."],
+    [{ "ground": "#ffffff", "text": "#dddddd", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "The text is too near the ground to be read on it: make one lighter or the other darker."],
+    [{ "ground": "#336699", "text": "#336699", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "The text is too near the ground to be read on it: make one lighter or the other darker."],
+    [{ "ground": "#0c0c0c", "text": "#e9e9e9", "accent": "orange", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "accent is not a colour"],
+    [{ "ground": "#0c0c0c", "text": "#fff", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "text is not a colour"],
+    [{ "ground": "#0c0c0g", "text": "#e9e9e9", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "ground is not a colour"],
+    [{ "ground": "0c0c0c0", "text": "#e9e9e9", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "ground is not a colour"],
+    [{ "ground": "#0c0c0c", "text": "#e9e9e9", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4" }, "card is not a colour"],
+    [{ "ground": "#0c0c0c", "text": "#e9e9e9", "accent": "#dc7b32", "ok": 5, "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "ok is not a colour"],
+    [{ "ground": "#0c0c0c", "text": "#e9e9e9", "accent": "#dc7b32", "ok": "#58c08a", "bad": " #f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "bad is not a colour"],
+    [{ "ground": "red", "text": "blue", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "#8fa8c4", "card": "#f2c230" }, "ground is not a colour"],
+    [{ "ground": "#0c0c0c", "text": "#222222", "accent": "#dc7b32", "ok": "#58c08a", "bad": "#f0585c", "info": "#6aaaf0", "agent": "nope", "card": "#f2c230" }, "agent is not a colour"]
+  ],
+  "light": [
+    [{ "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, { "ground": "#faf4ed", "text": "#575279", "accent": "#b4637a", "ok": "#286983", "bad": "#a8324a", "info": "#56949f", "agent": "#907aa9", "card": "#ea9d34" }, null],
+    [{ "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, null, null],
+    [{ "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, { "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, null],
+    [{ "ground": "#faf4ed", "text": "#575279", "accent": "#b4637a", "ok": "#286983", "bad": "#a8324a", "info": "#56949f", "agent": "#907aa9", "card": "#ea9d34" }, { "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, null],
+    [{ "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, { "ground": "#faf4ed", "text": "#f0e8e0", "accent": "#b4637a", "ok": "#286983", "bad": "#a8324a", "info": "#56949f", "agent": "#907aa9", "card": "#ea9d34" }, "In the light version: The text is too near the ground to be read on it: make one lighter or the other darker."],
+    [{ "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, { "ground": "#faf4ed", "text": "#575279", "accent": "rose", "ok": "#286983", "bad": "#a8324a", "info": "#56949f", "agent": "#907aa9", "card": "#ea9d34" }, "In the light version: accent is not a colour"],
+    [{ "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, { "ground": "#faf4ed", "text": "#575279" }, "In the light version: accent is not a colour"],
+    [{ "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, "#faf4ed", "In the light version: A theme's colours are a mapping of eight: ground, text, accent, ok, bad, info, agent, card."],
+    [{ "ground": "#191724", "text": "#e0def4", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, [], "In the light version: A theme's colours are a mapping of eight: ground, text, accent, ok, bad, info, agent, card."],
+    [{ "ground": "#191724", "text": "#1f1d2e", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, { "ground": "#faf4ed", "text": "#f0e8e0", "accent": "#b4637a", "ok": "#286983", "bad": "#a8324a", "info": "#56949f", "agent": "#907aa9", "card": "#ea9d34" }, "The text is too near the ground to be read on it: make one lighter or the other darker."],
+    [{ "ground": "#191724", "text": "#1f1d2e", "accent": "#ebbcba", "ok": "#9ccfd8", "bad": "#eb6f92", "info": "#c4a7e7", "agent": "#31748f", "card": "#f6c177" }, { "ground": "#faf4ed", "text": "#575279", "accent": "#b4637a", "ok": "#286983", "bad": "#a8324a", "info": "#56949f", "agent": "#907aa9", "card": "#ea9d34" }, "The text is too near the ground to be read on it: make one lighter or the other darker."]
+  ],
+  "looks": [
+    ["letters", ["usual", "serif", "humanist", "mono"]],
+    ["size", ["smaller", "usual", "larger", "largest"]],
+    ["density", ["compact", "usual", "roomy"]],
+    ["corners", ["square", "usual", "round"]]
+  ],
+  "look": [
+    [null, null],
+    [{}, null],
+    [{ "letters": "serif", "size": "largest", "density": "compact", "corners": "round" }, null],
+    [{ "size": "usual", "corners": "square" }, null],
+    [{ "letters": "mono" }, null],
+    [{ "size": "huge" }, "A theme's size is one of smaller, usual, larger, largest, and \"huge\" is none of them."],
+    [{ "density": "compact", "corners": "pointed" }, "A theme's corners is one of square, usual, round, and \"pointed\" is none of them."],
+    [{ "letters": 3 }, "A theme's letters is one of usual, serif, humanist, mono, and 3 is none of them."],
+    [{ "letters": null }, "A theme's letters is one of usual, serif, humanist, mono, and null is none of them."],
+    [{ "colour": "red" }, "`colour` is nothing a theme's look says: it says letters, size, density, corners."],
+    ["largest", "A theme's look is a mapping of what it says of letters, size, density, corners."],
+    [["size", "largest"], "A theme's look is a mapping of what it says of letters, size, density, corners."]
+  ]
+}

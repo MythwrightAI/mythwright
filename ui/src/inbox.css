@@ -1,0 +1,79 @@
+/* The inbox: its place on the rail, directly below Resources, and the box in the side panel. */
+/* The count lies over the place's corner and is as wide as its digits: the place is as big with a count as without, and nothing on the rail moves when something comes. */
+.rail-inbox .inbox-count { position: absolute; top: 1px; right: 0; min-width: 15px; height: 15px; padding: 0 4px; border-radius: calc(8px * var(--round)); background: var(--accent); color: var(--accent-ink); font-size: calc(10px * var(--size)); font-weight: 700; line-height: calc(15px * var(--tall)); text-align: center; pointer-events: none; }
+.rail-inbox .inbox-count:empty { display: none; }
+/* The list's head, always there and always as tall: what it says gives way, and what is pressed is whole. */
+.inbox-head { display: flex; align-items: center; gap: 8px; min-height: calc(30px * var(--tall)); margin: 0 8px 6px; padding: 0 0 0 6px; font-size: calc(12px * var(--size)); color: var(--dim); }
+/* What waits is read whole: where the two do not fit beside each other (large text in a narrow panel) the words of
+   the button give way first, and it is still called what it does. */
+.inbox-says { flex: 1 0 auto; min-width: 0; max-width: 100%; }
+.inbox-all { flex: 0 100 auto; min-width: 0; height: calc(26px * var(--tall)); padding: 0 6px; font-size: calc(12px * var(--size)); white-space: nowrap; }
+.inbox-all[disabled] { opacity: 0.5; }
+.inbox-lines { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 6px 12px; }
+.inbox-none { margin: 0; padding: 6px 8px; font-size: calc(12.5px * var(--size)); }
+/* A line: what opens it, and beside that what puts it away, which is in the line's own room and is never over its words. */
+.inbox-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; border-radius: calc(6px * var(--round)); }
+.inbox-line:hover, .inbox-line:focus-within { background: var(--bg2); }
+.inbox-open { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 1px; align-items: baseline; min-width: 0; width: 100%; height: auto; padding: 7px 4px 7px 16px; border: 0; background: transparent; color: var(--dim); font: inherit; font-size: calc(12.5px * var(--size)); text-align: left; position: relative; }
+button.inbox-open { cursor: pointer; }
+.inbox-open:hover { background: transparent; }
+/* One that waits says so at its left edge and in its weight. */
+.inbox-line.unread .inbox-open::before { content: ""; position: absolute; left: 6px; top: 13px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.inbox-from { min-width: 0; color: var(--text); font-weight: 500; }
+.inbox-line.unread .inbox-from { font-weight: 700; }
+.inbox-when { color: var(--faint); font-size: calc(11.5px * var(--size)); white-space: nowrap; }
+.inbox-where { grid-column: 1 / -1; min-width: 0; color: var(--faint); font-size: calc(11.5px * var(--size)); }
+.inbox-where .sign { margin-right: 3px; vertical-align: -1px; }
+/* The words are read on two lines at most, and say that there are more. */
+.inbox-words { grid-column: 1 / -1; min-width: 0; overflow: hidden; white-space: normal; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; line-height: 1.35; }
+.inbox-line.unread .inbox-words { color: var(--text); }
+/* What a blueprint told is no button, since its words may hold a link and a link may not be inside a button: the line's press lies over all of it, and the links over that. */
+.inbox-told > .inbox-press { position: absolute; inset: 0; width: auto; height: auto; padding: 0; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
+.inbox-told > .inbox-press:hover { background: transparent; }
+.inbox-link { position: relative; z-index: 1; }
+/* Under a finger each address is said again under the words, a finger's size; at a pointer the one in the words is enough. */
+.inbox-links { display: none; }
+.inbox-away { flex: none; width: calc(24px * var(--tall)); height: calc(24px * var(--tall)); margin: 5px 4px 0 0; color: var(--faint); }
+.inbox-away:hover { color: var(--text); }
+@media (max-width: 760px), (pointer: coarse) and (max-height: 520px) {
+  .rail-inbox .inbox-count { top: 3px; right: 1px; }
+  .inbox-all { height: calc(36px * var(--tall)); }
+  .inbox-away { width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); margin: 0; }
+  .inbox-open { padding-top: 10px; padding-bottom: 10px; font-size: calc(14px * var(--size)); }
+  .inbox-line.unread .inbox-open::before { top: 17px; }
+}
+@media (max-width: 760px), (hover: none) {
+  .inbox-links { display: flex; flex-direction: column; grid-column: 1 / -1; min-width: 0; margin-top: 2px; }
+  .inbox-link-row { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: calc(40px * var(--tall)); }
+  .inbox-link-row .sign { flex: none; }
+}
+
+/* A line a blueprint told, as a page of its own (`views/inboxpage.tsx`): a column a reader's width, its words whole. */
+.inbox-page { min-height: 0; overflow-y: auto; }
+.inbox-page-title { min-width: 0; overflow-wrap: anywhere; }
+.inbox-page-message { max-width: 720px; margin: 0 20px 24px; padding: calc(16px * var(--density)) 18px; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+.inbox-page-message.unread { border-color: var(--accent); }
+/* One that lists cards fills its tab, with the room at its sides at either side (as a page of tables fills its tab),
+   its words still a reader's width: at a reader's width the table's title had a few letters' room and whom a card is
+   assigned to was cut to its first letter, and on a wide window it stood in a column of the page's left. */
+.inbox-page-message:has(.told-cards) { max-width: none; }
+.inbox-page-message:has(.told-cards) .inbox-page-words { max-width: 684px; }
+.inbox-page-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; font-size: calc(13px * var(--size)); }
+.inbox-page-from { min-width: 0; overflow-wrap: anywhere; }
+.inbox-page-when { color: var(--faint); font-size: calc(12px * var(--size)); white-space: nowrap; }
+.inbox-page-times { margin: 4px 0 0; font-size: calc(12px * var(--size)); }
+/* Its own words as they were told, every line of them, and an address as long as it is broken where it must be. */
+.inbox-page-words { margin: 14px 0 0; font-size: calc(14px * var(--size)); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+.inbox-page-about { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); min-width: 0; }
+.inbox-page-label { margin: 0; font-size: calc(11.5px * var(--size)); font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.inbox-page-opens { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; max-width: 100%; height: auto; min-height: calc(28px * var(--tall)); padding: 4px 8px; margin-left: -8px; text-align: left; overflow-wrap: anywhere; color: var(--accent); }
+.inbox-page-opens-says { font-weight: 600; }
+.inbox-page-gone { overflow-wrap: anywhere; }
+.inbox-page-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
+.inbox-page-acts button { display: inline-flex; align-items: center; gap: 6px; }
+.inbox-page-away { flex: 1 1 100%; }
+.inbox-page-none { margin: 0 20px; max-width: 720px; color: var(--dim); }
+@media (max-width: 760px) {
+  .inbox-page-message { margin: 0 12px 16px; padding: 14px 12px; }
+  .inbox-page-acts button { min-height: calc(40px * var(--tall)); }
+}

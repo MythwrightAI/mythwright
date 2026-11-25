@@ -1,0 +1,10 @@
+/* Somebody named with `@` in what was written (`views/mentioned.tsx`): the
+   words in their own colour, so they read in every theme and look, with a
+   thin underline in the theme's accent saying it is somebody; the keyboard is
+   marked on it as everywhere, never in the accent. Pointed at or reached by
+   the keyboard, it shows the card of who it is (`Who`). */
+.who-anchor.mention {
+  color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 75%, transparent);
+  text-decoration-thickness: 1px; text-underline-offset: 0.2em; border-radius: calc(3px * var(--round));
+}
+.who-anchor.mention:hover { text-decoration-color: var(--accent); background: var(--accent-soft); }

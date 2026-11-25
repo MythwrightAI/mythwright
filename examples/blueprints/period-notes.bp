@@ -1,0 +1,157 @@
+# Notes by the period they are of: years, quarters, months, weeks and days.
+#
+# Each is a library of its own: a folder of Markdown files under `notes/`,
+# written in an editor, by an agent or in the client. Each names the period
+# it is in (a quarter its year, a month its quarter, a week its month, a
+# day its week), in the settings at the head of its file. Nothing else
+# says how they fit together: in the client's table of years, a year is
+# opened into the quarters that name it, a quarter into its months, and so
+# on down to the days.
+#
+# The days are kept private: read by whoever holds `private:journal`, which
+# is the owner, and whoever the owner gives it to (a key made with
+# `--scope private:journal`, an agent whose row holds it). An agent working
+# in the project that was not given it is not shown them: not as records,
+# not as files, not found by searching, and not behind its wall. Say
+# another word with `private`, or nothing to keep them from nobody.
+#
+#   mw apply examples/blueprints/period-notes.bp --project life
+#   mw record add life years title=2026 path=2026
+#   mw record add life quarters "title=2026 Q4" path=2026-q4 year=life-years:2026
+#   mw record add life months "title=November 2026" path=2026-11 quarter=life-quarters:2026-q4
+#   mw record add life weeks "title=Week 46" path=2026-w46 month=life-months:2026-11
+#   mw record add life days title=Saturday path=2026-11-14 day=2026-11-14 week=life-weeks:2026-w46
+blueprint: period-notes
+description: A person's notes by year, quarter, month, week and day, each naming the period it is in, with the days kept private.
+permissions: [projects]
+
+params:
+  folder:
+    type: string
+    default: notes
+    description: "The folder of the project the notes are in, a folder a period under it: `notes/years`, `notes/days`."
+
+  private:
+    type: string
+    default: "private:journal"
+    description: "What the days are kept private under: a scope, held by the owner and by whoever is given it. Nothing, to keep them from nobody who may read the project."
+
+steps:
+  years:
+    do: collection.ensure
+    with:
+      name: years
+      store: documents
+      at: "${params.folder}/years"
+      fields:
+        title: { type: text, required: true }
+        body: { type: text }
+        path: { type: text }
+      # The table comes first, which is where a row is opened into what
+      # names it; views are shown in the order of their names.
+      views:
+        all: { kind: table }
+        list: { kind: list }
+      history:
+        record.created: "{actor} wrote it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.removed: "{actor} took it away"
+
+  quarters:
+    needs: [years]
+    do: collection.ensure
+    with:
+      name: quarters
+      store: documents
+      at: "${params.folder}/quarters"
+      fields:
+        title: { type: text, required: true }
+        body: { type: text }
+        path: { type: text }
+        year: { type: record, of: years }
+      # The table comes first, which is where a row is opened into what
+      # names it; views are shown in the order of their names.
+      views:
+        all: { kind: table }
+        list: { kind: list }
+      history:
+        record.created: "{actor} wrote it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.removed: "{actor} took it away"
+
+  months:
+    needs: [quarters]
+    do: collection.ensure
+    with:
+      name: months
+      store: documents
+      at: "${params.folder}/months"
+      fields:
+        title: { type: text, required: true }
+        body: { type: text }
+        path: { type: text }
+        quarter: { type: record, of: quarters }
+      # The table comes first, which is where a row is opened into what
+      # names it; views are shown in the order of their names.
+      views:
+        all: { kind: table }
+        list: { kind: list }
+      history:
+        record.created: "{actor} wrote it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.removed: "{actor} took it away"
+
+  weeks:
+    needs: [months]
+    do: collection.ensure
+    with:
+      name: weeks
+      store: documents
+      at: "${params.folder}/weeks"
+      fields:
+        title: { type: text, required: true }
+        body: { type: text }
+        path: { type: text }
+        month: { type: record, of: months }
+      # The table comes first, which is where a row is opened into what
+      # names it; views are shown in the order of their names.
+      views:
+        all: { kind: table }
+        list: { kind: list }
+      history:
+        record.created: "{actor} wrote it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.removed: "{actor} took it away"
+
+  days:
+    needs: [weeks]
+    do: collection.ensure
+    with:
+      name: days
+      store: documents
+      at: "${params.folder}/days"
+      # Read by whoever holds this, and with that changed, spoken on and
+      # heard of; nobody else is shown them by any way there is.
+      reads: "${params.private}"
+      fields:
+        title: { type: text, required: true }
+        body: { type: text }
+        path: { type: text }
+        day: { type: date }
+        week: { type: record, of: weeks }
+      views:
+        calendar: { kind: calendar, by: day }
+        table: { kind: table }
+      history:
+        record.created: "{actor} wrote it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.removed: "{actor} took it away"
+
+outputs:
+  folder: "${params.folder}"
+  private: "${params.private}"

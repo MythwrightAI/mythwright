@@ -1,0 +1,226 @@
+# A project's board: cards, the columns they move through, and where they
+# are kept.
+#
+# A project has no board until this is applied to it. Underneath, a board is
+# a table: records called `board`, declared below field by field. The board
+# is one way of laying that table out, by its `status`, and the one it
+# starts with. Whoever looks at it saves others beside it, of the same
+# records: a table, a calendar by the day a card is `due`, a list, a
+# gallery. Apply it again with other columns and the board follows; the
+# views people saved are kept. It starts with nothing on it.
+#
+# What happens to a card is kept as its history, for good (`history`).
+#
+# A card is a row of that table and nothing more: nothing runs for a card
+# that nobody is doing anything with. What a card can do beyond being moved
+# (hold a question, say why it waits, wait on other cards) is one blueprint
+# for the whole board, `std/cards`, which this starts.
+#
+# Where the cards are kept is said here too. `local` is this installation's
+# own database. `files` keeps each card as a file in the project's `board`
+# folder, where people, agents and whatever keeps the project's history can
+# read them as they are. `service` keeps them in a database another
+# blueprint made and hosts, at the address given as `database`: `std/store`
+# is such a blueprint, and its `url` is that address (docs/stores.md).
+blueprint: std/board
+version: 13
+description: "Give a project a board: its cards, its columns, and where they are kept."
+permissions: [projects, board, blueprints]
+
+params:
+  columns:
+    type: list
+    default: [backlog, ready, doing, review, done]
+    description: "The columns, left to right."
+
+  store:
+    type: string
+    default: local
+    enum: [local, files, service]
+    description: "Where the cards are kept: `local`, in this installation's database; `files`, one file a card in the project's `board` folder; or `service`, a store service at `database`. It is settled when the board is made."
+
+  database:
+    type: string
+    default: ""
+    description: "For `store: service`, the address of the store service that keeps the cards: what the blueprint that hosts it gives out as `url`, such as `std/store`. It may be said again when the store is somewhere else."
+
+steps:
+  board:
+    description: The table a card is a row of, and the ways it is laid out; the board is the rows by their status.
+    do: collection.ensure
+    with:
+      name: board
+      store: "${params.store}"
+      at: "${params.database}"
+      # A card is something the daemon itself reads: it moves one by its
+      # `status`. `card` is what it takes a card to be, and the first eight
+      # fields below are that, written out so that this file says the whole
+      # of what a board is made of. A copy of this that declares one of
+      # them as something else is refused when it is applied; a field
+      # added below the eight is the copy's own.
+      model: card
+      fields:
+        title: { type: text, required: true }
+        body: { type: text }
+        status: { type: choice, of: "${params.columns}", required: true }
+        assignee: { type: actor }
+        labels: { type: list }
+        due: { type: date }
+        # How it came to be where it is, which the daemon writes with the
+        # move that puts it there: the column it was moved from, the kind
+        # of actor that moved it, what was said as it was moved, and how
+        # many times it has been moved. Nobody else writes it.
+        moved: { type: list, quiet: true, hidden: true }
+        # What was pressed on it of what its column offers (a table that
+        # is an `action`'s beside the board, such as a fleet's `actions`),
+        # and that it was said to wait for it. The daemon writes it with
+        # the press, and nobody else does.
+        pressed: { type: list, quiet: true, hidden: true }
+        # What was asked on the card and is not yet answered; a card with
+        # something here is waiting. It is this blueprint's and the cards'
+        # own (`std/cards`), and nothing the daemon reads. `quiet`: that it
+        # was asked and answered is said by events of their own, below, so
+        # the field changing is not said a second time in the history.
+        question: { type: text, quiet: true }
+        # Who asked it, so that their own words are not taken for the answer.
+        # `hidden`: kept for what looks after the cards, and left out of a
+        # view of the board until somebody shows it there.
+        asker: { type: text, quiet: true, hidden: true }
+        # How the card is to be done, as whoever planned it said, where a
+        # fleet has somebody do so (`std/proposal`). Whoever works the
+        # card and whoever looks the work over are shown it. `quiet`: that
+        # it was planned is said by an event of its own, below.
+        plan: { type: text, quiet: true }
+        # The feature it is a piece of, where it came of one (`std/feature`).
+        part_of: { type: text, quiet: true }
+        # What the card waits for, while a round of it waits its turn in
+        # the fleet's pool: the card's own to say, as its question is.
+        waiting: { type: text, quiet: true }
+        # Where on the chain of who is next it is, while it waits on
+        # somebody (`std/chain`): the kind of wait, the count of its moves
+        # it began at, and how many rungs it has reached.
+        rung: { type: list, quiet: true, hidden: true }
+        # How many times the card was sent back from review, which is
+        # counted for it (`std/cards`). The moves themselves are in its
+        # history.
+        rounds: { type: number, quiet: true }
+        # The column it was taken from to be worked: what tells its being
+        # taken from its being sent back, and whose card it is while it is
+        # worked (`std/working`).
+        taken: { type: text, quiet: true, hidden: true }
+        # What whoever works it is to be told when it is next taken up:
+        # that it was sent back, or that what was asked on it was answered,
+        # and the words. Kept until a round takes it (`std/working`).
+        again: { type: list, quiet: true, hidden: true }
+        # Where in the list of things done with it the card was when its
+        # agent asked (the row, and its order): where the round its answer
+        # begins is begun.
+        at: { type: list, quiet: true, hidden: true }
+        # The cards this one waits on, by their ids: it is not begun until
+        # each of them is done. Whoever plans the work says it; the card
+        # holds to it (`std/cards`).
+        after: { type: list }
+        # How soon it is worked beside the others waiting where it is, the
+        # first word the soonest (`next` of a fleet's `stages`). Nothing is
+        # `normal`; a number from before comes to a word, once (`record.reworded`).
+        priority: { type: choice, of: [urgent, high, normal, low], unsaid: normal }
+        # The cards whose work this one puts right, by their ids: said of
+        # each when this one's work is merged and it goes on (`std/merge`),
+        # for whatever counts what comes of merged work.
+        fixes: { type: list }
+      views:
+        board: { kind: board, by: status }
+        # The same cards by what comes first: what can be begun now, what
+        # waits only on those, and so on, each column side by side; those
+        # that are done fold away. A band for each feature they are part
+        # of.
+        order: { kind: order, by: after, done: status, group: part_of }
+      # A card's journey across the board is kept: each of these, as it
+      # happens, is a line of the card's history, never changed or taken
+      # away. An event is given its own words, with what it says of itself
+      # in braces; a part in square brackets is said only when the event
+      # has what it names, so a move says why it was sent back when it was
+      # said. `.restored` words a card given back from the Trash. The group
+      # at the end keeps anything else said of a card, in the usual words.
+      history:
+        board.item.created: "{actor} added it to {status}"
+        board.item.created.restored: "{actor} gave it back from the Trash, to {status}"
+        board.item.moved: "{actor} moved it from {from} to {to}[, saying: {note}]"
+        board.item.updated: "{actor} changed its {changed}"
+        board.item.removed: "{actor} took it away"
+        # That something its column offers was pressed on it, or taken
+        # back; and that it waits for something to be pressed.
+        board.item.pressed: "{actor} {did}"
+        board.item.held: "it waits in {status} for {waits} to be pressed"
+        board.item.*: ""
+        record.reworded: "its {field}, the number {was}, came to be {now}"
+        # What anyone says on the card, as on any record, and attaches to it.
+        record.commented: "{actor} said: {body}"
+        record.attached: "{actor} attached {name}"
+        record.attached.restored: "{actor} gave {name} back from the Trash"
+        record.detached: "{actor} took away {name}[, moving it to {into}]"
+        # A change somebody asked for and may not make, and one declined
+        # (`docs/approvals.md`); one approved is the change, which says so.
+        record.asked: "{actor} asked to change its {cells}[: {why}]"
+        record.ask.declined: "{actor} declined a change of it[: {why}]"
+        # That it is finished; and what was asked on it instead of
+        # guessing, which whatever gave it to an agent says, and that it
+        # was answered.
+        card.finished: "it reached {stage}"
+        card.asked: "{asker} asked: {question}"
+        card.answered: "that answered what {asker} asked"
+        # That somebody said how it is to be done, where a fleet plans.
+        card.planned: "{agent} said how it is to be done"
+        # That it had to wait its turn, where the fleet works a limited
+        # number of cards at once, and that its turn came.
+        card.waiting: "it waits its turn: {what}"
+        card.taken: "its turn came"
+        # That the cards it waited on are done.
+        card.freed: "what it waited on is done"
+        # What its A/B test came to, where it had one (`std/ab`).
+        card.contested: "{said}"
+        # What an agent that looked at the work said of it, where a fleet
+        # has one do so.
+        # That a person passed it and its branch was merged for that, where
+        # the stage it was passed from says so; and that it was not, whoever
+        # passed it not holding what merging takes.
+        card.merged: "its branch {branch} was merged into the project's"
+        card.unmerged: "it was passed by hand, and its branch {branch} was not merged"
+        card.approved: "{by} approved it[: {words}]"
+        # What a round says of the card it took: which agent did the work,
+        # and that its branch reached the repository's remote.
+        card.worked: "{agent} worked on it[, and its program was refused {refused}]"
+        # That the daemon was stopped while an agent had it, and that
+        # the agent went on with it when the daemon was back.
+        card.went_on: "the daemon was stopped while {agent} had it, and {agent} went on with it"
+        card.pushed: "its branch {branch} was sent to {remote}"
+        # What is said by whatever proposes that branch for merging, which
+        # is a package written for the service that hosts the repository.
+        card.proposed: "a pull request was opened for it: {url}"
+        # That what its agent changed could not be committed, and what git
+        # said: the card then does not go on.
+        card.unkept: "what was changed could not be committed: {why}"
+        # That it was left for a person, with why: having been sent back
+        # as often as its stage allows, or what was said; and that it
+        # waits for a person to do what its column does, nobody being
+        # there to.
+        card.left: "it was left for a person[, having been sent back {rounds} times][: {why}]"
+        card.waits: "{why}"
+        # That a command run for it went on past the time its row says.
+        card.slow: "its command was still running after {after}"
+        # What came after its work was merged, said at another card's merge
+        # (`std/merge`): that card reverted it, or says it fixes it.
+        card.reverted: "{by} reverted its work"
+        card.fixed: "{by} says it fixes it"
+        card.*: ""
+
+  cards:
+    description: What the cards of this board can do beyond being moved, said once for all of them. A card is a row, and nothing is started for one.
+    spawn: std/cards
+    as: cards
+    with: { project: "${instance.project}" }
+
+outputs:
+  columns: ${params.columns}
+  store: ${steps.board.out.store}
+  database: ${steps.board.out.at}

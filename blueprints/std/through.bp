@@ -1,0 +1,71 @@
+# The rest of a list of things done with a card, from the next thing to
+# do: it is called for the card, what comes after it is asked of the list
+# (`segments.next`) from what it came to and gave out, and where that is
+# another thing to do, this is called again with it. Otherwise what the
+# list came to is what this gives back, and whoever went through the list
+# does with the card what that says.
+#
+# The language has no going round, and needs none for this: each thing
+# done is one more of this, called by the one before. Nothing bounds how
+# deep that goes but how many things at most are done in one going
+# through, which whoever begins it says in its first asking (`most_done`,
+# a stage's `most`) and the block holds to: the asking that would call
+# one more leaves the card for a person, with a sentence that says how to
+# raise the number.
+#
+# It is called by what goes through a list (`std/lane-round` where cards
+# are worked, `std/segments` where they are reviewed or planned) for the
+# second thing to do, once the first has been done, and by itself.
+blueprint: std/through
+version: 2
+description: "Go on through a list of things done with a card from the next thing to do: call it, ask what comes after it, and go on from there, until the list has ended."
+# It keeps nothing as it goes, and neither does whatever calls it: a
+# daemon stopped anywhere in the list has the run that is kept above it
+# call the list again from its first, which finds done what was done,
+# and each thing is called under the same name at the same place.
+durable: false
+permissions: [board, channels, agents, shell, projects, secrets, blueprints]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  here: { type: string, description: "The column whose list this is." }
+
+  next:
+    type: object
+    description: "The next thing to do with the card, as the asking before this answered it (`segments.next`): what it is called and handed, with all that the first asking of the list was handed."
+
+steps:
+  segment:
+    description: The next thing of the list, called for the card; it ends in a word.
+    call: "${params.next.name}"
+    as: "segment-${params.item}-${params.next.nth}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      ...: ${params.next.with}
+
+  after:
+    description: What comes after it, from what it came to.
+    do: segments.next
+    with:
+      item: "${params.item}"
+      found: true
+      here: "${params.here}"
+      was: ${params.next}
+      gave: ${steps.segment.out}
+
+  rest:
+    description: And where that is another thing to do, the rest of the list from there.
+    when: ${steps.after.out.calls}
+    call: std/through
+    as: "through-${params.item}-${steps.after.out.nth}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      here: "${params.here}"
+      next: ${steps.after.out}
+
+outputs:
+  # What the list came to: the last answer, as `segments.next` gave it.
+  answer: ${ steps.rest.out.answer ?? steps.after.out }

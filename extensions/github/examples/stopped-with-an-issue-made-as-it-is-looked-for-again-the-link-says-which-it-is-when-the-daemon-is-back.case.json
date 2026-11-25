@@ -1,0 +1,14 @@
+{
+  "says": "A daemon stopped after an issue was made for a card, as it is looked for to write the link down, goes on from there when it is back: the link says which issue it is, and no second is made.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"stopped_at": "there", "of": "issues", "by": {"run": ["record", "add", "shop", "links", "card=shop-1"]}, "sets_off": "keep"},
+    {"holds": {"issues/1": {"title": "Add a cart", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "t1"}, "issues/2": {}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "issue: 1"}
+  ]
+}

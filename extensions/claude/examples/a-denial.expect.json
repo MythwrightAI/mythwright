@@ -1,0 +1,15 @@
+{
+  "reply": "I could not run ./check: running it was refused me.",
+  "session": "0f1e2d3c-0000-4000-8000-000000000003",
+  "model": null,
+  "shown": [
+    "[Bash]"
+  ],
+  "cost_usd": null,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "failure": null,
+  "refused": [
+    "Bash"
+  ]
+}

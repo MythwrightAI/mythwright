@@ -1,0 +1,165 @@
+# A project's feature flags: a table with a row for each flag,
+# saying what it is called, what it is for, whose it is, the day it is to
+# be taken out and what kind of value it says (on or off, a percentage,
+# or a word).
+#
+# What a flag says in each of the project's environments is kept in that
+# environment's variables, as `FLAG_<NAME>` (`FLAG_NEW_CHECKOUT`), which
+# is what an app the project deploys reads as it reads any setting, and
+# what a blueprint run under the environment reads as
+# `environment.vars`: nothing is fetched from anywhere and nothing is
+# sent. It is changed on the project's Environments page, or with
+# `mw flag set`, for whoever may write the project, and each change is
+# kept in the flag's row's history.
+#
+# Turning a flag on, or wider (a larger percentage, another word), in an
+# environment whose rule says who approves what goes under it waits for
+# one of them, unless whoever asks is one of them: the change is said to
+# this (`project.flag.asked`), which asks a go-ahead of them
+# (`approval.ask`) and writes it once one lets it, as whoever asked holds
+# what changing a flag takes then, and only while it is still the change
+# asked last of that flag there and the flag says what it said when it was
+# asked: an approval never undoes a later change, and writes nothing where
+# it would, saying so to whoever asked and on the flag's history. Turning
+# one off never waits.
+#
+# A flag past its day is told to whose it is, once (`flags.due`), as this
+# is first there, as a row is written and each day at `looks_at`: flags
+# that are never taken out are the cost of having them.
+blueprint: std/flags
+version: 2
+description: "Keep a project's feature flags: a row a flag, what it says in each environment written into that environment's variables."
+permissions: [projects, records, inbox, blueprints]
+# What looks at the rows takes turns; a change that waits for a go-ahead
+# takes turns by its flag and environment, beside them.
+one_at_a_time: true
+
+params:
+  project: { type: string, description: "The project whose flags these are." }
+
+  looks_at:
+    type: string
+    default: "09:00 UTC"
+    description: "When each day it looks for flags past their day, as a time of day with its zone, such as `09:00 Europe/Zagreb`."
+
+steps:
+  table:
+    description: The table of the project's flags, a row a flag.
+    do: collection.ensure
+    with:
+      name: flags
+      project: "${params.project}"
+      title: Flags
+      fields:
+        name: { type: text, required: true }
+        about: { type: text }
+        owner: { type: actor }
+        until: { type: date }
+        kind: { type: choice, of: [switch, percentage, word] }
+      views:
+        flags: { kind: table }
+      history:
+        record.created: "{actor} added it"
+        record.updated: "{actor} changed its {changed}"
+        record.removed: "{actor} took it away"
+        project.flag.changed: "{actor} set it to {shown} in {environment}[ for {asked_by_name}]"
+        project.flag.unchanged: "approved after the flag was changed: nothing written"
+
+on:
+  # It looks for what is past its day as it is first there, as a row is
+  # written and once a day.
+  first:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id }
+    steps:
+      looked:
+        call: std/flags-due
+        as: due
+        with: { project: "${params.project}" }
+
+  written:
+    event: record.*
+    for: { project: "${params.project}", collection: flags }
+    steps:
+      looked:
+        call: std/flags-due
+        as: due
+        with: { project: "${params.project}" }
+
+  daily:
+    at: "${params.looks_at}"
+    steps:
+      looked:
+        call: std/flags-due
+        as: due
+        with: { project: "${params.project}" }
+
+  # Somebody asked for a flag to be turned on, or wider, where the
+  # environment's rule says who approves: one of them lets it first.
+  asked:
+    event: project.flag.asked
+    for: { project: "${params.project}" }
+    # By the change asked, so that each waits for its own go-ahead beside the
+    # others: a later ask of the same flag there takes the place of an
+    # earlier one, whose approval then writes nothing.
+    turn: "${event.data.asked}"
+    steps:
+      approved:
+        description: One of those the environment's rule names lets it go on.
+        allow_failure: true
+        do: approval.ask
+        with:
+          says: "${event.data.by_name} asks to set the flag ${event.data.name} to ${event.data.shown} in ${event.data.environment}."
+          environment: "${event.data.environment}"
+
+      may:
+        description: Whether whoever asked still holds what changing a flag takes.
+        needs: [approved]
+        when: ${steps.approved.ok}
+        allow_failure: true
+        do: actor.holds
+        with: { actor: "${event.data.by}", scope: "projects:write" }
+
+      set:
+        description: The flag's variable of the environment, written once it was let go on.
+        needs: [may]
+        when: ${ steps.may.out.holds ?? false }
+        do: flag.set
+        with:
+          flag: "${event.data.name}"
+          record: "${event.data.record}"
+          kind: "${event.data.kind}"
+          environment: "${event.data.environment}"
+          value: ${event.data.value}
+          asked_by: "${event.data.by}"
+          asked_by_name: "${event.data.by_name}"
+          approved_by: "${steps.approved.out.approved_by}"
+          # Written only while it is still the change asked last and the
+          # flag says what it said then: an approval never undoes a later change.
+          asked: "${event.data.asked}"
+          was: ${ event.data.was ?? null }
+
+      overtaken:
+        description: Whoever asked is told where it was let go on after the flag was changed, and nothing was written.
+        needs: [set]
+        when: ${steps.set.out.unchanged}
+        allow_failure: true
+        do: inbox.tell
+        with:
+          to: "${event.data.by}"
+          says: "The flag ${event.data.name} was approved to be ${event.data.shown} in ${event.data.environment} after it was changed or asked for again there, so nothing was written."
+          about: "${event.data.record}"
+          why: flag
+
+      declined:
+        description: Whoever asked is told where it was not let go on.
+        needs: [approved]
+        when: ${ !steps.approved.ok }
+        allow_failure: true
+        do: inbox.tell
+        with:
+          to: "${event.data.by}"
+          says: "The flag ${event.data.name} was not set to ${event.data.shown} in ${event.data.environment}: ${steps.approved.error}"
+          about: "${event.data.record}"
+          why: flag

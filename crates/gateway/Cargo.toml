@@ -1,0 +1,50 @@
+[package]
+name = "gateway"
+description = "Joins devices into one fleet: a member links out to its hub, and the hub runs steps on it."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# All tests live in tests/suite. Compiling the library a second time in test
+# mode was the single largest rustc invocation on the previous codebase.
+test = false
+doctest = false
+
+[dependencies]
+brand = { workspace = true }
+blueprint = { workspace = true }
+kernel = { workspace = true }
+journal = { workspace = true }
+conductor = { workspace = true }
+hosting = { workspace = true }
+studio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+rusqlite = { workspace = true }
+reqwest = { workspace = true }
+link = { workspace = true }
+base64 = { workspace = true }
+sha2 = { workspace = true }
+getrandom = { workspace = true }
+futures-util = { workspace = true }
+
+# The stand-in for a program that the tests start: `hosting`'s, the one
+# source file, as a program of this crate, so that cargo builds it with
+# this suite and tells the suite where it is. Nothing in `src/` starts
+# it, and nothing that packages or installs copies it.
+[[bin]]
+name = "gateway-standin"
+path = "../hosting/standin/main.rs"
+test = false
+doctest = false
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

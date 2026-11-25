@@ -1,0 +1,51 @@
+# What is wrong with a stage's row is said where its fleet reports: what a
+# stage has looked at each time it is as its row now says (`std/working`,
+# `std/reviewing`, `std/planning`).
+#
+# A column the row names that the board has not got, so that no card
+# would ever reach it or leave it; a review that asks for more to look,
+# or to approve, than there are, so that no card could pass; nobody in
+# the role that works or begins anything for a card there; and a row of the project's `segments`
+# that will never be done as written: a sentence each (`column.wrong`).
+blueprint: std/looked
+version: 3
+description: "Say where a fleet reports what is wrong with a stage's row, and with the rows of the project's segments that name it."
+# It keeps nothing as it goes.
+durable: false
+permissions: [board, channels]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  channel: { type: string, description: "Where it is said." }
+  row: { type: object, description: "The stage's row, as the stage was handed it." }
+  reviews: { type: bool, default: false, description: "Cards are looked at there." }
+  works: { type: bool, default: false, description: "Cards are worked there." }
+  segments: { type: list, default: [], description: "The rows of the project's `segments`." }
+  usual: { type: list, default: [], description: "What is usually done with a card there." }
+
+steps:
+  board:
+    description: The board as it is, for its columns.
+    do: board.list
+    allow_failure: true
+    with: { project: "${params.project}", ids: [] }
+
+  wrong:
+    description: What in the row would leave a card stuck, each thing in a sentence. Nothing, where nothing would.
+    do: column.wrong
+    with:
+      column: "${params.row.column}"
+      row: ${params.row}
+      found: ${steps.board.ok}
+      columns: ${ steps.board.out.columns ?? [] }
+      reviews: ${params.reviews}
+      works: ${params.works}
+      rows: ${params.segments}
+      of: { stage: "${params.row.title}" }
+      usual: ${params.usual}
+
+  said:
+    description: Each is said where the fleet reports, for as long as it is so.
+    for_each: ${steps.wrong.out.said}
+    do: channel.post
+    with: { channel: "${params.channel}", body: "${item}" }

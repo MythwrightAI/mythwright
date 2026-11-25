@@ -1,0 +1,22 @@
+{{!-- What `cargo about` writes for `cargo xtask notices`: no page, but each
+licence text it found once, with the crates that are under it, a field to a
+line. The tooling reads this (`records` in `xtask/src/notices.rs`), puts it
+in order and writes THIRD-PARTY-NOTICES.md from it, so nothing here is laid
+out for anybody to read. Three braces, since two would write a text as a web
+page spells it. --}}
+{{#each licenses}}
+%%licence%% {{{id}}}
+%%name%% {{{name}}}
+%%from%% {{#if source_path}}file{{else}}standard{{/if}}
+{{#each used_by}}
+%%library%% {{{crate.name}}} {{{crate.version}}}
+%%where%% {{{crate.repository}}}
+%%manifest%% {{{crate.manifest_path}}}
+{{#each crate.authors}}
+%%by%% {{{this}}}
+{{/each}}
+{{/each}}
+%%text%%
+{{{text}}}
+%%end%%
+{{/each}}

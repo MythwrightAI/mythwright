@@ -1,0 +1,32 @@
+/* The icon of a table's column: the panel the icons are chosen in
+   (`views/iconpicker.tsx`), opened from the column's menu and put under
+   its head. Colours are the theme's. */
+
+/* The panel lies over the page, where it is put and at the size it is
+   told (`placed` in `icons.ts`): no part of the page's layout, so nothing
+   under it moves, and wholly in the window at any width. What is typed
+   is at its head, what it is left by at its foot, and the icons scroll
+   between the two. */
+.iconpick { position: fixed; z-index: 60; box-sizing: border-box; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px; padding: 10px; background: var(--bg2); border: 1px solid var(--line-strong); border-radius: calc(10px * var(--round)); box-shadow: var(--shadow); color: var(--text); }
+.iconpick-filter { width: 100%; min-width: 0; height: 32px; box-sizing: border-box; }
+/* Each icon is a square of the same size, as many to a row as there is
+   room for, and a row is never cut by another. */
+.iconpick-grid { position: relative; min-height: 0; overflow-x: hidden; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); grid-auto-rows: 32px; gap: 2px; align-content: start; overscroll-behavior: contain; }
+/* An icon is a drawing and no text, and its row, what is typed in and the foot are as tall as they are whatever a
+   theme says: the panel asks to be as tall as those and so many whole rows (`tall` in `iconpicker.tsx`). */
+.iconpick-one { width: 100%; height: 32px; min-width: 0; padding: 0; border: 0; border-radius: calc(6px * var(--round)); background: transparent; color: var(--dim); justify-content: center; }
+.iconpick-one:hover { background: var(--bg3); color: var(--text); }
+/* The one the keys are at, and the one that is chosen now. */
+.iconpick-one[aria-selected="true"] { background: var(--bg3); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.iconpick-one.chosen { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.iconpick-none { grid-column: 1 / -1; padding: 18px 6px; font-size: calc(12.5px * var(--size)); text-align: center; }
+.iconpick-foot { display: flex; align-items: center; gap: 8px; min-width: 0; height: 26px; font-size: calc(12px * var(--size)); color: var(--dim); }
+.iconpick-foot .faint { flex: none; }
+.iconpick-foot button { flex: none; height: 26px; }
+
+/* Under a finger an icon is a larger thing to press. */
+@media (pointer: coarse) {
+  .iconpick-grid { grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); grid-auto-rows: 40px; }
+  .iconpick-one { height: 40px; }
+  .iconpick-filter { height: 38px; }
+}

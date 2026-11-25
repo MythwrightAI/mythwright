@@ -1,0 +1,40 @@
+shop/tables
+
+What it is
+  Give a project the tables its work is kept in.
+  What it is doing is written down as it goes, so that it is taken up where it was after a restart.
+  Whoever applies it may tell it 3 things:
+    - extra: The table a project names for itself. It has to be said.
+    - shape: What that table is made of. It has to be said.
+    - kind: What kind its size is. Unless it is said: `number`.
+
+What it makes
+  A table called `people`. [people]
+    | `born`: date.
+    | `count`: number.
+    | `holds`: list. Whoever writes a row holds each scope it then says. Where nothing is said: `things`.
+    | `how`: choice of `look`, `change` or `run`. Giving it `run` takes `shell`.
+    | `lead`: record of `people`.
+    | `level`: choice of `low` or `high`. Where nothing is said: `low`.
+    | `ready`: flag.
+    | `role`: text. Usually `maker` or `keeper`.
+    | `secret`: text. Giving it a value takes `shell` and `secrets:use`.
+    | `size`: what the param `kind` says.
+    | `tags`: list.
+    | `title`: text. A row cannot be without it.
+    | `works`: records of `jobs`.
+  A table called `jobs`. [jobs]
+    | `worker`: record of `people`. Giving it a value takes `things:write`.
+    | It sits beside `people`, and each of its rows is about what its `worker` says of that.
+    | Its rows are not written by hand: what keeps it writes them.
+  A table called what the param `extra` says. [own]
+    | What it is made of is what the param `shape` says.
+
+What it does when it is applied
+  1. Make sure a table is there, made as it says. [people]
+  2. Make sure a table is there, made as it says. [jobs]
+  3. Make sure a table is there, made as it says. [own]
+
+What it may do
+  It runs as whoever applies it, and can do no more than they can.
+  Make and change things. [things:write]

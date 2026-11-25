@@ -1,0 +1,28 @@
+{
+  "says": "Something said on a linked issue is said on its card, with who said it there, whether GitHub says they have standing in the repository, and where it is; and the link keeps that it has been. Heard of again, it is not said again; and it is not marked public, so nothing says it back on GitHub.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"given": {"signing.txt": "s3cret"}},
+    {"run": ["secret", "set", "hub-signing", "--file", "{here}/signing.txt"]},
+    {"run": ["caller", "set", "hub", "--topic", "issues.called", "--secret", "hub-signing", "--header", "X-Hub-Signature-256", "--prefix", "sha256="]},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"given": {"said/1/1": "bo MEMBER\nIs this still wanted?\r\nWe could drop it."}},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 1}, "repository": {"full_name": "acme/shop"}}, "sets_off": "keep"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"run": ["board", "history", "shop-1"], "says": "bo said on GitHub:\n\nIs this still wanted?\nWe could drop it.\n\nhttps://github.example/acme/shop/issues/1#issuecomment-1"},
+    {"run": ["record", "show", "shop-links-1"], "says": "came: c1-1"},
+    {"given": {"said/1/2": "cy\nKeep it."}},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 1}, "repository": {"full_name": "acme/shop"}}, "sets_off": "keep"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"run": ["board", "history", "shop-1"], "says": "cy, who has no standing in the repository, said on GitHub:\n\nKeep it."},
+    {"run": ["record", "show", "shop-links-1"], "says": "came: c1-1, c1-2"},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 1}, "repository": {"full_name": "acme/shop"}}, "sets_off": "keep"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"holds": {"said/1": {"1": "bo MEMBER\nIs this still wanted?\r\nWe could drop it.", "2": "cy\nKeep it."}}}
+  ]
+}

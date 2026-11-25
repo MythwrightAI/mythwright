@@ -1,0 +1,31 @@
+/* A field whose words are somebody's to choose freely, with names turning over in it while it holds nothing. */
+.turning-field { position: relative; display: block; }
+
+/* The window one name shows in: where the field's own words would begin, a line tall, fading at its top and foot
+   so that a name comes out of nothing and goes back into it. */
+.turning {
+  --line: 20px;
+  position: absolute; left: 10px; right: 10px; top: 50%; height: var(--line); margin-top: calc(var(--line) / -2);
+  overflow: hidden; pointer-events: none; user-select: none;
+  color: var(--faint); font-size: calc(13px * var(--size)); line-height: var(--line); text-align: left;
+  -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+  mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+}
+/* Two movements kept in step, so that the sheet says nothing of how many names there are: the reel jumps a line
+   for each name, and what holds it comes up, rests and goes out once in that time. */
+.turning-name { display: block; animation: turning-name var(--each) cubic-bezier(0.3, 0, 0.2, 1) infinite; animation-delay: calc(var(--from) * var(--each) * -1); }
+.turning-reel { display: block; animation: turning-reel calc(var(--names) * var(--each)) steps(var(--names)) infinite; animation-delay: calc(var(--from) * var(--each) * -1); }
+/* A name has an empty line under it, so that the one before is well out of the window while the next comes up:
+   a line apart, the name that had just gone out showed again at the window's top as the next one came in. */
+.turning-reel > span { display: block; height: calc(var(--line) * 2); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+@keyframes turning-reel { to { transform: translateY(calc(var(--names) * var(--line) * -2)); } }
+@keyframes turning-name {
+  0% { transform: translateY(calc(var(--line) * 0.8)); opacity: 0; }
+  16%, 84% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(calc(var(--line) * -0.8)); opacity: 0; }
+}
+/* Where less movement is asked for, one name and no turning: the one this showing began at. */
+@media (prefers-reduced-motion: reduce) {
+  .turning-name, .turning-reel { animation: none; }
+  .turning-reel { transform: translateY(calc(var(--from) * var(--line) * -2)); }
+}

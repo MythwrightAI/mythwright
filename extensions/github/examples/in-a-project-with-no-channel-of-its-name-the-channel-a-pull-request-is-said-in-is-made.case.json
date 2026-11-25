@@ -1,0 +1,13 @@
+{
+  "says": "Applied to a project that has no channel of its name, it makes the channel it says things in: the pull request is opened, and where it is is said there.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"given": {"pushed.bp": "blueprint: pushed\nsteps:\n  say: { do: emit, with: { topic: card.pushed, card: shop-1, project: shop, branch: \"lane/shop-1\", remote: origin, title: \"Add a cart\" } }\n"}},
+    {"apply": "pull-requests", "project": "shop"},
+    {"run": ["apply", "{here}/pushed.bp", "--force"], "sets_off": "pushed"},
+    {"ran": ["auth status", "pr list --head=lane/shop-1 --state=open --json=number,url --limit=1", "pr create --head=lane/shop-1 --title=Add a cart --body=Customers need one.\\n\\nCard shop-1"]},
+    {"run": ["read", "shop"], "says": "shop-1: a pull request for its branch lane/shop-1 is open at https://github.example/acme/shop/pull/1"}
+  ]
+}

@@ -1,0 +1,86 @@
+# A card is handed on from its column, where it is still there as whoever
+# asks had it: what a stage that plans, or starts a blueprint of its row's
+# naming, does with a card once all that is done with it there is done
+# (`std/planning`).
+#
+# The card is looked at as it now is. In the column still, and not moved
+# since whoever asks first looked, it goes on with what was said; where
+# what was done with it left it for a person, or sent it back where
+# nothing is sent back from, it stays, and the sentence that says why is
+# given out for the stage to say where it reports. A card that is gone,
+# or was moved meanwhile, has nothing done with it.
+#
+# It keeps nothing as it goes, and that is what it is for: called again
+# where the daemon was stopped as the card was handed on, it finds the
+# card moved and moves nothing a second time. Moved by a step that is
+# kept, a card that the next stage had taken by then was moved back from
+# under it.
+blueprint: std/onward
+version: 2
+description: "Hand a card on from its column where it is still there as whoever asks had it, or say why it is left."
+durable: false
+permissions: [board]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  here: { type: string, description: "The column it is handed on from." }
+  pass: { type: string, default: "", description: "The column it goes on to; nowhere, if empty." }
+
+  came:
+    type: string
+    default: on
+    description: "The word what was done with the card there ended with: `on`, `back`, `left` or `nothing`."
+
+  says: { type: string, default: "", description: "What was said with the word." }
+
+  said:
+    type: string
+    default: ""
+    description: "What was said as the handing on was left to whoever asks: said as the card goes on, where nothing was said since."
+
+  failed:
+    type: bool
+    default: false
+    description: "What was to be done with it could not be gone through at all."
+
+  why: { type: string, default: "", description: "Why not." }
+
+  had:
+    type: list
+    default: []
+    description: "How the card's row said it came to be where it is, when whoever asks first looked (`moved`)."
+
+steps:
+  card:
+    description: "The card as it now is: it may have been moved, or taken away."
+    allow_failure: true
+    do: board.get
+    with: { id: "${params.item}" }
+
+  comes:
+    description: "What it comes to: the card goes on, or is left for a person with the sentence that says why; or nothing, it having been moved since whoever asks first looked or there being nowhere for it to go on to."
+    do: work.came
+    with:
+      item: "${params.item}"
+      found: ${steps.card.ok}
+      status: "${ steps.card.out.status ?? '' }"
+      here: "${params.here}"
+      pass: "${params.pass}"
+      came: "${params.came}"
+      says: "${params.says}"
+      said: "${params.said}"
+      failed: ${params.failed}
+      why: "${params.why}"
+      moved: ${ steps.card.out.moved ?? [] }
+      had: ${params.had}
+
+  onward:
+    description: All that is done with it there done, the card goes on.
+    when: ${ steps.comes.out.came == "on" }
+    do: board.move
+    with: { id: "${params.item}", to: "${params.pass}", note: "${steps.comes.out.says}" }
+
+outputs:
+  came: "${steps.comes.out.came}"
+  says: "${steps.comes.out.says}"

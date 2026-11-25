@@ -1,0 +1,219 @@
+# What `std/chain` does for a card that waits on somebody, once for each
+# time it is said to wait and each time a rung's time is over: the rung
+# that is next for it, if any, acts, and where on the chain the card is,
+# is kept on its own row (`rung`). Which rung that is, and the sentence,
+# are `chain.next`'s to say. A rung tells whoever it names (`tell`); has
+# the agent it names review the card as its stage would, the stage then
+# doing with it what it does with what a review decides (`review`); or
+# has the agent look and decide (`look`): back to be worked, a person
+# asked, the next rung told now, the question on it answered, or it waits
+# as it is, what that comes to being `chain.decided`'s. What an agent
+# decides is said to be its own (`decided` of `board.move`, `by`), and a
+# move is made only where it may move a card itself; otherwise a person
+# is asked to.
+#
+# It is kept as it goes, so that a daemon stopped anywhere in it has it
+# taken up where it was: whoever a rung names is told once, and an agent
+# that looks is given the turn it had (`asking`). Called again for the
+# same rung, it finds the rung begun already and does nothing.
+blueprint: std/chain-wait
+version: 5
+description: "Have whoever is next on a project's chain act for a card that waits on somebody (told, or an agent that looks or reviews), and keep where on the chain the card is."
+permissions: [inbox, records, board, agents, blueprints]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  topic: { type: string, description: "What said there is a wait." }
+  said: { type: object, default: {}, description: "What that carried." }
+
+  due:
+    type: int
+    default: -1
+    description: "For a time that came: which rung it came for; -1 for a wait that is begun."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which asking this is, in a word of whatever calls this: an agent that looks is given the turn it had, where this is called again after a restart."
+
+steps:
+  card:
+    allow_failure: true
+    do: board.get
+    with: { id: "${params.item}" }
+
+  rows:
+    when: ${steps.card.ok}
+    do: rows.read
+    with: { project: "${params.project}", collection: chain }
+
+  said_on:
+    description: What others said on the card lately, which an agent that looks is shown, and who worked it, who judges it on no rung.
+    when: ${steps.card.ok}
+    allow_failure: true
+    do: record.said
+    with: { id: "${params.item}", since: [card.worked, card.asked] }
+
+  next:
+    description: Which rung is next for it, and the sentence; nothing, where no rung is, it was begun already, or it no longer waits as it did.
+    when: ${steps.card.ok}
+    do: chain.next
+    with:
+      rows: ${steps.rows.out.rows}
+      topic: "${params.topic}"
+      said: ${params.said}
+      item: "${params.item}"
+      column: "${steps.card.out.status}"
+      labels: ${ steps.card.out.labels ?? [] }
+      moved: ${ steps.card.out.moved ?? [] }
+      kept: ${ steps.card.out.more.rung ?? [] }
+      due: ${params.due}
+      worked: ${ steps.said_on.out.worked ?? [] }
+      project: "${params.project}"
+
+  tell:
+    description: Whoever the rung names is told, in their inbox.
+    when: ${ (steps.next.out.came ?? "") == "acts" && steps.next.out.does == "tell" }
+    do: inbox.tell
+    with:
+      to: ${steps.next.out.who}
+      says: "${steps.next.out.says}"
+      why: "${steps.next.out.kind}"
+      about: "${params.item}"
+
+  review:
+    description: The agent the rung names reviews the card, as one of its stage's role would; what it decides is the stage's to act on, merge and all, and is said as the agent's.
+    when: ${ (steps.next.out.came ?? "") == "acts" && steps.next.out.does == "review" }
+    do: emit
+    with:
+      topic: review.due
+      card: "${params.item}"
+      project: "${params.project}"
+      stage: "${steps.next.out.column}"
+      again: true
+      by: "${steps.next.out.agent}"
+
+  asks:
+    description: What an agent that looks is asked, which is `prompts/chain.md`, with the word that answers a question where the card waits on one.
+    when: ${ (steps.next.out.came ?? "") == "acts" && steps.next.out.does == "look" }
+    do: text.put
+    with:
+      parts:
+        - from: chain.md
+          with:
+            says: "${steps.next.out.says}"
+            told: "${steps.next.out.told}"
+            item: "${params.item}"
+            title: "${steps.card.out.title}"
+            body: "${steps.card.out.body}"
+            column: "${steps.card.out.status}"
+            said: "${ steps.said_on.out.text ?? '' }"
+        - { if: '${ steps.next.out.kind == "asked" }', from: chain/answer.md }
+
+  look:
+    description: The agent looks at the card for one turn, and ends with the word it decided.
+    when: ${steps.asks.ok}
+    call: std/turn
+    as: "look-${params.item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      agent: "${steps.next.out.agent}"
+      role: "${steps.next.out.role}"
+      thread: chain
+      # Of the role, not one that worked it while there is anyone else.
+      apart: "lane:${params.item}"
+      asking: "${params.asking}"
+      ends: ${steps.next.out.words}
+      prompt: "${steps.asks.out.text}"
+
+  holds:
+    description: Whether the agent itself may move a card, which a move it decides is held to.
+    when: ${ (steps.look.out.slot ?? "") != "" }
+    do: actor.holds
+    with: { actor: "agent:${steps.look.out.slot}", scope: "board:write" }
+
+  now:
+    description: The card as it is once the agent has decided.
+    when: ${steps.look.ok}
+    allow_failure: true
+    do: board.get
+    with: { id: "${params.item}" }
+
+  decided:
+    description: What the agent's word comes to, for the card as it now is.
+    when: ${steps.look.ok}
+    do: chain.decided
+    with:
+      item: "${params.item}"
+      kind: "${steps.next.out.kind}"
+      came: "${steps.look.out.came}"
+      says: "${ steps.look.out.says ?? '' }"
+      why: "${ steps.look.out.why ?? '' }"
+      question: "${ steps.look.out.question ?? '' }"
+      agent: "${ steps.look.out.slot ?? '' }"
+      may_move: ${ steps.holds.out.holds ?? false }
+      found: ${steps.now.ok}
+      status: "${ steps.now.out.status ?? '' }"
+      taken: "${ steps.now.out.more.taken ?? '' }"
+      asker: "${ steps.now.out.more.asker ?? '' }"
+      moved: ${ steps.now.out.moved ?? [] }
+      moves: ${steps.next.out.moves}
+      after: "${steps.next.out.after}"
+      further: ${steps.next.out.further}
+      worked: ${ steps.said_on.out.worked ?? [] }
+
+  back:
+    description: Back to be worked, with what the agent said as what its worker is told, as the agent decided; done again after a stop, a card moved since is left where it is.
+    when: ${ (steps.decided.out.decided ?? "") == "back" }
+    do: board.move
+    with:
+      id: "${params.item}"
+      to: "${steps.decided.out.to}"
+      note: "${steps.decided.out.note}"
+      decided: "agent:${steps.look.out.slot}"
+      had: ${steps.next.out.moves}
+
+  asked:
+    description: Whoever applied the fleet is asked, in the agent's words.
+    when: ${ (steps.decided.out.decided ?? "") == "ask" }
+    do: inbox.tell
+    with:
+      to: [applier]
+      says: "${steps.decided.out.asks}"
+      why: "${steps.next.out.kind}"
+      about: "${params.item}"
+
+  unasked:
+    description: The question asked on the card comes off it, the agent having answered it.
+    when: ${ (steps.decided.out.decided ?? "") == "answer" }
+    do: board.update
+    with: { id: "${params.item}", fields: { question: "" } }
+
+  answered:
+    description: And the answer is said as the agent's, for whatever gave the card to whoever asked to hear.
+    when: ${steps.unasked.ok}
+    do: emit
+    with:
+      topic: card.answered
+      card: "${params.item}"
+      project: "${params.project}"
+      asker: "${steps.now.out.more.asker}"
+      body: "${steps.decided.out.note}"
+      by: "agent:${steps.look.out.slot}"
+
+  kept:
+    description: Where on the chain it is, kept on the card. A board that keeps no `rung` of its cards has this rung act and no other.
+    when: ${ (steps.next.out.came ?? "") == "acts" }
+    allow_failure: true
+    do: board.update
+    with: { id: "${params.item}", fields: { rung: "${steps.next.out.keep}" } }
+
+outputs:
+  # Whether the next rung is to be asked for after a while, and which;
+  # or at once, where an agent that looked said so (`up`).
+  later: ${ steps.kept.ok && (steps.next.out.later ?? false) }
+  up: ${ steps.decided.out.later ?? false }
+  after: "${ steps.decided.out.after ?? steps.next.out.after ?? '' }"
+  next: ${ steps.next.out.next ?? 0 }

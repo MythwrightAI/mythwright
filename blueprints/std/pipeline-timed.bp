@@ -1,0 +1,70 @@
+# What of a project's `triggers` goes by the clock or by a branch, made so
+# as the rows say: a wait (`std/later`) for each row of `every`, begun
+# again by `std/pipeline` each time one is over; a child that hears the
+# time of day (`std/pipeline-at`) for each row of `at`; and the project's
+# branches followed where a row goes by a branch. Called again with
+# nothing changed it changes nothing: what waits goes on waiting. A row
+# that no longer goes by the clock has what waited for it stopped.
+blueprint: std/pipeline-timed
+version: 2
+description: "Make what goes by the clock and by a branch for a project's triggers as their rows say."
+permissions: [blueprints, projects, records]
+
+params:
+  project: { type: string, description: "The project whose pipelines these are." }
+
+  row:
+    type: string
+    default: ""
+    description: "A row just added, changed or taken away, by its id."
+
+steps:
+  rows:
+    do: rows.read
+    with: { project: "${params.project}", collection: triggers }
+
+  timed:
+    description: Which rows go by the clock, and how, and whether any goes by a branch.
+    do: triggers.timed
+    with: { rows: "${steps.rows.out.rows}", row: "${params.row}" }
+
+  followed:
+    description: The project's branches are said as they move, where a row goes by one.
+    when: ${steps.timed.out.follows}
+    do: branches.follow
+
+  every:
+    description: Each row of `every` waits so long, and is said to be due when the wait is over.
+    for_each: ${steps.timed.out.every}
+    spawn: std/later
+    as: "every-${item.id}"
+    with: { after: "${item.after}", about: "${item.id}" }
+
+  at:
+    description: Each row of `at` is said to be due at its time of day.
+    for_each: ${steps.timed.out.at}
+    spawn: std/pipeline-at
+    as: "at-${item.id}"
+    with: { project: "${params.project}", row: "${item.id}", at: "${item.at}" }
+
+  unwaited:
+    description: A row that no longer goes by `every` has what waited for it stopped.
+    when: ${ params.row != "" && !steps.timed.out.row_every }
+    do: stop
+    with: { instance: "every-${params.row}", missing_ok: true }
+
+  unheard:
+    description: And one that no longer goes by `at`.
+    when: ${ params.row != "" && !steps.timed.out.row_at }
+    do: stop
+    with: { instance: "at-${params.row}", missing_ok: true }
+
+  wrong:
+    description: A row that says what cannot be gone by is said to be so, with why.
+    for_each: ${steps.timed.out.wrong}
+    do: emit
+    with:
+      topic: pipeline.refused
+      project: "${params.project}"
+      row: "${item.id}"
+      says: "${item.says}"

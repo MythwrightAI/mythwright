@@ -1,0 +1,10 @@
+/* The agents listed in Settings, each with what can be done with it at the end of its line, and the question asked before one is taken away. */
+/* What can be done with one beyond its buttons is a menu at the line's end, there to be found and no louder than the line. */
+.agent-line .row-more { opacity: 0.7; margin-right: 0; }
+.agent-line .row-more:hover, .agent-line .row-more:focus-visible { opacity: 1; }
+.take-away h2 { margin: 0; overflow-wrap: anywhere; }
+.take-away p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.take-away ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; color: var(--dim); font-size: calc(13px * var(--size)); line-height: 1.45; }
+.take-away li { overflow-wrap: anywhere; }
+/* Why not is the daemon's sentence, which says what to do: read as what is said, not as an error of the page's. */
+.take-away-why { padding: 10px 12px; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg0); font-size: calc(13px * var(--size)); }

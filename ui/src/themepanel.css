@@ -1,0 +1,47 @@
+/* Settings' Theme panel (`views/themes.tsx`): the themes to choose from, each
+   drawn small in its own colours, and the making of one. The colours of a
+   theme are `themes.css`. */
+/* Choosing a theme: each drawn small, in its own colours. */
+.theme-samples { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; padding: 14px; }
+.theme-sample { display: grid; grid-template-rows: auto 1fr; gap: 0; height: auto; padding: 0; overflow: hidden; text-align: left; border: 1px solid var(--line-strong); border-radius: calc(10px * var(--round)); background: var(--bg0); color: var(--text); }
+.theme-sample:hover { background: var(--bg0); border-color: var(--faint); }
+/* One somebody made, with what can be done to it under it. */
+/* A card fills its row and what is under it lines up, whatever a card's words come to. */
+.theme-made { display: grid; grid-template-rows: 1fr auto; gap: 4px; }
+.theme-made .row { gap: 12px; padding: 0 4px; font-size: calc(12px * var(--size)); }
+/* The themes offered to everybody, and somebody's own, each under a heading of its own. */
+.theme-groups { gap: 0; }
+.theme-group { display: grid; gap: 0; }
+.theme-heading { margin: 0; padding: 4px 14px 0; font-size: calc(12px * var(--size)); font-weight: 600; color: var(--dim); }
+.theme-made .row { flex-wrap: wrap; row-gap: 2px; }
+.theme-wrong { margin: 0; padding: 0 14px 14px; }
+/* Making one and reading one from a file: a line of their own under somebody's own themes, side by side where there
+   is room and one under the other where there is not. With no theme of their own the line is under the heading. */
+.theme-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px 14px; }
+.theme-samples + .theme-actions { padding-top: 0; }
+/* Somebody with no theme of their own yet has no row of them to leave room for. */
+.theme-samples:empty { display: none; }
+.theme-actions button { white-space: normal; height: auto; min-height: calc(28px * var(--tall)); }
+.theme-colours { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px 14px; }
+.theme-colours label { display: flex; align-items: center; gap: 10px; }
+.theme-colours label > span { display: grid; font-size: calc(12px * var(--size)); }
+.theme-colours input[type="color"] { width: 34px; height: calc(28px * var(--tall)); padding: 0; border: 1px solid var(--line-strong); border-radius: calc(6px * var(--round)); background: transparent; cursor: pointer; }
+.theme-trial { cursor: default; }
+/* A light version: whether there is one, its own colours, and how each version looks beside the other. */
+.theme-lit { align-items: flex-start; gap: 10px; cursor: pointer; }
+.theme-lit input { margin-top: 3px; }
+.theme-lit > span { font-size: calc(13px * var(--size)); }
+.theme-light { gap: 8px; }
+.theme-trials { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.theme-sample[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.theme-sample .sample-bar { display: flex; align-items: center; gap: 6px; height: calc(26px * var(--tall)); padding: 0 10px; background: var(--bg1); border-bottom: 1px solid var(--line); }
+.theme-sample .sample-bar i { width: 8px; height: 8px; border-radius: 50%; }
+.theme-sample .sample-body { display: grid; grid-template-rows: auto 1fr auto; align-content: start; gap: 5px; padding: 10px 12px 12px; white-space: normal; }
+.theme-sample .sample-body strong { font-size: calc(13px * var(--size)); }
+.theme-sample .sample-body span { font-size: calc(12px * var(--size)); color: var(--dim); }
+.theme-sample .sample-body em { justify-self: start; font-style: normal; font-size: calc(11px * var(--size)); font-weight: 600; padding: 2px 8px; border-radius: calc(6px * var(--round)); background: var(--accent); color: var(--accent-ink); }
+/* What a theme says beyond its colours: a choice for each, side by side where there is room and under each other
+   where there is not. */
+.theme-looks { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: calc(8px * var(--density)) 14px; }
+.theme-look { display: grid; gap: 4px; min-width: 0; }
+.theme-look > span { font-size: calc(12px * var(--size)); }

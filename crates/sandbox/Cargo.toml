@@ -1,0 +1,35 @@
+[package]
+name = "sandbox"
+description = "A sandbox test: a blueprint run in a factory of its own, made of nothing of the live one: a journal in memory, a clock nobody else moves, the tables' own actions over that journal and a stand-in for everything that reaches outside them."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# All tests live in tests/suite. Compiling the library a second time in test
+# mode was the single largest rustc invocation on the previous codebase.
+test = false
+doctest = false
+
+[dependencies]
+blueprint = { workspace = true }
+kernel = { workspace = true }
+journal = { workspace = true }
+conductor = { workspace = true }
+blocks = { workspace = true }
+hosting = { workspace = true }
+studio = { workspace = true }
+deciding = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+rusqlite = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

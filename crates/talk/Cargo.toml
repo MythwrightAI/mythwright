@@ -1,0 +1,32 @@
+[package]
+name = "talk"
+description = "Where people and agents talk: channels, who is in each, what was said there and what is attached to it, the factory's own bot, and what a blueprint can do in a channel."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# All tests live in tests/suite. Compiling the library a second time in test
+# mode was the single largest rustc invocation on the previous codebase.
+test = false
+doctest = false
+
+[dependencies]
+brand = { workspace = true }
+blueprint = { workspace = true }
+kernel = { workspace = true }
+journal = { workspace = true }
+conductor = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+rusqlite = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

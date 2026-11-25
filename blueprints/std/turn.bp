@@ -1,0 +1,321 @@
+# An agent's turn on a card: what `std/work` gives a card to its agent
+# with, and what a plan's round puts a card to its agent with
+# (`std/proposal-round`); and one of the things that can be done with a
+# card where it is (a *segment*), named in a row of `segments`.
+#
+# An agent of the role is given the card, in the folder it is handed,
+# and is asked what it is handed whole (`prompt`), or the row's own words
+# about the card (`told`, put in `prompts/turn.md`). It may end its turn
+# with any of the words of `ends`, each with what it comes to, which is
+# the word this ends in: `on`, `back` (with what it said), `again`,
+# `asks` (its question, which the card waits with) or `left`; and `left`
+# where there was nobody to give it to, or `nothing` where the card was
+# gone. A row that has an agent end with a third word says so:
+# `ends='done=on ask=asks blocked=left'`.
+#
+# Given `seats` (one agent is given the card, where it is 0), so many of
+# the role look at it at once, each for itself (a council), offered
+# `yes` and `no`; `needed` have to choose `yes`, more than half where it
+# is 0. What they come to together, `passed`, `failed` or `undecided`, is
+# what `ends` says of it: `passed=on failed=back undecided=left` where
+# nobody says.
+#
+# Where a card is worked several ways at once, each in a place of its
+# own, a turn is one of them (`way`): its conversation is its own after
+# the card's, it is not shown the others' places (`hidden`), and whoever
+# judges them is none of those who did them (`not`).
+blueprint: std/turn
+version: 8
+description: "Give a card to an agent for one turn, or to several at once who each say yes or no, and say what that came to by the word it ended with, or that nobody was there."
+# It keeps nothing as it goes. An agent's turn cannot be taken up half
+# way, so whatever called this calls it again where the daemon was
+# stopped in the middle of it, and it asks for the turn it asked for
+# before (`asking`).
+durable: false
+permissions: [board, channels, agents, blueprints:run]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  channel: { type: string, default: "", description: "Where its answer is posted, if anywhere." }
+
+  agent:
+    type: string
+    default: ""
+    description: "Which agent. If empty: the one the card is given to, the one its conversation was held with, or whichever of the role has nothing in hand."
+
+  role: { type: string, default: "", description: "The role whose agents the card is given to." }
+
+  picks:
+    type: string
+    default: first
+    description: "Which of the role's agents takes it the first time, of those with as little in hand: `first`, `turn`, `least` or `rank`."
+
+  after_restart:
+    type: string
+    default: again
+    description: "What becomes of what the agent had in hand when the daemon is stopped and started again: `again`, it goes on; `leave`, it is left for a person."
+
+  restarts:
+    type: int
+    default: 3
+    description: "How often at most the daemon may be started again in the middle of the same turn."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which asking of the card this is, in a word of whatever calls this that it says for this asking and no other: asked for again after a restart, the agent is given the turn it had."
+
+  thread:
+    type: string
+    default: turn
+    description: "What the card's conversation is called, before the card's id: every turn of one card under one name is one conversation, held with one agent."
+
+  dir: { type: string, default: "", description: "Where the agent works; the project, if empty." }
+
+  apart:
+    type: string
+    default: ""
+    description: "Where one of a role is chosen: not one that holds a conversation of this name while there is anyone else, as whoever worked a card holds `lane:<card>`."
+
+  way:
+    type: string
+    default: ""
+    description: "Which of several pieces of work on the card at once this turn is for, where it is one of them: its conversation is its own, after the card's (`<thread>:<card>:<way>`)."
+
+  hidden:
+    type: list
+    default: []
+    description: "Folders of the project the agent is not shown, from its top, such as the places the other pieces of work on the card are done in."
+
+  not:
+    type: list
+    default: []
+    description: "Agents that may not take it, by name, such as those that did the work it looks at."
+
+  ends:
+    type: list
+    default: []
+    description: "The words the agent may end with, each as `word=what it comes to`: `on`, `back`, `again`, `asks` or `left`; `done=on ask=asks`, if none. One that chooses none of them is taken to have chosen the first. With `seats`: what they come to together (`passed`, `failed`, `undecided`), each as `outcome=what it comes to`."
+
+  seats: { type: int, default: 0, description: "How many look at once, each for itself." }
+  needed: { type: int, default: 0, description: "How many of them have to choose `yes`." }
+  "yes": { type: string, default: approve, description: "What each chooses for the work." }
+  "no": { type: string, default: send_back, description: "What each chooses against it." }
+
+  prompt: { type: string, default: "", description: "What it is asked; else the card and `told`." }
+
+  told:
+    type: string
+    default: ""
+    description: "Where no `prompt` is handed: what the agent is to do with the card, in a row's own words."
+
+  note: { type: string, default: "", description: "With no `prompt`: what was said as it came." }
+
+  stays:
+    type: string
+    default: where it is
+    description: "Where the card stays when there is nobody to give it to, in words that follow `it stays`."
+
+  refused_means:
+    type: string
+    default: note
+    description: "Where the agent's program says it was refused something and the agent went on: `note`, the card goes on as the agent said, and what was refused is said with it; `blocked`, it is left for a person, as where the agent said it could not do what it needed."
+
+  finish:
+    type: list
+    default: []
+    description: "How the work is finished: each step the agent sees to before it says it is done, told as a checklist before what it is asked; what it says of each is what its turn comes to (`work.worked`)."
+
+  later:
+    type: list
+    default: []
+    description: "With `finish`: what somebody else checks after it, never its to wait on."
+
+  lasts:
+    type: string
+    default: ""
+    description: "How long its turn may take, as `45m`: past it its program is stopped, and it is asked once, briefly, what is done and what is left. No bound, if empty."
+
+  given:
+    type: int
+    default: 0
+    description: "How often it was given again for being nearly done."
+
+steps:
+  card:
+    do: board.get
+    with: { id: "${params.item}" }
+
+  called:
+    description: What the conversation is called, the piece of work it is for after the card where it is one of several.
+    do: text.put
+    with:
+      parts:
+        - "${params.thread}:${params.item}"
+        - { if: "${ params.way != '' }", say: ":${params.way}" }
+
+  words:
+    description: The words the agent may end with, read, so that a row that says them wrongly is refused before anybody is asked.
+    do: turn.came
+    with:
+      item: "${params.item}"
+      ends: "${params.ends}"
+      seats: "${params.seats}"
+      "yes": "${params.yes}"
+      "no": "${params.no}"
+      finish: ${params.finish}
+      later: ${params.later}
+      text: "${steps.card.out.title} ${steps.card.out.body}"
+      asking: "${params.asking}"
+      given: ${params.given}
+
+  asks:
+    description: What the agent is asked. What it is handed, where it is handed anything; otherwise `prompts/turn.md`, whose blanks are what it is to do, the card, how it was planned where it was, and what was said as it came.
+    needs: [words]
+    do: text.put
+    with:
+      parts:
+        - if: "${ params.given > 0 }"
+          from: turn/nearly.md
+          with: { item: "${params.item}", left: "${params.note}" }
+        - { if: "${steps.words.out.checklist}", say: "${steps.words.out.checklist}" }
+        - { if: "${ params.given < 1 && params.prompt != '' }", say: "${params.prompt}" }
+        - if: "${ params.given < 1 && params.prompt == '' }"
+          from: turn.md
+          with:
+            told:
+              - { if: "${ params.told != '' }", say: "${params.told}" }
+              - { if: "${ params.told == '' && params.seats < 1 }", from: turn/told.md }
+              - if: "${ params.told == '' && params.seats > 0 }"
+                from: turn/looked.md
+                with: { "yes": "${params.yes}", "no": "${params.no}" }
+            item: "${params.item}"
+            title: "${steps.card.out.title}"
+            body: "${steps.card.out.body}"
+            planned:
+              - { if: "${steps.card.out.more.plan}", from: lane-round/planned.md }
+            plan: "${ steps.card.out.more.plan ?? '' }"
+            said:
+              - { if: "${ params.note != '' }", from: turn/said.md }
+            note: "${params.note}"
+
+  turn:
+    needs: [asks, called]
+    do: agent.task
+    with:
+      # Whoever was named, or else the agent the card names as given it.
+      slot: "${params.agent}"
+      given: "${ steps.card.out.assignee ?? '' }"
+      role: "${params.role}"
+      pick: "${params.picks}"
+      after_restart: "${params.after_restart}"
+      restarts: ${params.restarts}
+      asking: "${steps.words.out.asking}"
+      within: "${params.lasts}"
+      # What the rule that says who work goes to is told of this work (`std/dispatch`).
+      about:
+        card: "${params.item}"
+        title: "${steps.card.out.title}"
+        labels: ${ steps.card.out.labels ?? [] }
+      if_available: true
+      thread: "${steps.called.out.text}"
+      apart: "${params.apart}"
+      cwd: "${params.dir}"
+      hidden: ${params.hidden}
+      not: ${params.not}
+      channel: "${params.channel}"
+      options: ${steps.words.out.options}
+      prompt: "${steps.asks.out.text}"
+      seats: ${params.seats}
+      needed: ${params.needed}
+      "yes": "${params.yes}"
+      "no": "${params.no}"
+
+  summed:
+    description: "Where its time ran out (`lasts`) and its program was stopped, the same agent is asked once, briefly, in the same conversation, what is done and what is left; what it says is what its turn comes to."
+    when: ${ steps.turn.out.cut ?? false }
+    allow_failure: true
+    do: agent.task
+    with:
+      slot: "${steps.turn.out.slot}"
+      thread: "${steps.called.out.text}"
+      cwd: "${params.dir}"
+      hidden: ${params.hidden}
+      options: ${steps.words.out.options}
+      asking: "${steps.words.out.cut}"
+      within: "${params.lasts}"
+      prompt: "${steps.words.out.after}"
+
+  comes:
+    description: "What that came to, by the word the agent ended with and, where how it is finished was said, what it said of each step; or that there was nobody to give the card to, with the sentence that says who was not there."
+    needs: [summed]
+    do: work.worked
+    with:
+      item: "${params.item}"
+      available: ${steps.turn.out.available}
+      named: "${ steps.turn.out.named ?? '' }"
+      told: "${params.agent}"
+      external: ${ steps.turn.out.external ?? false }
+      decision: "${ steps.summed.out.decision ?? steps.turn.out.decision ?? '' }"
+      by: "${ steps.turn.out.slot ?? '' }"
+      reply: "${ steps.summed.out.reply ?? steps.turn.out.reply ?? '' }"
+      ends: ${params.ends}
+      stays: "${params.stays}"
+      seats: ${params.seats}
+      decided: "${ steps.turn.out.came ?? '' }"
+      words: "${ steps.turn.out.words ?? '' }"
+      refused: ${ steps.turn.out.refused ?? [] }
+      refused_means: "${params.refused_means}"
+      finish: ${params.finish}
+      given: ${params.given}
+      cut: ${ steps.turn.out.cut ?? false }
+
+  again:
+    description: "Nearly done: given again once, to the same agent in the same conversation, told what is left of how it is finished. Nearly done again, it is left for a person."
+    when: ${ steps.comes.out.nearly ?? false }
+    call: std/turn
+    as: "again-${params.item}"
+    with:
+      ...: ${params}
+      agent: "${steps.turn.out.slot}"
+      note: "${steps.comes.out.why}"
+      given: 1
+
+  ended:
+    description: "How long its turn took, whether its time ran out and whether it was given again for being nearly done, where how it is finished or a time was said: counted, so that ways compared say how often each needed more."
+    when: ${ params.lasts != "" || params.finish }
+    do: measure
+    with:
+      name: turn.ended
+      value: ${ steps.turn.out.duration_ms ?? 0 }
+      ok: ${ steps.comes.out.came == "on" }
+      labels:
+        came: "${steps.comes.out.came}"
+        time: "${steps.comes.out.time}"
+        given: "${params.given}"
+
+outputs:
+  came: "${ steps.again.out.came ?? steps.comes.out.came ?? 'nothing' }"
+  says: "${ steps.again.out.says ?? steps.comes.out.says ?? '' }"
+  why: "${ steps.again.out.why ?? steps.comes.out.why ?? '' }"
+  asker: "${ steps.again.out.asker ?? steps.comes.out.asker ?? '' }"
+  question: "${ steps.again.out.question ?? steps.comes.out.question ?? '' }"
+  # Which way it was left, where it was: nobody was there, or the word
+  # its agent chose (`blocked`).
+  left_as: "${ steps.again.out.left_as ?? steps.comes.out.left_as ?? '' }"
+  # What its program said it was refused, where it said: shown, and the
+  # card goes on as its agent said unless `refused_means` says otherwise.
+  refused: ${ steps.turn.out.refused ?? [] }
+  # For whatever called this, under names nothing done after it in a
+  # card's list takes: who had the turn, whether anybody was there, what
+  # it chose and said, and how often the daemon was stopped in the
+  # middle of it.
+  slot: "${ steps.turn.out.slot ?? '' }"
+  there: ${ steps.turn.out.available ?? false }
+  decision: "${ steps.again.out.decision ?? steps.turn.out.decision ?? '' }"
+  reply: "${ steps.again.out.reply ?? steps.turn.out.reply ?? '' }"
+  restarted: ${ steps.turn.out.again ?? 0 }
+  # Where it was told folders it is not shown and nothing could hide them
+  # (its program has no wall): said by whatever called it, never silently.
+  unhidden: ${ steps.turn.out.unhidden ?? false }

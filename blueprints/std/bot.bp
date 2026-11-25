@@ -1,0 +1,93 @@
+# A bot: something in a channel that answers when it is spoken to, with no
+# model behind it. It is a blueprint like any other. This one answers with
+# whatever a command prints, or says back what was said when it is given
+# none; a bot of your own is any blueprint that joins a channel, has a
+# handler for `channel.message`, and posts `as` its name.
+#
+#   mw apply std/bot --param channel=general --param name=uptime --param run=uptime
+#
+# and then, in #general:  @uptime how are we doing?
+#
+# What was said reaches the command in its environment and never in the
+# command itself, so nothing anyone writes in a channel is run. The command
+# is yours, and is run by the shell of the system the daemon is on.
+blueprint: std/bot
+version: 3
+description: Answer in a channel, when mentioned, with what a command prints.
+permissions: [channels, shell]
+
+params:
+  channel: { type: string, description: "The channel it takes part in." }
+
+  name:
+    type: string
+    default: bot
+    description: "What it is called. People address it as @name."
+
+  run:
+    type: string
+    default: ""
+    description: "A command, run each time the bot is mentioned. It is given the message as $MESSAGE and who wrote it as $AUTHOR; what it prints is the answer. With none, the bot says back what was said."
+
+state:
+  channel: ""  # the channel's id, once it has joined
+  called: ""  # what it is named by after `@`, as the channel knows it
+
+steps:
+  channel:
+    do: channel.ensure
+    with: { name: "${params.channel}" }
+
+  join:
+    do: channel.join
+    with: { channel: "${steps.channel.out.id}", name: "${params.name}" }
+
+  remember:
+    do: set
+    with: { channel: "${steps.channel.out.id}", called: "${steps.join.out.called}" }
+
+on:
+  mentioned:
+    event: channel.message
+    # A channel may be a project's or nobody's, and a bot is put in one
+    # whatever project it was itself applied for: so it says that it
+    # hears the whole factory, and `when` holds it to its own channel.
+    scope: fleet
+    # Only where it is, only when it is named, and never by a bot: two bots
+    # that answered each other would never stop.
+    when: ${ event.data.channel == state.channel && state.called in event.data.mentions && event.data.author_kind != "bot" }
+    steps:
+      answer:
+        when: ${ params.run != "" }
+        do: shell
+        allow_failure: true
+        with:
+          run: "${params.run}"
+          env:
+            MESSAGE: "${event.data.body}"
+            AUTHOR: "${event.data.author_name}"
+            CHANNEL: "${event.data.channel_name}"
+
+      words:
+        description: What it says back. With no command, what was said; with one, what it printed, or that it printed nothing, or why it could not answer.
+        do: channel.answer
+        with:
+          said: "${event.data.body}"
+          skipped: ${steps.answer.skipped}
+          ok: ${steps.answer.ok}
+          printed: "${ steps.answer.out.stdout ?? '' }"
+          error: "${ steps.answer.error ?? '' }"
+
+      say:
+        do: channel.post
+        with:
+          channel: "${state.channel}"
+          as: "${params.name}"
+          reply_to: "${event.data.id}"
+          # Asked in a thread, it answers there.
+          thread: "${ event.data.thread ?? '' }"
+          body: "${steps.words.out.says}"
+
+on_stop:
+  - do: channel.leave
+    with: { channel: "${params.channel}", name: "${params.name}" }

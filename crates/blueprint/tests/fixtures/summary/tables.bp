@@ -1,0 +1,50 @@
+# What the tables a text makes are made of: every kind of field, and how a
+# table stands among others.
+blueprint: shop/tables
+description: Give a project the tables its work is kept in
+
+params:
+  extra:
+    type: string
+    description: The table a project names for itself
+  shape:
+    type: object
+    description: What that table is made of
+  kind:
+    type: string
+    default: number
+    description: What kind its size is
+
+steps:
+  people:
+    do: table.make
+    with:
+      name: people
+      fields:
+        title: { type: text, required: true }
+        role: { type: text, suggests: [maker, keeper] }
+        level: { type: choice, of: [low, high], unsaid: low }
+        count: number
+        ready: { type: flag }
+        born: { type: date }
+        tags: { type: list }
+        lead: { type: record, of: people }
+        works: { type: records, of: jobs }
+        how: { type: choice, of: [look, change, run], takes: { run: shell } }
+        holds: { type: list, takes: each, unsaid: [things] }
+        secret: { type: text, takes: [shell, secrets:use] }
+        size: { type: "${params.kind}" }
+  jobs:
+    do: table.make
+    with:
+      name: jobs
+      beside: people
+      about: worker
+      by_hand: false
+      fields:
+        worker: { type: record, of: people, takes: things:write }
+  own:
+    do: table.make
+    with:
+      name: "${params.extra}"
+      fields: "${params.shape}"

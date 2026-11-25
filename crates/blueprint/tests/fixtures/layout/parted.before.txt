@@ -1,0 +1,21 @@
+# What is written plain here and is not YAML is put in quotes, and nothing else is.
+blueprint: parted
+description: A board: its cards, and what moves them
+params:
+  note: { type: string, default: said: so }
+steps:
+  say:
+    do: emit
+    when: ${ params.n > 1 ? true : false }
+    with:
+      topic: shop.said
+      data:
+        why: he said "no: never"
+        both: it's "so: so"
+        mark: ${ params.note + ' #1' }
+        plain: nothing to see  # a comment stays one
+        ends: so it ends:
+        more: > than one
+        left: "in quotes: as it was"
+        whole: ${params.note}
+        count: 3

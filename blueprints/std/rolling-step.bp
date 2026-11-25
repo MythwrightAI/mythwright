@@ -1,0 +1,34 @@
+# One device of a rolling update: do the work there, check it took, and
+# leave it a moment before the next device is touched. See `std/rolling`.
+blueprint: std/rolling-step
+version: 2
+description: Run a command on one device and check that it took.
+permissions: [shell]
+
+params:
+  device: { type: string, description: "The device." }
+  run: { type: string, description: "The command run there." }
+  check: { type: string, default: "", description: "What says it took; none, if empty." }
+  settle: { type: duration, default: 0s, description: "How long before the next." }
+
+steps:
+  work:
+    do: shell
+    device: "${params.device}"
+    with: { run: "${params.run}" }
+
+  check:
+    description: Give it a few tries; something that has just restarted is rarely ready at once.
+    when: ${ params.check != "" }
+    do: shell
+    device: "${params.device}"
+    retry: { max: 5, backoff: 2s }
+    with: { run: "${params.check}" }
+
+  settle:
+    when: ${ params.settle != "0s" }
+    do: wait
+    with: { for: "${params.settle}" }
+
+outputs:
+  device: "${params.device}"

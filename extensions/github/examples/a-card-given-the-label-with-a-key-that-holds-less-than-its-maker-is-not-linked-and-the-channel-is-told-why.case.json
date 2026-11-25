@@ -1,0 +1,21 @@
+{
+  "says": "A card is linked for whoever gave it the label, so they are asked for what linking takes, and a key is asked for what the key holds: one made by an owner who may link, and given less, gives a card the label and the card stays here, no issue is made, and where the project reports is told why. A card the owner gives the label is linked.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"apply": "issues", "project": "shop", "sets_off": "look", "params": {"out_label": "public"}},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"run": ["board", "add", "shop", "Fix the footer", "--body", "It says last year."]},
+    {"key": "narrow", "scopes": ["board", "records", "channels", "projects"]},
+    {"run": ["board", "set", "shop-1", "labels=public", "--token", "{key:narrow}"], "sets_off": "labelled"},
+    {"ran": []},
+    {"holds": {"issues/1": {}}},
+    {"run": ["read", "shop"], "says": "shop-1 has the label public, and was not linked with an issue on GitHub: whoever labelled it does not hold `extensions:github`"},
+    {"run": ["board", "set", "shop-2", "labels=public"], "sets_off": "keep"},
+    {"ran": ["{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-2 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Fix the footer --body=It says last year.\\n\\n<!-- card shop-2 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-2 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"holds": {"issues/1": {"title": "Fix the footer", "body": "It says last year.\n\n<!-- card shop-2 -->", "state": "OPEN", "stamp": "t1"}, "issues/2": {}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "card: shop-2"}
+  ]
+}

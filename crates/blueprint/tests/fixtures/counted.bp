@@ -1,0 +1,20 @@
+# Something done so many times, and how many times it was done: a loop
+# over a number, and a step's count.
+blueprint: counted
+description: Start so many copies of something, and say how many were started.
+permissions: [shell]
+
+params:
+  name: { type: string }
+  copies: { type: int, default: 3, description: "How many there are to be." }
+
+steps:
+  each:
+    description: One for each, numbered from 1.
+    for_each: ${params.copies}
+    do: shell
+    with:
+      run: "serve --name ${params.name}-${item}"
+
+outputs:
+  copies: ${steps.each.count}

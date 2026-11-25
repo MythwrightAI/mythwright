@@ -1,0 +1,65 @@
+/* A long article's Contents and its headings' marks (views/topiccontents.tsx). On a narrow article, and hidden, the
+   Contents are a row of their own over it: a box folded until pressed, or a small Contents. Where the article is wide
+   enough to have them beside it (`.topic-article` is the container asked), they are a column at its left that stays
+   in view as the page scrolls, and scrolls by itself where it is taller than the window. An article with boxes at its
+   right (`boxes.css`) needs room for both columns and its text between: until it has it, the Contents fold above
+   first, and the boxes stay beside the text until it is narrower still. */
+.topic-article { container-type: inline-size; }
+/* The page's frame (`.view`) is what scrolls; the page's own overflow, which never scrolls, would hold the column. */
+.topic-page:has(nav.contents) { overflow: visible; }
+.topic-article-contents:has(> .contents) { flex: 1 0 100%; }
+.contents { min-width: 0; font-size: calc(13px * var(--size)); }
+.contents.is-hidden { margin: 0 0 calc(6px * var(--density)); }
+.contents-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: calc(28px * var(--tall)); }
+.contents-title { margin: 0; font-size: calc(11.5px * var(--size)); font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.contents-hide, .contents-show { height: calc(26px * var(--tall)); padding: 0 6px; font-size: calc(12.5px * var(--size)); color: var(--dim); }
+.contents-show { gap: 6px; margin-left: -6px; }
+.contents-fold { gap: 6px; height: calc(30px * var(--tall)); margin-left: -4px; padding: 0 4px; font-weight: 600; color: var(--text); }
+.contents-list { list-style: none; margin: 0; padding: 0; min-width: 0; }
+.contents-list .contents-list { padding-left: calc(12px * var(--density)); }
+.contents-entry { display: flex; align-items: baseline; gap: 6px; min-width: 0; padding: calc(3px * var(--density)) 6px; border-left: 2px solid transparent; border-radius: 0 calc(5px * var(--round)) calc(5px * var(--round)) 0; color: var(--dim); text-decoration: none; line-height: 1.35; overflow-wrap: anywhere; }
+.contents-entry:hover, .contents-entry:focus-visible { color: var(--text); background: var(--bg2); text-decoration: none; }
+.contents-entry[aria-current] { color: var(--text); font-weight: 600; border-left-color: var(--accent); }
+.contents-number { flex: none; color: var(--faint); font-weight: 400; font-variant-numeric: tabular-nums; }
+.contents-words { min-width: 0; }
+@container (width < 800px) {
+  nav.contents { box-sizing: border-box; max-width: var(--column); margin: 0 0 calc(14px * var(--density)); padding: 2px 8px calc(4px * var(--density)); border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+  nav.contents:not(.is-open) .contents-list, nav.contents:not(.is-open) .contents-hide, .contents-title { display: none; }
+}
+/* Beside boxes, the Contents are a column only from 1100px: its 210px and the boxes' 250px (each more at the largest
+   text, and each with room round it) leave the text its 20em and more. */
+@container (800px <= width < 1100px) {
+  :where(.topic-article:has(> .topic-article-boxes)) nav.contents { box-sizing: border-box; max-width: var(--column); margin: 0 0 calc(14px * var(--density)); padding: 2px 8px calc(4px * var(--density)); border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+  :where(.topic-article:has(> .topic-article-boxes)) nav.contents:not(.is-open) :is(.contents-list, .contents-hide), :where(.topic-article:has(> .topic-article-boxes)) .contents-title { display: none; }
+}
+@container (width >= 800px) {
+  :where(.topic-article:not(:has(> .topic-article-boxes))) .topic-article-contents:has(> nav.contents) { flex: none; position: sticky; top: 0; align-self: flex-start; }
+  :where(.topic-article:not(:has(> .topic-article-boxes))) nav.contents { box-sizing: border-box; width: calc(210px * var(--size)); max-height: calc(100vh - 120px); overflow-y: auto; padding: calc(4px * var(--density)) 0 12px; }
+  :where(.topic-article:not(:has(> .topic-article-boxes))) .contents-fold { display: none; }
+}
+@container (width >= 1100px) {
+  .topic-article-contents:has(> nav.contents) { flex: none; position: sticky; top: 0; align-self: flex-start; }
+  nav.contents { box-sizing: border-box; width: calc(210px * var(--size)); max-height: calc(100vh - 120px); overflow-y: auto; padding: calc(4px * var(--density)) 0 12px; }
+  .contents-fold { display: none; }
+}
+/* A heading of an article read: its words, then its link mark and its section's Edit, which show as it is pointed at or
+   has the keyboard, and always where nothing points. */
+.prose-heading-line { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 6px; min-width: 0; scroll-margin-top: 8px; }
+.prose-heading-line > .prose-heading { min-width: 0; }
+.prose-heading-line + *, .code-box + .prose-heading-line { margin-top: 6px; }
+.topic-post .ProseMirror :is(h1, h2, h3) { scroll-margin-top: 8px; }
+.prose-heading-acts { display: inline-flex; align-items: center; gap: 2px; opacity: 0; font-size: calc(12px * var(--size)); font-weight: 400; }
+.prose-heading-line:hover .prose-heading-acts, .prose-heading-acts:focus-within { opacity: 1; }
+.prose-heading-mark { display: inline-flex; align-items: center; justify-content: center; width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); border-radius: calc(5px * var(--round)); color: var(--faint); }
+.prose-heading-mark:hover, .prose-heading-mark:focus-visible { color: var(--text); background: var(--bg2); }
+.prose-heading-edit { height: calc(22px * var(--tall)); padding: 0 6px; font-size: calc(12px * var(--size)); color: var(--dim); }
+@media (hover: none) {
+  .prose-heading-acts { opacity: 1; }
+}
+@media (max-width: 760px) {
+  .topic-article-contents:has(> .contents) { padding: 0 12px; }
+  .contents-entry { align-items: center; min-height: calc(36px * var(--tall)); }
+  .contents-fold, .contents-hide, .contents-show { min-height: calc(40px * var(--tall)); }
+  .prose-heading-mark { width: calc(36px * var(--tall)); height: calc(36px * var(--tall)); }
+  .prose-heading-edit { min-height: calc(36px * var(--tall)); }
+}

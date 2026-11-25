@@ -1,0 +1,78 @@
+/* The head of a table's column and what it does (`views/headmenu.tsx`):
+   the menu under a head, the line that says where a carried column would
+   land, the columns that stay while the rest are scrolled sideways, the
+   figures at a table's foot, and the lines its rows are gathered under.
+   Colours are the theme's. */
+
+/* The whole head is one button. Held and moved it is carried, and is
+   then drawn fainter where it stands: nothing moves until it is let go. */
+.grid-head { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.grid-head[aria-expanded="true"] { background: var(--bg2); color: var(--text); }
+.grid-head:focus-visible { outline: 2px solid var(--dim); outline-offset: -2px; }
+.grid th.head-carried .grid-head { opacity: 0.45; }
+/* Where it would land: a line between two heads, over the page and no
+   part of its layout, down as far as the table is in sight. */
+.grid-drop { position: fixed; z-index: 55; width: 2px; background: var(--accent); border-radius: calc(1px * var(--round)); pointer-events: none; }
+
+/* The menu: one panel with no frame, on the page's body where it is put
+   (`placed` in `icons.ts`), so it is cut off by nothing and moves nothing.
+   A line is a small mark and its words; what is so now, or that the line
+   opens a list in the menu's place, is at its end. */
+.headmenu { position: fixed; z-index: 60; box-sizing: border-box; width: min(252px, calc(100vw - 16px)); max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 1px; padding: 6px; border: 0; border-radius: calc(10px * var(--round)); background: var(--bg2); box-shadow: var(--shadow); font-size: calc(13px * var(--size)); }
+.headmenu-line { display: flex; align-items: center; gap: 9px; width: 100%; min-width: 0; min-height: calc(30px * var(--tall)); height: auto; padding: 4px 8px; border: 0; border-radius: calc(6px * var(--round)); background: transparent; color: var(--text); font: inherit; text-align: left; justify-content: flex-start; white-space: normal; }
+button.headmenu-line:hover, button.headmenu-line:focus-visible { background: var(--bg3); outline: none; }
+.headmenu-line svg { flex: none; color: var(--faint); }
+.headmenu-line .faint { flex: none; font-size: calc(12px * var(--size)); }
+.headmenu-line[aria-checked="true"] > svg:last-child, .headmenu-tick svg { color: var(--accent); }
+/* A line that says why there is nothing to press. */
+.headmenu-said { color: var(--dim); flex-wrap: wrap; row-gap: 0; cursor: default; }
+.headmenu-said .faint { flex: 1 1 100%; padding-left: 23px; white-space: normal; }
+/* The column itself, at the menu's head: its mark, which whoever may presses for the icons, and what it is called. */
+.headmenu-column { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 2px 4px 4px; }
+.headmenu-icon { flex: none; display: inline-flex; align-items: center; justify-content: center; width: calc(28px * var(--tall)); height: calc(28px * var(--tall)); padding: 0; border: 0; border-radius: calc(6px * var(--round)); background: var(--bg3); color: var(--dim); }
+button.headmenu-icon:hover, button.headmenu-icon:focus-visible { color: var(--text); box-shadow: inset 0 0 0 1px var(--line-strong); outline: none; }
+.headmenu-rule { height: 1px; margin: 4px 2px; background: var(--line); }
+.headmenu-whose { padding: 2px 8px 4px; font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+/* A list opened in the menu's place: the way back at its head, and what is on ticked before its words. */
+.headmenu-back { color: var(--dim); }
+.headmenu-list { display: grid; gap: 1px; max-height: min(280px, calc(100dvh - 140px)); overflow-y: auto; }
+.headmenu-tick { flex: none; display: inline-flex; width: 14px; height: 14px; }
+
+/* The columns that stay while the rest are scrolled sideways: each is
+   told where it begins (`views/frozen.ts`) from the very edge of what
+   the table scrolls in, over the room that leaves at its side, so that
+   nothing scrolled is seen beside it; it has the page's ground so that
+   what scrolls goes under it, and the last of them a line down the table.
+   A head that stays does so both ways and lies over everything. */
+.grid td.frozen, .grid th.frozen { position: sticky; }
+.grid td.frozen { z-index: 2; background: var(--bg0); }
+.grid tbody tr:hover td.frozen { background: var(--bg1); }
+.grid th.frozen { z-index: 5; }
+.grid td.frozen.editing { z-index: 6; }
+.grid .frozen-last, .grid.lined .frozen-last { box-shadow: inset -1px 0 0 var(--line-strong); }
+.grid td.frozen.editing:not(:has(.select)):not(:has(.scopes-edit)) { background: var(--bg2); }
+
+/* A figure at the foot of a column, where the view says one: the row
+   stays at the table's foot as the heads stay at its top. */
+.grid tfoot tr.grid-figures td { position: sticky; bottom: calc(0px - var(--foot, 0px)); z-index: 3; height: calc(30px * var(--tall)); padding: 0 9px; border-top: 1px solid var(--line); border-bottom: 0; background: var(--bg0); font-size: calc(12.5px * var(--size)); white-space: nowrap; text-align: right; }
+.grid tfoot tr.grid-figures td.frozen { z-index: 5; }
+.grid-figure .faint { margin-right: 4px; font-size: calc(11.5px * var(--size)); }
+
+/* The rows under a line for each thing the column they are gathered by
+   says: the line is as wide as the table, and what heads it stays in
+   sight while the table is scrolled sideways. */
+.grid tr.grid-gathered td, .grid tbody tr.grid-gathered:hover td { height: calc(32px * var(--tall)); max-width: none; padding: 0 4px; background: var(--bg1); }
+.grid tr.grid-gathered .bands-head { position: sticky; left: 4px; }
+
+/* A column moved a place in the layout's list, by a key. */
+.layout-column { gap: 4px; }
+.layout-move { flex: none; width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); padding: 0; font-size: calc(12px * var(--size)); color: var(--dim); }
+.layout-move:disabled { opacity: 0.3; }
+.layout-column .switch { margin-left: 6px; }
+
+/* Under a finger a line is a larger thing to press. */
+@media (max-width: 760px), (pointer: coarse) {
+  .headmenu-line { min-height: calc(40px * var(--tall)); }
+  .headmenu-icon { width: calc(36px * var(--tall)); height: calc(36px * var(--tall)); }
+  .layout-move { width: calc(30px * var(--tall)); height: calc(30px * var(--tall)); }
+}

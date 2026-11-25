@@ -1,0 +1,50 @@
+# Where no gate runs: macOS and Windows.
+#
+# Started by hand, to find out where each stands; nothing waits on it and
+# a failure here stops nothing. What works on each is said in docs/status.md
+# from what this shows, not from how the code was written.
+name: elsewhere
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build and test, on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: The pinned toolchain
+        run: rustup show
+
+      - name: The client
+        working-directory: ui
+        run: |
+          npm ci
+          npm run check
+
+      - name: Someone for git to commit as
+        run: |
+          git config --global user.name "gate"
+          git config --global user.email "gate@example.invalid"
+          git config --global init.defaultBranch main
+
+      - name: Build the programs
+        run: cargo build -p cli -p desktop
+
+      - name: The tests, all of them, whatever fails
+        if: always()
+        run: cargo test --workspace --no-fail-fast

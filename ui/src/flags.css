@@ -1,0 +1,23 @@
+/* A project's feature flags beside its environments: a row a flag, a cell an environment (`views/projectflags.tsx`). */
+.flags-panel { padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
+.flags-head { align-items: center; gap: 8px; flex-wrap: wrap; }
+.flags-head h2 { margin: 0; font-size: calc(15px * var(--size)); }
+.flags-said, .flags-none { margin: 0; }
+/* The table scrolls in its own box where the environments are more than the page has room for. */
+.flags-scroll { overflow-x: auto; min-width: 0; }
+.flags-table { border-collapse: collapse; }
+.flags-table th, .flags-table td { padding: calc(6px * var(--density)) 10px; text-align: left; border-top: 1px solid var(--line); vertical-align: middle; }
+.flags-table thead th { border-top: 0; white-space: nowrap; }
+.flags-table tbody th { font-weight: 500; text-transform: none; letter-spacing: normal; color: var(--text); font-size: calc(13px * var(--size)); }
+.flags-name { overflow-wrap: anywhere; margin-right: 6px; }
+.flags-kind { font-size: calc(12px * var(--size)); }
+.flags-due { margin-left: 6px; font-size: calc(12px * var(--size)); color: var(--accent); white-space: nowrap; }
+.flags-cell { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.flags-value { min-width: 3.5em; min-height: calc(26px * var(--tall)); border-radius: calc(6px * var(--round)); }
+.flags-value.on { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.flags-value.still { display: inline-flex; align-items: center; justify-content: center; padding: 0 8px; border: 1px solid var(--line); }
+.flags-waits { font-size: calc(12px * var(--size)); }
+.flags-typing { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.flags-typing > input { width: 7em; min-width: 0; }
+.flags-wrong { flex-basis: 100%; font-size: calc(12px * var(--size)); }
+.envs-opened .flags-in .envs-var { grid-template-columns: auto minmax(0, 1fr); }

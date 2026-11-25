@@ -1,0 +1,30 @@
+/* The dialog that adds a project: what it starts with as a table, a row of one's own under it, and the table saved as a setup (`views/newproject.tsx`); and its switches, which the dialog that makes a channel private draws too (`views/keptdoor.tsx`). */
+/* What a new project starts with, in the dialog that adds it: one of them to a line, the words, what they mean under them, and the switch at their right. */
+.starts { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.starts legend { padding: 0; margin-bottom: 8px; font-size: calc(12px * var(--size)); color: var(--dim); }
+.start-with { display: flex; flex-direction: row; align-items: center; gap: 14px; }
+.start-with .grow { display: grid; gap: 2px; }
+.start-with .muted { font-weight: 400; font-size: calc(12.5px * var(--size)); }
+/* One that cannot be had as things are: said to be so, in words, under what it is. */
+.start-with.lacking { color: var(--faint); }
+.start-with .start-why { font-weight: 400; font-size: calc(12.5px * var(--size)); color: var(--dim); }
+/* A table of them: a row a thing, a line between rows, its switch and the button that unfolds what it is set up with in two columns at its right, and under the row, folded until asked for, its blueprint's settings side by side as the room allows. The dialog is as wide as that needs. */
+.modal.setting-up { width: min(680px, 94vw); }
+/* Its foot stays over the rows that scroll under it, whose fold marks are drawn a level up. */
+.modal.setting-up .modal-foot { z-index: 2; }
+.setup-table { display: grid; min-width: 0; border-top: 1px solid var(--line); }
+.setup-row { display: grid; min-width: 0; padding: calc(9px * var(--density)) 0; border-bottom: 1px solid var(--line); }
+.setup-row .start-with { gap: 10px; }
+.setup-row .start-with .grow { flex: 1 1 auto; min-width: 0; }
+.setup-fold { display: inline-flex; flex: none; align-items: center; justify-content: flex-end; gap: 6px; min-width: calc(28px * var(--tall)); height: calc(28px * var(--tall)); padding: 0 4px; }
+.setup-changed { font-size: calc(11.5px * var(--size)); color: var(--dim); white-space: nowrap; }
+/* A row of somebody's own is taken away by words under it, small, which stand where its meaning does. */
+.setup-drop { justify-self: start; padding: 0; min-height: 0; font-size: calc(12px * var(--size)); color: var(--dim); }
+/* Under the table, a blueprint of one's own is named and added as a row; and the table is saved as a setup over the
+   foot: each a field that gives way and its button at its right, going under it where there is no room. */
+.setup-kept { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.setup-saved { font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; min-width: 0; }
+.setup-add, .setup-save { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; min-width: 0; }
+.setup-add label, .setup-save label { flex: 1 1 200px; min-width: 0; }
+.setup-add input, .setup-save input, .setup-save select, .setup-choice select { width: 100%; min-width: 0; }
+.setup-settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 12px; min-width: 0; padding: 10px 0 2px; }

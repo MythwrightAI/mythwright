@@ -1,0 +1,26 @@
+/* How wide a table's columns are where a view says (`widths.ts`), and the
+ * edge at the right of a column's head that is dragged to say it
+ * (`views/widths.tsx`).
+ *
+ * A column that a view says a width of is that wide and no wider or
+ * narrower, whatever is in it: its cells are given the width by the size
+ * of the reader's text (`--cw`, which a cell says of itself), and what is
+ * in them is cut short or wraps as it does in any column. A heading over
+ * several columns is as wide as they are. On a phone's layout the widths
+ * are not drawn: the columns there are as wide as that layout makes them
+ * to be touched and read on a narrow screen, and nothing there changes a
+ * width. The edge is offered only where something points. */
+
+@media (min-width: 761px) and (not (pointer: coarse)), (min-width: 761px) and (min-height: 521px) {
+  .grid th.sized, .grid td.sized { width: var(--cw); min-width: var(--cw); max-width: var(--cw); }
+}
+
+.grid .width-edge { position: absolute; z-index: 2; top: 0; right: 0; bottom: 0; width: 6px; cursor: col-resize; touch-action: none; }
+.grid .width-edge::after { content: ""; position: absolute; top: 6px; bottom: 6px; right: 2px; width: 2px; border-radius: calc(1px * var(--round)); background: transparent; transition: background 0.12s; }
+.grid th:hover > .width-edge::after, .grid .width-edge:focus-visible::after { background: var(--line-strong); }
+.grid .width-edge:hover::after, .grid .width-edge.held::after { background: var(--accent); }
+.grid .width-edge:focus-visible { outline: none; }
+
+@media (hover: none) {
+  .grid .width-edge { display: none; }
+}

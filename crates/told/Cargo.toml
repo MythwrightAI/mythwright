@@ -1,0 +1,35 @@
+[package]
+name = "told"
+description = "What a line a blueprint told holds beside its words, as whoever reads it now: each part as it comes to (the cards a part lists, the message it opens, a change somebody asked for, rows of a table, runs, measurements), a card such a part lists passed or failed from there, a change somebody may not make asked for, approved or declined, and a run that waits for a person to let it go on."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# What a part comes to and what pressing one does are the API suite's
+# (`reviewed.rs`), through the routes; what an ask comes to is this
+# suite's, over a studio of its own.
+test = false
+doctest = false
+
+[dependencies]
+blueprint = { workspace = true }
+conductor = { workspace = true }
+environments = { workspace = true }
+journal = { workspace = true }
+kernel = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+studio = { workspace = true }
+talk = { workspace = true }
+tokio = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

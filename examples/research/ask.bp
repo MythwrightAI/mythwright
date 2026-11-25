@@ -1,0 +1,50 @@
+# Research: some questions are put to an agent of a project, and what it
+# answers is kept.
+#
+# This is work that is not code. Each question is answered as one piece
+# of work of its own (`research/answer`, beside this), and what the agent
+# is told is a file beside both, `prompts/answer.md`. So whether other
+# words would get better answers is something to try: `prompts/careful.md`
+# is there to be compared with it, with nothing else changed.
+#
+# Copy this folder into a project's blueprints, and ask:
+#
+#   cp -r examples/research <the project's folder>/blueprints/
+#   mw apply research/ask --project shop --param project=shop \
+#     --param 'questions=["What should a small shop measure first?"]'
+#
+# To have each question go one of two ways, start the comparison first:
+#
+#   mw compare start prompts --project shop --of research/answer --per question \
+#     --count question=research.answered:question:came \
+#     --way brief \
+#     --way careful --prompt careful.research/prompts/answer.md=research/prompts/careful.md
+#   mw compare show prompts
+blueprint: research/ask
+description: Put each of some questions to an agent of a project, and keep what it answers.
+permissions: [agents, channels, records, blueprints]
+
+params:
+  project: { type: string }
+  questions: { type: list, description: "What is asked, a question each." }
+
+  role:
+    type: string
+    default: ""
+    description: "Only an agent of this role is asked; any agent of the project, if empty."
+
+  channel:
+    type: string
+    default: ""
+    description: "Where each answer is said, and where it was kept; nowhere if empty."
+
+steps:
+  each:
+    description: Each question is one piece of work of its own, done one after the other.
+    for_each: ${params.questions}
+    call: research/answer
+    with:
+      project: "${params.project}"
+      question: "${item}"
+      role: "${params.role}"
+      channel: "${params.channel}"

@@ -1,0 +1,65 @@
+shop/makes
+
+What it is
+  = Give a project its things.
+  Version:
+    title: 3
+  After a restart:
+    title: Taken up where it was
+  Runs:
+    title: On, for what it hears
+  = Whoever applies it may tell it 2 things:
+    = What the second thing is called. It has to be said. [name]
+    = The kinds there are, each given a thing of its own. Unless it is said: `red` and `green`. [kinds]
+
+What it makes
+  `shop/watch` [uses/watcher]
+    tags: attached
+    named: `watcher`
+    opens: blueprint shop/watch
+    made: a blueprint `shop/watch` (shop/watch)
+  Makes: [main/first]
+    title: a thing called `shelf`
+    made: a thing `shelf` (shelf)
+  Makes: [main/second]
+    title: a thing called what the param `name` says
+    made: a thing the param `name`
+  a thing called `bin-<the item>` [main/each]
+    only: One for each of the param `kinds`.
+    made: a thing `bin-<the item>`
+  `shop/helper` [main/helper]
+    tags: left running
+    named: `helper`
+    opens: blueprint shop/helper
+    made: a blueprint `shop/helper` (shop/helper)
+  the blueprint the param `name` names [main/counted]
+    tags: waited for
+    named: `count-<the param name>`
+    made: a blueprint the blueprint the param `name` names
+  a thing called `spare` [on.made/again]
+    by: made
+    made: a thing `spare` (spare)
+
+What it does when it is applied
+  The thing everything else is kept in. [main/first]
+  Make sure a thing is there. [main/second]
+  Make sure a thing is there. [main/each]
+    only: Once for each of the param `kinds`.
+  Read a thing. [main/read]
+  Start `shop/helper` and go on. [main/helper]
+  Run the blueprint the param `name` names and wait for it to finish. [main/counted]
+
+What it hears, and what it then does
+  `thing.made`: a thing was made [on.made/@]
+    from: Heard from its own project, and from the factory itself.
+    Make sure a thing is there. [on.made/again]
+
+What it may do
+  = It runs as whoever applies it, and can do no more than they can.
+  Permissions:
+    items: `things`
+    items: `blueprints`
+  = Read things. [things:read]
+  = Make and change things. [things:write]
+  = Start, apply and stop blueprint instances. [blueprints:run]
+  = What the blueprints it starts may do is said of each of them: `shop/helper` and the blueprint the param `name` names.

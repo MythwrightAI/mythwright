@@ -1,0 +1,98 @@
+# Kimi Code as an agent.
+#
+# Nothing in the application knows this program. Everything about it is in
+# this file: how a turn is started, how what it prints is read, and how it is
+# asked which models it has.
+extension: kimi
+title: Kimi Code
+description: Agents that run on the Kimi Code command line, signed in as whoever runs the daemon.
+
+agent:
+  program: kimi
+
+  # Run for one request, it asks nobody's leave for anything it does, and
+  # none of its own modes (ask when needed, never ask, plan) can be combined
+  # with running that way. So it cannot be held to looking only, or to
+  # changing files only, and an agent on it has to be given `full` knowingly.
+  permissions: [full]
+
+  # How one turn is started. `turn` is what the slot asks for.
+  args:
+    - ["--output-format", "stream-json"]
+    - when: ${ turn.model != null }
+      args: ["--model", "${ turn.model }"]
+    - when: ${ turn.session != null }
+      args: ["--session", "${ turn.session }"]
+    # It takes what it is asked as an argument, not on standard input, and
+    # has no separate place for standing instructions: a conversation opens
+    # with them, and a turn that carries one on does not repeat them.
+    - ["--prompt", '${ turn.session == null ? turn.system + "\n\n" + turn.prompt : turn.prompt }']
+
+  # What it prints: one JSON value a line, each called `event` here. They
+  # are the messages of the conversation as they are written.
+  output:
+    # Text as it is written, and the name of each tool as it is reached for.
+    - when: ${ event.role == "assistant" && event.content != null }
+      show: ${ event.content }
+    - when: ${ event.role == "assistant" && event.tool_calls != null }
+      each: ${ event.tool_calls }
+      show: '${ "[" + item.function.name + "]" }'
+    # No line says it has finished. What it says when it reaches for nothing
+    # more is its answer; if it stops before that, how it ended says why.
+    - when: ${ event.role == "assistant" && event.tool_calls == null }
+      reply: ${ event.content ?? "" }
+    # Its last line says how the conversation can be carried on.
+    - when: ${ event.type == "session.resume_hint" }
+      session: ${ event.session_id }
+
+  # What its program must be shown behind a wall, besides what any is: in
+  # the home of whoever runs it, the folders it keeps its sign-in and its
+  # conversations in. Which of these it uses is not known here for
+  # certain; one that is not there is not shown. Behind a wall it has been
+  # started and has answered which models it is set up with (2026-11-14);
+  # it has not been given a piece of work there.
+  #
+  # Of what it keeps, its sign-in is two folders, `.kimi-code/credentials`
+  # and `.kimi-code/oauth`, and with them what it is set up with, which
+  # device it is and where it signs in, the files `.kimi-code/config.toml`,
+  # `.kimi-code/device_id` and `.kimi-code/region`: an agent is shown
+  # those five, where they are, in each home of its own (its ordinary one,
+  # and each kept channel's), and the rest of what the program keeps (its
+  # sessions and their history) is that home's own. Written from the names
+  # of what the program keeps on Linux (2026-11-19), where only
+  # `.kimi-code` was there; it has not been tried with the program in a
+  # home laid out so. A folder that is shown is renewed in whichever way
+  # its program renews what is in it. A file that is shown is written
+  # where it is, and cannot have another file put in its place from
+  # behind the wall: the three files are what it was set up with, which
+  # a turn does not usually change, and a program that rewrites one that
+  # way from an agent's home fails to.
+  #
+  # It says no `instructions`: which file in its home, if any, it reads as
+  # its own standing instructions in every project is not known here for
+  # certain, and what it may read of the project it works in is the
+  # project's and not the factory's to write. So an agent on it is
+  # told what it is and how it stands ahead of what it is asked.
+  wall:
+    keeps: [".kimi", ".kimi-code"]
+    signin:
+      - ".kimi-code/credentials"
+      - ".kimi-code/oauth"
+      - ".kimi-code/config.toml"
+      - ".kimi-code/device_id"
+      - ".kimi-code/region"
+
+  # The models it is set up with, under the names it knows them by. It
+  # prints them as one value over many lines. Which of them it uses when
+  # none is named it says only in the plain listing, on a line of its own.
+  models:
+    ask:
+      args: ["provider", "list", "--json"]
+      answer: ${ line.models != null }
+      list: ${ line.models }
+      id: ${ model.key }
+      label: ${ model.value.displayName ?? model.key }
+      usual:
+        args: ["provider", "list"]
+        when: ${ starts_with(line, "Default model: ") }
+        id: ${ replace(line, "Default model: ", "") }

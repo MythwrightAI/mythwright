@@ -1,0 +1,1 @@
+This card was taken out of your hands before you had finished with it (the fleet that gave it to you was started anew, or somebody moved it away while you worked), and is given to you again. Nobody sent it back: take it up where you left it, from what you had changed, which is where you left it.

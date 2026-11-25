@@ -1,0 +1,86 @@
+# Two agents, one piece of work.
+#
+# The same work is put on the board twice, as card A and card B, and each is
+# given to a different agent for one round of work, at the same time, in a
+# place of its own. What is measured under each round carries its variant,
+# so Measurements can put the two side by side ("Compare by: variant"): how
+# long each took, how many turns, what failed. Which did better is left to
+# whoever reads the two cards and the numbers.
+#
+# Each card is worked once, by the round that ships (`std/lane-round`), and
+# is then in review like any other. Neither is a card of the project's
+# fleet: sent back, it waits where it is put until somebody makes it ready,
+# and is the fleet's from then.
+#
+# Apply it to a project that has a board and both agents:
+#
+#   mw apply examples/scenarios/compare-agents.bp --project <project> \
+#     --param project=<project> --param title="Add a README section" \
+#     --param agent_a=<one agent> --param agent_b=<another>
+blueprint: compare-agents
+description: Give the same work to two agents, each on its own card and in a place of its own, and measure them side by side.
+permissions: [board, channels, agents, shell, blueprints]
+
+params:
+  project: { type: string }
+  title: { type: string, description: "What is to be done." }
+  body: { type: string, default: "", description: "The details, the same for both." }
+  agent_a: { type: string, description: "The agent that takes card A." }
+  agent_b: { type: string, description: "The agent that takes card B." }
+
+  channel:
+    type: string
+    default: ""
+    description: "Where each says what it did; nowhere if empty."
+
+steps:
+  card_a:
+    do: board.add
+    with:
+      project: "${params.project}"
+      title: "${params.title} (A: ${params.agent_a})"
+      body: "${params.body}"
+      labels: [experiment, a]
+
+  card_b:
+    do: board.add
+    with:
+      project: "${params.project}"
+      title: "${params.title} (B: ${params.agent_b})"
+      body: "${params.body}"
+      labels: [experiment, b]
+
+  a:
+    description: Card A, worked by the first agent. It does not wait for B.
+    needs: [card_b]
+    call: std/lane-round
+    as: "round-${steps.card_a.out.id}"
+    labels: { experiment: "${ slug(params.title) }", variant: a }
+    with:
+      project: "${params.project}"
+      item: "${steps.card_a.out.id}"
+      agent: "${params.agent_a}"
+      # Its card is taken from where it was added, the board's first column,
+      # and not from where a stage of the fleet would take one.
+      from: "${steps.card_a.out.status}"
+      channel: "${params.channel}"
+
+  b:
+    description: Card B, worked by the second agent, beside A.
+    needs: [card_b]
+    call: std/lane-round
+    as: "round-${steps.card_b.out.id}"
+    labels: { experiment: "${ slug(params.title) }", variant: b }
+    with:
+      project: "${params.project}"
+      item: "${steps.card_b.out.id}"
+      agent: "${params.agent_b}"
+      # Its card is taken from where it was added, the board's first column,
+      # and not from where a stage of the fleet would take one.
+      from: "${steps.card_b.out.status}"
+      channel: "${params.channel}"
+
+outputs:
+  a: ${steps.card_a.out.id}
+  b: ${steps.card_b.out.id}
+  experiment: ${ slug(params.title) }

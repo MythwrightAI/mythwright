@@ -1,0 +1,187 @@
+# One round of a feature's planning: it is put to its agent, once.
+#
+# The agent reads the feature and asks what it needs to know, says how it
+# would be built, or leaves it as it is. What it asks is kept on the
+# feature as its question; what it proposes, as its plan, and the feature
+# then waits where a plan is accepted. Every round of one feature is one
+# conversation, so the agent that began with it is the one that goes on.
+#
+# A feature that gathers cards on the board already (`gathers`, or a
+# label) has them shown to its agent with it, each as it stands: where it
+# is, what is wanted, what it waits on. What a label comes to is written
+# into `gathers` until the feature has a plan, so that the plan and
+# whoever accepts it are speaking of the same cards.
+blueprint: std/feature-round
+version: 4
+description: Put one feature to an agent once, to ask what it needs to know or to say how the feature would be built.
+permissions: [records, channels, agents]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  id: { type: string, description: "The feature's id." }
+  agent: { type: string, default: "", description: "Which agent; the role's, if empty." }
+  role: { type: string, default: architect, description: "Whose agent plans it." }
+
+  picks:
+    type: string
+    default: first
+    enum: [first, turn, least, rank]
+    description: "How it is picked."
+
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+  at: { type: string, default: backlog, description: "Where a feature is planned." }
+  planned: { type: string, default: planned, description: "Where it waits with a plan." }
+  told: { type: string, default: "", description: "What the agent is told besides." }
+
+  why:
+    type: string
+    default: new
+    enum: [new, changed, said, back]
+    description: "What brought the feature to its agent: it is new, what it asks was changed, something was said on it, or it was sent back."
+
+  note: { type: string, default: "", description: "What was said, for `said`." }
+
+steps:
+  now:
+    do: record.get
+    with: { id: "${params.id}" }
+
+  board:
+    description: The cards on the project's board, for a feature that gathers some of them.
+    allow_failure: true
+    do: rows.read
+    with: { project: "${params.project}", collection: board }
+
+  named:
+    description: The cards it is to put in order, said for whoever plans; and with a label, every card that carries it and is not done, until the feature has a plan.
+    do: tickets.named
+    with:
+      rows: ${ steps.board.out.rows ?? [] }
+      ids: ${ steps.now.out.data.gathers ?? [] }
+      label: "${ steps.now.out.data.labelled ?? '' }"
+      fresh: ${ (steps.now.out.data.plan ?? '') == '' }
+      over: done
+
+  fixed:
+    description: What the label came to is written on the feature, so that the cards it gathers are the same from here on.
+    when: ${steps.named.out.fix}
+    do: record.update
+    with:
+      id: "${params.id}"
+      fields: { gathers: "${steps.named.out.ids}" }
+
+  gathered:
+    when: ${steps.fixed.ok}
+    do: emit
+    with:
+      topic: feature.gathered
+      record: "${params.id}"
+      project: "${params.project}"
+      count: ${steps.named.out.count}
+      cards: "${steps.named.out.listed}"
+
+  asks:
+    description: What it is asked, which is `prompts/feature-round.md`. Its blanks are what brought the feature to it; what was said, where anything was; the feature; the cards it gathers, where it gathers any; and what it last said of it, where it said anything.
+    when: ${ steps.now.out.data.status == params.at || steps.now.out.data.status == params.planned }
+    do: text.put
+    with:
+      parts:
+        - from: feature-round.md
+          with:
+            why:
+              - { if: "${ params.why == 'new' }", from: feature-round/new.md }
+              - { if: "${ params.why == 'changed' }", from: feature-round/changed.md }
+              - { if: "${ params.why == 'back' }", from: feature-round/back.md }
+              - if: "${ !(params.why in ['new', 'changed', 'back']) }"
+                from: feature-round/said.md
+            note: "${params.note}"
+            id: "${params.id}"
+            title: "${steps.now.out.data.title}"
+            body: "${ steps.now.out.data.body ?? '' }"
+            gathers:
+              - if: "${ steps.named.out.count > 0 }"
+                from: feature-round/gathers.md
+                with: { cards: "${steps.named.out.shown}" }
+              - if: "${ steps.named.out.count > 0 }"
+                say: "\n\n"
+            planned:
+              - { if: "${steps.now.out.data.plan}", from: feature-round/planned.md }
+            plan: "${ steps.now.out.data.plan ?? '' }"
+            told: "${params.told}"
+        - "\n"
+
+  put:
+    description: The feature is put to its agent, while it is where features are planned or waits with a plan.
+    when: ${ steps.now.out.data.status == params.at || steps.now.out.data.status == params.planned }
+    do: agent.task
+    with:
+      slot: "${params.agent}"
+      role: "${params.role}"
+      pick: "${params.picks}"
+      about: { feature: "${params.id}", title: "${steps.now.out.data.title}" }
+      if_available: true
+      thread: "feature:${params.id}"
+      channel: "${params.channel}"
+      options: [propose, ask, leave]
+      prompt: "${steps.asks.out.text}"
+
+  nobody:
+    when: ${ params.channel != "" && steps.put.ok && !steps.put.out.available }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.id}: no ${params.role} is free to say how it would be built; it stays in ${params.at}"
+
+  asked:
+    description: What it asked is kept on the feature, which waits for an answer.
+    when: ${ steps.put.out.available && steps.put.out.decision == "ask" && steps.put.out.reply != "" }
+    do: record.update
+    with:
+      id: "${params.id}"
+      fields: { question: "${steps.put.out.reply}" }
+
+  asked_nothing:
+    description: One that chose to ask and said nothing has asked what is wanted.
+    when: ${ steps.put.out.available && steps.put.out.decision == "ask" && steps.put.out.reply == "" }
+    do: record.update
+    with:
+      id: "${params.id}"
+      fields: { question: "What is wanted here? (It chose to ask, and did not say what.)" }
+
+  asking:
+    when: ${ steps.asked.ok || steps.asked_nothing.ok }
+    do: emit
+    with:
+      topic: feature.asked
+      record: "${params.id}"
+      project: "${params.project}"
+      agent: "${steps.put.out.slot}"
+      question: "${steps.put.out.reply}"
+
+  planned:
+    description: What it proposed is kept as the feature's plan, and the feature waits where a plan is accepted.
+    when: ${ steps.put.out.available && !(steps.put.out.decision in ["ask", "leave"]) && steps.put.out.reply != "" }
+    do: record.update
+    with:
+      id: "${params.id}"
+      fields: { plan: "${steps.put.out.reply}", question: "", status: "${params.planned}" }
+
+  said:
+    when: ${steps.planned.ok}
+    do: emit
+    with:
+      topic: feature.planned
+      record: "${params.id}"
+      project: "${params.project}"
+      agent: "${steps.put.out.slot}"
+
+  waits:
+    when: ${ steps.planned.ok && params.channel != "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.id}: ${steps.put.out.slot} has said how it would be built; the plan is on the feature, in ${params.planned}. Move it on to accept it, or say on it what should be otherwise."
+
+outputs:
+  agent: "${ steps.put.out.slot ?? '' }"
+  decision: "${ steps.put.out.decision ?? '' }"

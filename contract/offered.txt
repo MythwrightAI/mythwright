@@ -1,0 +1,3919 @@
+# What a blueprint can depend on: every action and every event. Written by
+# a test, never by hand:
+#   WRITE_CONTRACT=1 cargo test -p api the_contract
+# and, where something a blueprint could break on was changed on purpose,
+#   BREAK_CONTRACT="why" cargo test -p api the_contract
+# which adds what was broken to broken.txt.
+
+action actor.holds
+  takes actor string
+  takes scope string needed
+  takes scopes list
+  takes who string
+  gives holds
+  gives known
+  gives name
+  gives kind
+  gives refused
+  gives lacks
+
+action agent.consult
+  needs agents:write
+  reaches std/dispatch
+  reaches std/signin
+  takes prompt string needed
+  takes options list needed
+  takes slot string
+  takes role string
+  takes thread string
+  takes apart string
+  takes pick string
+  takes about object
+  takes if_available bool
+  gives decision
+  gives reply
+  gives available
+
+action agent.counted
+  takes name string
+  takes role string
+  takes count int needed
+  takes had int
+  takes called string
+  gives named
+  gives names
+  gives past
+
+action agent.ensure
+  needs agents:write
+  makes name an agent
+  takes name string needed
+  takes project string
+  takes channel string
+  takes reports string
+  takes adapter string
+  takes model string
+  takes instructions string
+  takes scopes list
+  takes permission_mode string
+  takes role string
+  takes rank int
+  takes signins list
+  takes wall string
+  takes reads list
+  takes changes list
+  takes git string
+  takes secrets list
+  takes outlives string
+  takes web string
+  gives name
+  gives adapter
+  gives role
+
+action agent.let_go
+  needs agents:write
+  takes under string needed
+  gives called_off
+
+action agent.news
+  takes open bool
+  takes settled bool
+  takes by string
+  takes its string
+  takes rounds int
+  takes reworded bool
+  takes moved bool
+  takes here bool
+  gives came
+
+action agent.present
+  needs agents:read
+  takes project string
+  takes channel string
+  takes here list
+  takes counted list
+  gives came
+  gives heard
+  gives first
+  gives alone
+  gives count
+
+action agent.round
+  takes had int
+  takes most int needed
+  takes counts bool
+  takes took string
+  takes has string
+  takes named string
+  gives rounds
+  gives agent
+  gives next
+  gives its
+  gives open
+  gives whom
+
+action agent.stop
+  needs agents:write
+  takes name string needed
+  takes idle bool
+  gives stopped
+  gives leaving
+
+action agent.task
+  needs agents:write
+  reaches std/dispatch
+  reaches std/signin
+  takes prompt string needed
+  takes slot string
+  takes given string
+  takes role string
+  takes thread string
+  takes apart string
+  takes not list
+  takes pick string
+  takes about object
+  takes cwd string
+  takes hidden list
+  takes if_available bool
+  takes channel string
+  takes answers string
+  takes options list
+  takes after_restart string
+  takes restarts int
+  takes asking string
+  takes within string
+  takes seats int
+  takes needed int
+  takes looker string
+  takes yes string
+  takes no string
+  gives reply
+  gives decision
+  gives available
+  gives named
+  gives external
+  gives slot
+  gives unhidden
+  gives cost_usd
+  gives refused
+  gives again
+  gives cut
+  gives duration_ms
+  gives came
+  gives by
+  gives words
+  gives approved
+  gives against
+  gives votes
+  gives went_on
+
+action approval.ask
+  takes says string needed
+  takes to list
+  takes environment string
+  takes links list
+  gives approved_by
+  gives approved_by_name
+  gives ask
+
+action blueprint.apply
+  needs blueprints:run
+  makes blueprint an instance of its own of the blueprint
+  takes blueprint string
+  takes source string
+  takes params object
+  takes key string
+  takes wait bool
+  gives instance
+  gives status
+  gives outputs
+
+action blueprint.stop
+  needs blueprints:run
+  takes instance string
+  takes key string
+  gives stopped
+
+action board.add
+  needs board:write
+  makes title a card
+  takes title string needed
+  takes project string
+  takes body string
+  takes status string
+  takes labels list
+  takes fields object
+  takes wrote string
+  gives id
+
+action board.after
+  needs board:read
+  takes id string needed
+  takes done string needed
+  takes asked bool
+  gives came
+  gives left
+  gives says
+  gives lifts
+  gives news
+  gives answers
+
+action board.came
+  needs board:read
+  takes id string needed
+  takes from string needed
+  takes to string needed
+  takes by_hand bool needed
+  takes worked string needed
+  takes looked string needed
+  takes done string needed
+  gives came
+  gives settles
+  gives rounds
+  gives rests
+  gives holds
+
+action board.get
+  needs board:read
+  takes id string needed
+  gives id
+  gives title
+  gives body
+  gives status
+  gives assignee
+  gives labels
+  gives due
+  gives moved
+  gives pressed
+  gives more
+  gives ranked
+
+action board.held
+  needs board:read
+  takes done string needed
+  takes project string
+  takes by string
+  gives ids
+  gives count
+
+action board.hold
+  needs board:write
+  takes id string needed
+  gives said
+
+action board.list
+  needs board:read
+  takes project string
+  takes status string
+  takes except string
+  takes ids list
+  gives items
+  gives ids
+  gives count
+  gives columns
+  gives first
+  gives last
+
+action board.move
+  needs board:write
+  takes id string needed
+  takes to string needed
+  takes note string
+  takes decided string
+  takes had int
+  gives status
+
+action board.press
+  needs board:write
+  takes id string needed
+  takes action string needed
+  takes back bool
+  gives done
+  gives released
+  gives waits
+
+action board.said
+  needs board:read
+  takes id string needed
+  takes by string needed
+  gives came
+  gives asker
+
+action board.settle
+  needs board:write
+  takes project string
+  gives said
+
+action board.update
+  needs board:write
+  takes id string needed
+  takes title string
+  takes body string
+  takes assignee string
+  takes labels list
+  takes due string
+  takes fields object
+
+action board.waits
+  needs board:read
+  takes id string needed
+  takes project string
+  takes why string
+  takes limit int
+  gives mine
+  gives says
+
+action branches.follow
+  needs projects:read
+  gives project
+
+action chain.decided
+  takes item string needed
+  takes kind string
+  takes came string
+  takes says string
+  takes why string
+  takes question string
+  takes agent string
+  takes may_move bool
+  takes found bool
+  takes status string
+  takes taken string
+  takes asker string
+  takes moved list
+  takes moves int
+  takes after string
+  takes further bool
+  takes worked list
+  gives decided
+  gives to
+  gives note
+  gives asks
+  gives later
+  gives after
+
+action chain.next
+  takes rows list needed
+  takes topic string needed
+  takes said any
+  takes item string needed
+  takes column string
+  takes labels list
+  takes moved list
+  takes kept list
+  takes due int
+  takes project string
+  takes worked list
+  gives came
+  gives kind
+  gives who
+  gives title
+  gives says
+  gives keep
+  gives later
+  gives next
+  gives after
+  gives further
+  gives does
+  gives told
+  gives agent
+  gives role
+  gives words
+  gives moves
+  gives column
+
+action chain.read
+  takes rows list needed
+  gives rungs
+  gives idle
+
+action channel.answer
+  takes said string
+  takes skipped bool needed
+  takes ok bool
+  takes printed string
+  takes error string
+  gives came
+  gives says
+
+action channel.ensure
+  needs channels:write
+  makes name a channel
+  takes name string needed
+  takes otherwise string
+  takes project string
+  takes topic string
+  takes kept bool
+  takes alone bool
+  gives id
+  gives name
+  gives speaker
+  gives archived
+
+action channel.join
+  needs channels:write
+  makes name a bot
+  takes channel string needed
+  takes name string needed
+  gives actor
+  gives called
+
+action channel.leave
+  needs channels:write
+  takes channel string needed
+  takes name string needed
+
+action channel.post
+  needs channels:write
+  takes channel string needed
+  takes body string needed
+  takes as string
+  takes reply_to string
+  takes thread string
+  takes view string
+  takes detail string
+  takes about_run string
+  gives id
+
+action collection.ensure
+  needs projects:write
+  makes name a table
+  setting beside
+  takes name string needed
+  takes fields object needed
+  takes views object
+  takes store string
+  takes at string
+  takes model string
+  takes history any
+  takes takes string
+  takes reads string
+  takes steers string
+  takes beside string
+  takes about string
+  takes groups any
+  takes by_hand bool
+  takes title string
+  takes description string
+  takes anew bool
+  takes project string
+  within fields.* each
+  within fields.*.type string
+  within fields.*.type.text word
+  within fields.*.type.choice word
+  within fields.*.type.actor word
+  within fields.*.type.list word
+  within fields.*.type.number word
+  within fields.*.type.flag word
+  within fields.*.type.date word
+  within fields.*.type.record word
+  within fields.*.type.records word
+  within fields.*.type.document word
+  within fields.*.required bool
+  within fields.*.of any
+  within fields.*.quiet bool
+  within fields.*.hidden bool
+  within fields.*.said bool
+  within fields.*.indexed bool
+  within fields.*.suggests list
+  within fields.*.zoned bool
+  within fields.*.calls number
+  within fields.*.writer_of string
+  within fields.*.icon string
+  within fields.*.takes any
+  within fields.*.unsaid any
+  within fields.*.takes.* each
+  within views.* each
+  within views.*.kind string
+  within views.*.kind.table word
+  within views.*.kind.board word
+  within views.*.kind.list word
+  within views.*.kind.gallery word
+  within views.*.kind.calendar word
+  within views.*.kind.order word
+  within views.*.by string
+  within views.*.hides list
+  within views.*.done string
+  within views.*.group string
+  within views.*.only object
+  within views.*.columns list
+  within views.*.freezes string
+  within views.*.figures object
+  within views.*.widths object
+  within views.*.only.* each
+  within views.*.figures.* each
+  within views.*.figures.*.filled word
+  within views.*.figures.*.empty word
+  within views.*.figures.*.sum word
+  within views.*.figures.*.mean word
+  within views.*.figures.*.least word
+  within views.*.figures.*.greatest word
+  within views.*.figures.*.ticked word
+  within views.*.figures.*.different word
+  within views.*.widths.* each
+  gives name
+  gives store
+  gives at
+  gives records
+
+action column.changed
+  takes column string needed
+  takes was string
+  takes now string needed
+  takes seats int
+  takes needed int
+  takes agents int
+  takes had int
+  takes restart bool
+  takes taken object
+  gives came
+  gives told
+
+action column.paced
+  takes topic string needed
+  takes column string
+  takes said object
+  takes under string
+  takes columns list
+  takes looked list
+  takes reviews bool
+  takes why string
+  takes limit any
+  gives says
+
+action column.wrong
+  takes title string
+  takes column string needed
+  takes pass string
+  takes fail string
+  takes found bool
+  takes columns list
+  takes role string
+  takes agents int
+  takes seats int
+  takes needed int
+  takes reviews bool
+  takes works bool
+  takes rows list
+  takes usual list
+  takes of object
+  takes row object
+  gives said
+  gives about
+
+action compare.end
+  needs blueprints:run
+  takes name string needed
+  gives name
+  gives ended
+
+action compare.share
+  needs blueprints:run
+  takes name string needed
+  takes shares object needed
+  takes why string
+  gives name
+  gives shares
+
+action compare.start
+  needs blueprints:run
+  takes name string needed
+  takes of string needed
+  takes ways list needed
+  takes per string
+  takes also list
+  takes also_per string
+  takes counts list
+  within ways.name string
+  within ways.share int
+  within ways.blueprint string
+  within ways.version string
+  within ways.with object
+  within ways.prompts object
+  within counts.name string
+  within counts.topic string
+  within counts.thing string
+  within counts.by list
+  within counts.accepts list
+  gives name
+  gives ways
+  gives ended
+
+action compare.went
+  needs blueprints:run
+  takes name string needed
+  takes thing string needed
+  takes way string needed
+  gives name
+  gives written
+
+action contest.outcome
+  takes entries list needed
+  takes judged string
+  takes winner string
+  takes answer string
+  takes answered bool
+  takes said list
+  takes why string
+  takes question string
+  takes by string
+  takes losers string
+  takes undecided string
+  takes alone string
+  takes incumbent string
+  takes challengers string
+  gives came
+  gives ends
+  gives state
+  gives winner
+  gives entries
+  gives judge
+  gives question
+  gives why
+  gives said
+  gives take
+  gives agent
+  gives worked
+  gives keep
+  gives discard
+
+action contest.own
+  takes tests list needed
+  gives own
+
+action contest.pending
+  takes item string needed
+  takes contests list needed
+  gives came
+  gives ends
+  gives agent
+  gives says
+  gives contest
+  gives id
+  gives waiting
+
+action contest.scores
+  takes entries list needed
+  takes replies list needed
+  takes scale int
+  takes then string
+  gives came
+  gives winner
+  gives scores
+  gives why
+  gives question
+  gives unread
+
+action contest.shown
+  takes entries list needed
+  takes blind bool
+  takes seats int
+  gives text
+  gives letters
+  gives seated
+
+action contest.talked
+  takes entries list needed
+  takes last list needed
+  takes so_far string
+  takes needed int
+  takes turns int needed
+  takes most int needed
+  gives came
+  gives winner
+  gives said
+  gives why
+  gives next
+  gives transcript
+  gives verdicts
+
+action contest.tally
+  takes entries list needed
+  takes picks list needed
+  takes needed int
+  gives came
+  gives winner
+  gives verdicts
+  gives why
+  gives astray
+
+action contest.ways
+  takes item string needed
+  takes contest string needed
+  takes contenders list needed
+  takes compared string
+  takes known list
+  takes members list
+  takes judges string
+  takes blind bool
+  takes patch int
+  takes rows list
+  takes shadow string
+  takes finish list
+  takes later list
+  takes lasts string
+  gives finishing
+  gives came
+  gives why
+  gives comparison
+  gives ways
+  gives entries
+  gives not
+  gives incumbent
+  gives judge_slot
+  gives judge_role
+  gives starts
+  gives children
+  gives rows
+
+action device.list
+  needs fleet:read
+  gives devices
+
+action device.pick
+  needs fleet:read
+  takes mem_mb int
+  takes disk_mb int
+  takes cpus int
+  takes os string
+  takes arch string
+  takes among list
+  takes here bool
+  gives device
+  gives here
+  gives free_mem_mb
+  gives cpus
+  gives load1
+  gives considered
+
+action discussion.end
+  needs channels:write
+  takes root string needed
+  takes stretch int needed
+  takes came string needed
+  takes status string needed
+  gives to
+  gives agents
+  gives turns
+  gives says
+
+action discussion.ending
+  takes settings object needed
+  takes came string needed
+  takes agents list needed
+  takes turns int
+  takes channel string
+  takes words string
+  gives status
+  gives line
+  gives tells
+  gives says
+  gives lead
+
+action discussion.next
+  takes settings object needed
+  takes stretch object needed
+  takes slot string
+  takes decision string
+  gives came
+  gives slot
+  gives nth
+  gives asked
+  gives then
+  gives turns
+
+action discussion.offer
+  needs channels:write
+  takes channel string needed
+  takes agents list
+  takes lead string
+  takes advisors list
+  takes on list
+  takes turns int
+  takes agreeing string
+  takes tell_on list
+  gives channel
+  gives taking
+  gives settings
+
+action discussion.turned
+  needs channels:write
+  takes root string needed
+  takes stretch int needed
+  takes nth int needed
+  takes slot string needed
+  takes word string
+  gives turns
+
+action discussion.withdraw
+  needs channels:write
+  takes channel string needed
+
+action docs.export
+  needs projects:write
+  makes to the pages of what the program says of itself, in the folder
+  takes to string needed
+  takes project string
+  gives to
+  gives pages
+  gives version
+  gives changed
+
+action drop
+  takes from string needed
+  takes is any needed
+  takes by string
+  gives dropped
+  gives left
+
+action emit
+  open
+  takes topic string needed
+
+action end
+  takes status string
+  takes reason string
+
+action environment.ensure
+  needs projects:write
+  takes names list needed
+  gives made
+  gives there
+
+action factory.restart
+  needs admin
+  takes at_rest bool
+  gives came
+  gives version
+  gives runs_from
+
+action factory.snapshot
+  needs admin
+  makes to a copy of this factory in the folder
+  takes to string needed
+  gives to
+  gives snapshot
+  gives made
+  gives files
+  gives bytes
+  gives left_out
+
+action fail
+  takes message string
+
+action flag.set
+  needs projects:write
+  takes flag string needed
+  takes record string needed
+  takes kind string
+  takes environment string
+  takes value any
+  takes asked_by string
+  takes asked_by_name string
+  takes approved_by string
+  takes asked string
+  takes was any
+  gives written
+  gives there
+  gives unchanged
+
+action flags.due
+  takes rows list
+  gives due
+
+action fs.read
+  needs projects:read
+  takes path string needed
+  takes project string
+  takes missing_ok bool
+  gives content
+  gives exists
+
+action fs.write
+  needs projects:write
+  makes path a file of the project
+  takes path string needed
+  takes content string needed
+  takes project string
+  gives path
+
+action inbox.tell
+  needs inbox:write
+  takes to any needed
+  takes says string needed
+  takes why string
+  takes about string
+  takes place string
+  takes once string
+  takes parts list
+  within parts.kind string
+  within parts.kind.links word
+  within parts.kind.cards word
+  within parts.kind.message word
+  within parts.kind.rows word
+  within parts.kind.runs word
+  within parts.kind.measures word
+  within parts.tab string
+  within parts.links list
+  within parts.channel string
+  within parts.message string
+  within parts.project string
+  within parts.table string
+  within parts.ids list
+  within parts.saying object
+  within parts.columns list
+  within parts.instance string
+  within parts.key string
+  within parts.environment string
+  within parts.most int
+  within parts.measures list
+  within parts.labels object
+  within parts.last int
+  within parts.column string
+  within parts.label string
+  within parts.fail_to string
+  within parts.pass_to string
+  within parts.pass_press string
+  within parts.reason bool
+  gives told
+  gives passed
+
+action items.passed
+  takes items list needed
+  takes rows list needed
+  takes passes string needed
+  takes waits list needed
+  takes field string
+  gives came
+  gives passed
+  gives back
+  gives waiting
+  gives gone
+  gives said
+
+action keep
+  takes in string needed
+  takes what any needed
+  takes by string
+  gives kept
+  gives was
+
+action library.export
+  needs projects:write
+  makes collection the web pages of the library
+  takes collection string needed
+  takes project string
+  takes to string
+  takes publish string
+  gives to
+  gives from
+  gives pages
+  gives files
+  gives changed
+  gives left_out
+
+action log
+  takes message string needed
+
+action measure
+  takes name string needed
+  takes value number
+  takes ok bool
+  takes labels object
+
+action noop
+
+action outline.put
+  needs projects:write
+  takes things list needed
+  takes folder string
+  takes project string
+  gives folder
+  gives changed
+
+action place.changed
+  needs shell
+  takes item string needed
+  takes against string
+  takes patch int
+  gives dir
+  gives changed
+  gives patch
+  gives cut
+  gives there
+
+action place.clear
+  needs shell
+  takes item string needed
+  takes remote string
+  takes discard bool
+  gives came
+  gives why
+
+action place.follows
+  needs shell
+  takes item string needed
+  takes within int
+  gives merged
+  gives reverts
+  gives again
+
+action place.forward
+  needs shell
+  takes item string needed
+  takes onto string
+  takes remote string
+  takes to string
+  gives came
+  gives branch
+  gives at
+  gives sent
+  gives remote
+  gives key
+  gives why
+
+action place.gather
+  needs shell
+  makes item a place on a branch of its own, for the item, holding what is gathered
+  takes item string needed
+  takes items list
+  takes branches list
+  takes onto string
+  gives came
+  gives dir
+  gives branch
+  gives merged
+  gives had
+  gives nothing
+  gives with
+  gives said
+
+action place.head
+  needs shell
+  takes item string needed
+  takes dir string
+  gives commit
+
+action place.keep
+  needs shell
+  takes item string needed
+  takes dir string
+  takes by string
+  takes message string
+  takes unkept_ok bool
+  gives placed
+  gives committed
+  gives at
+  gives unkept
+  gives said
+  gives named
+
+action place.make
+  needs shell
+  makes item a place to work in, on a branch of its own, for the item
+  takes item string needed
+  takes worktree bool
+  takes dir string
+  takes fetch bool
+  takes remote string
+  takes base string
+  takes from string
+  gives dir
+  gives came
+  gives unasked
+
+action place.merge
+  needs shell
+  takes item string needed
+  takes message string
+  gives came
+  gives said
+  gives why
+
+action place.send
+  needs shell
+  takes item string needed
+  takes dir string
+  takes remote string
+  gives branch
+  gives remote
+  gives key
+
+action place.take
+  needs shell
+  takes item string needed
+  takes from string needed
+  gives came
+  gives dir
+  gives branch
+  gives at
+
+action place.tidied
+  takes item string needed
+  takes came string
+  takes why string
+  takes failed bool
+  takes error string
+  takes remote string
+  gives says
+
+action place.unkept
+  takes unkept string
+  takes named bool
+  takes tries int
+  takes most int
+  takes by string
+  gives came
+  gives again
+  gives ends
+  gives says
+
+action pool.turn
+  takes held list needed
+  takes waiting list needed
+  takes limit int
+  takes paused string
+  takes order string
+  takes asks string
+  takes gives_back string
+  takes asks_as string
+  takes gives_back_as string
+  takes ended string
+  takes about string
+  takes abouts object
+  takes priority any
+  takes priorities object
+  gives held
+  gives waiting
+  gives given
+  gives who
+  gives granted
+  gives waiters
+  gives about
+  gives abouts
+  gives priorities
+  gives waits
+
+action profile.set
+  needs admin
+  takes vars object needed
+  gives set
+  gives changed
+  gives removed
+  gives names
+
+action project.create
+  needs projects:write
+  makes name a project
+  takes name string needed
+  takes path string
+  gives id
+  gives path
+
+action project.scan
+  needs projects:read
+  takes project string
+  gives changed
+
+action project.set_up
+  needs blueprints:run
+  takes rows list needed
+  takes later bool
+  gives given
+  gives there
+  gives left
+
+action record.add
+  needs records:write
+  makes collection a row of the table
+  takes collection string needed
+  takes fields object needed
+  takes project string
+  takes wrote string
+  takes declaring object
+  takes by_hand bool
+  within declaring.* each
+  within declaring.*.type string
+  within declaring.*.type.text word
+  within declaring.*.type.choice word
+  within declaring.*.type.actor word
+  within declaring.*.type.list word
+  within declaring.*.type.number word
+  within declaring.*.type.flag word
+  within declaring.*.type.date word
+  within declaring.*.type.record word
+  within declaring.*.type.records word
+  within declaring.*.type.document word
+  within declaring.*.required bool
+  within declaring.*.of any
+  within declaring.*.quiet bool
+  within declaring.*.hidden bool
+  within declaring.*.said bool
+  within declaring.*.indexed bool
+  within declaring.*.suggests list
+  within declaring.*.zoned bool
+  within declaring.*.calls number
+  within declaring.*.writer_of string
+  within declaring.*.icon string
+  within declaring.*.takes any
+  within declaring.*.unsaid any
+  within declaring.*.takes.* each
+  gives id
+  gives data
+
+action record.ask
+  takes id string needed
+  takes says string needed
+  takes to list
+  takes asker string
+  takes otherwise string
+  takes once string
+  gives named
+  gives passed
+  gives nobody
+
+action record.attach
+  needs projects:read
+  takes id string needed
+  takes path string needed
+  takes name string
+  gives id
+  gives name
+  gives size
+
+action record.change
+  needs records:read
+  takes topic string needed
+  takes id string needed
+  takes collection string needed
+  takes changed list
+  gives came
+  gives says
+  gives title
+
+action record.comment
+  takes id string needed
+  takes body string needed
+  takes public bool
+  takes anchor object
+  within anchor.quote string
+  within anchor.before string
+  within anchor.after string
+  within anchor.under list
+  gives id
+  gives collection
+
+action record.get
+  needs records:read
+  takes id string needed
+  gives collection
+  gives data
+
+action record.keep
+  needs records:write
+  takes collection string needed
+  takes number int needed
+  takes fields object needed
+  takes project string
+  gives id
+  gives data
+
+action record.list
+  needs records:read
+  takes collection string needed
+  takes project string
+  gives items
+  gives count
+
+action record.remove
+  needs records:write
+  takes id string needed
+
+action record.said
+  needs records:read
+  takes id string needed
+  takes since list
+  takes leaving string
+  gives said
+  gives text
+  gives count
+  gives worked
+
+action record.update
+  needs records:write
+  takes id string needed
+  takes fields object needed
+  gives data
+
+action review.decided
+  takes topic string needed
+  takes item string needed
+  takes found bool needed
+  takes status string
+  takes here string needed
+  takes pass string
+  takes fail string
+  takes merge bool
+  takes lists bool
+  takes reports bool
+  takes by string
+  takes words string
+  takes approved int
+  takes against int
+  takes seats int
+  takes came string
+  takes says string
+  takes review string
+  takes kept list
+  takes usual int
+  takes back list
+  takes said object
+  takes own object
+  takes title string
+  takes asking any
+  gives came
+  gives says
+  gives told
+  gives verdict
+  gives counts
+  gives approves
+  gives lists
+  gives merges
+  gives keeps
+  gives row
+  gives order
+  gives sent
+  gives journey
+  gives with
+
+action review.over
+  takes kept list
+  takes review string needed
+  takes found bool
+  takes status string
+  takes here string needed
+  gives item
+  gives waits
+  gives said
+
+action review.owed
+  takes item string needed
+  takes found bool needed
+  takes status string
+  takes here string needed
+  takes agents int
+  takes seats int
+  takes needed int
+  takes most int
+  takes rounds int
+  takes back list
+  takes kept list
+  takes again bool
+  takes by string
+  takes pressed list
+  takes moved list
+  takes row string
+  takes order int
+  takes rows list
+  takes usual list
+  takes of object
+  takes labels list
+  takes part_of string
+  takes own object
+  takes said object
+  gives came
+  gives hold
+  gives rounds
+  gives said
+  gives row
+  gives order
+  gives lists
+  gives usual
+  gives with
+
+action review.tally
+  takes votes list needed
+  takes by string needed
+  takes decision string needed
+  takes words string
+  takes seats int needed
+  takes needed int
+  takes yes string
+  takes no string
+  gives votes
+  gives came
+  gives by
+  gives words
+  gives approved
+  gives against
+
+action review.verdict
+  takes verdict string needed
+  takes item string needed
+  takes status string
+  takes here string needed
+  takes pass string
+  takes fail string
+  takes merge bool
+  takes merged string
+  takes failed bool
+  takes why string
+  takes conflict string
+  takes by string
+  takes words string
+  takes approved int
+  takes against int
+  takes seats int
+  takes reports bool
+  gives came
+  gives says
+  gives told
+  gives word
+
+action rollout.next
+  takes name string needed
+  takes generation int
+  gives generation
+  gives name
+
+action rollout.watched
+  takes shifts list
+  gives came
+  gives shifts
+  gives unwatched
+
+action router.ensure
+  needs fleet:write
+  makes name a router
+  takes name string needed
+  takes listen int
+  takes host string
+  gives port
+  gives address
+
+action router.observe
+  needs fleet:read
+  takes router string needed
+  takes backend string needed
+  takes for duration needed
+  takes max_fail_ratio number
+  takes min_connections int
+  gives connections
+  gives failures
+  gives ratio
+
+action router.remove
+  needs fleet:write
+  takes name string needed
+  gives removed
+
+action router.route
+  needs fleet:write
+  takes name string needed
+  takes backends list needed
+  gives backends
+
+action rows.read
+  needs records:read
+  takes collection string needed
+  takes project string
+  takes fill object
+  takes once string
+  takes had list
+  takes adding string
+  takes counting object
+  takes giving object
+  takes gathering object
+  takes saying object
+  within fill.* each
+  within fill.*.like string
+  within fill.*.else any
+  within fill.*.slug_of string
+  within fill.*.by string
+  within fill.*.otherwise any
+  within fill.*.share any
+  within fill.*.each any
+  within fill.*.least list
+  within counting.* each
+  within counting.*.of list
+  within counting.*.by string
+  within counting.*.sum string
+  within counting.*.unless string
+  within giving.* each
+  within giving.*.like string
+  within giving.*.else any
+  within giving.*.slug_of string
+  within giving.*.by string
+  within giving.*.otherwise any
+  within giving.*.share any
+  within giving.*.each any
+  within giving.*.least list
+  within gathering.* each
+  within gathering.*.of string
+  within gathering.*.saying object
+  within saying.* each
+  within saying.*.not any
+  within saying.*.in list
+  within saying.*.said bool
+  gives rows
+  gives ids
+  gives count
+  gives those
+  gives others
+  gives chosen
+  gives gathered
+  gives gone
+  gives went
+  gives again
+  gives sum
+
+action rows.start
+  needs records:write
+  makes collection the first rows of the table
+  takes collection string needed
+  takes rows list needed
+  takes project string
+  takes by string
+  gives added
+  gives count
+  gives there
+
+action segments.next
+  takes rows list
+  takes usual list
+  takes of object
+  takes item string needed
+  takes labels list
+  takes part_of string
+  takes found bool needed
+  takes status string
+  takes here string needed
+  takes moved list
+  takes moves int
+  takes begin bool
+  takes row string
+  takes order int
+  takes came string
+  takes failed bool
+  takes why string
+  takes says string
+  takes asker string
+  takes question string
+  takes asking bool
+  takes tries int
+  takes most int
+  takes own object
+  takes journey object
+  takes doing string
+  takes given int
+  takes most_given int
+  takes answer bool
+  takes at list
+  takes was object
+  takes gave object
+  takes error string
+  takes last bool
+  takes most_done int
+  takes most_of string
+  takes through bool
+  gives came
+  gives word
+  gives calls
+  gives spawns
+  gives tells
+  gives passes
+  gives name
+  gives row
+  gives order
+  gives title
+  gives tries
+  gives with
+  gives moves
+  gives says
+  gives asker
+  gives question
+  gives why
+  gives at
+  gives journey
+  gives back
+  gives usual
+  gives asked
+  gives nth
+
+action segments.ran
+  takes item string needed
+  takes title string
+  takes command string
+  takes ok bool needed
+  takes fails string
+  takes printed string
+  takes also string
+  takes why string
+  takes unrun string
+  gives came
+  gives says
+
+action segments.recorded
+  takes item string needed
+  takes command string
+  takes ok bool needed
+  takes code any
+  takes duration_ms int
+  takes printed string
+  takes also string
+  takes why string
+  takes commit string
+  gives row
+
+action segments.where
+  takes item string needed
+  takes command string
+  takes in string
+  takes dir string
+  takes there bool
+  takes worktree bool
+  gives runs
+  gives dir
+  gives why
+
+action segments.wrong
+  takes rows list
+  takes usual list
+  takes of object
+  takes here string needed
+  takes lists bool
+  gives said
+
+action service.start
+  needs fleet:write
+  makes name a service
+  runs run
+  runs cmd
+  runs cli
+  takes name string needed
+  takes spec object
+  takes run string
+  takes cmd list
+  takes cli list
+  takes cwd string
+  takes env object
+  takes port int
+  takes port_env string
+  takes health object
+  takes restart string
+  takes max_restarts int
+  takes restart_backoff duration
+  takes stop_grace duration
+  within health.tcp bool
+  within health.http string
+  within health.cmd string
+  within health.interval duration
+  within health.timeout duration
+  within health.unhealthy_after int
+  gives name
+  gives port
+  gives pid
+  gives address
+
+action service.status
+  needs fleet:read
+  takes service string needed
+  gives name
+  gives status
+  gives healthy
+  gives pid
+  gives port
+  gives restarts
+  gives reason
+  gives log
+
+action service.stop
+  needs fleet:write
+  takes service string needed
+  takes missing_ok bool
+  gives stopped
+
+action service.wait_healthy
+  needs fleet:read
+  takes service string needed
+  takes timeout duration
+  gives healthy
+  gives after_ms
+
+action set
+  open
+
+action shell
+  needs shell
+  runs run
+  runs cmd
+  runs cli
+  takes run string
+  takes cmd list
+  takes cli list
+  takes cwd string
+  takes env object
+  takes clear_env bool
+  takes ok_codes list
+  gives code
+  gives stdout
+  gives stderr
+  gives duration_ms
+
+action sides.cross
+  takes here object needed
+  takes there object needed
+  takes last object
+  takes prefer string needed
+  takes takes string
+  takes trusted bool
+  takes held string
+  gives came
+  gives goes
+  gives comes
+  gives sends
+  gives takes
+  gives agreed
+  gives holds
+  gives newly
+
+action sides.owed
+  takes things list
+  takes by string
+  takes had list
+  takes also list
+  takes except string
+  gives came
+  gives those
+  gives ids
+  gives kept
+
+action stop
+  takes instance string
+  takes missing_ok bool
+
+action system.answer_as
+  needs admin
+  takes name string needed
+  gives name
+
+action system.check
+  needs fleet:read
+  takes min_free_mem_mb int
+  takes min_free_disk_mb int
+  takes max_load_per_cpu number
+  takes fail bool
+  gives ok
+  gives reasons
+  gives says
+  gives free_mem_mb
+  gives free_disk_mb
+  gives load1
+  gives cpus
+
+action tells.whom
+  takes rows list needed
+  takes of string needed
+  takes said any
+  takes from string
+  takes project string
+  gives tells
+  gives to
+  gives says
+  gives about
+  gives why
+  gives once
+  gives asks
+  gives unasked
+  gives untold
+
+action text.put
+  takes parts list needed
+  takes otherwise string
+  gives text
+  gives said
+
+action tickets.filed
+  takes content string needed
+  takes tickets list needed
+  takes made list needed
+  takes in_place string
+  gives links
+  gives ids
+  gives listed
+  gives content
+
+action tickets.fit
+  takes read string
+  takes unread string
+  takes tickets list
+  takes may list
+  takes rows list needed
+  takes of string needed
+  takes waits string
+  takes within string
+  takes state string
+  takes over string
+  gives came
+  gives why
+  gives new
+
+action tickets.named
+  takes rows list needed
+  takes ids list
+  takes label string
+  takes fresh bool
+  takes titled string
+  takes says string
+  takes labels string
+  takes waits string
+  takes within string
+  takes state string
+  takes over string
+  gives ids
+  gives count
+  gives listed
+  gives missing
+  gives shown
+  gives fix
+
+action tickets.placed
+  takes tickets list
+  takes made list
+  takes may list
+  takes rows list needed
+  takes of string needed
+  takes begins string
+  takes waits string
+  takes within string
+  takes state string
+  takes over string
+  gives links
+  gives ids
+  gives listed
+  gives count
+  gives ready
+  gives told
+
+action tickets.read
+  takes content string
+  gives came
+  gives tickets
+  gives why
+
+action timed.fields
+  takes columns list needed
+  gives fields
+  gives last
+
+action timed.read
+  needs board:read
+  takes id string needed
+  takes columns list needed
+  takes working string
+  gives came
+  gives row
+  gives number
+  gives total
+  gives back
+  gives reached
+  gives worked
+
+action triggers.fired
+  takes rows list
+  takes on string needed
+  takes pipeline string
+  takes with object
+  takes by string
+  takes branch string
+  takes commit string
+  takes column string
+  takes item string
+  takes row string
+  takes key string
+  gives fires
+  gives holds
+  gives refused
+  gives says
+  gives due
+
+action triggers.refused
+  takes pipeline string
+  takes says string
+  takes lacks list
+  gives says
+
+action triggers.timed
+  takes rows list
+  takes row string
+  takes key string
+  gives every
+  gives at
+  gives follows
+  gives wrong
+  gives row_every
+  gives row_at
+  gives row_after
+
+action turn.came
+  takes item string needed
+  takes ends list
+  takes seats int
+  takes yes string
+  takes no string
+  takes decision string
+  takes by string
+  takes reply string
+  takes finish list
+  takes later list
+  takes text string
+  takes asking string
+  takes given int
+  gives options
+  gives checklist
+  gives asking
+  gives cut
+  gives after
+  gives came
+  gives chose
+  gives says
+  gives why
+  gives asker
+  gives question
+
+action wait
+  takes for duration
+  takes event string
+  takes ended list
+  takes where string
+  takes timeout duration
+  takes scope string
+  takes say object
+  within say.topic string
+  gives timed_out
+  gives event
+  gives ended
+  gives gave
+
+action work.away
+  takes from string needed
+  takes to string needed
+  takes here string needed
+  takes doing string needed
+  takes taken string
+  takes again list
+  takes through bool
+  takes how string
+  gives came
+  gives again
+
+action work.came
+  takes item string needed
+  takes found bool needed
+  takes status string
+  takes here string needed
+  takes pass string
+  takes came string
+  takes says string
+  takes said string
+  takes failed bool
+  takes why string
+  takes moved list
+  takes had list
+  gives came
+  gives says
+
+action work.due
+  takes found bool needed
+  takes status string
+  takes here string needed
+  takes after list
+  takes clear bool
+  takes item string
+  takes actions list
+  takes pressed list
+  takes moved list
+  gives came
+  gives hold
+
+action work.ended
+  takes again bool
+  takes why string
+  takes failed bool
+  takes untaken bool
+  takes tries int
+  takes unreached bool
+  takes asked bool
+  takes asker string
+  takes question string
+  takes back bool
+  takes reason string
+  takes gave object
+  takes status string
+  takes here string
+  takes doing string
+  takes moved list
+  takes heard int
+  gives came
+  gives again
+  gives asks
+  gives asker
+  gives question
+  gives left
+  gives leaves
+
+action work.held
+  takes status string needed
+  takes from string needed
+  takes doing string needed
+  takes moved list
+  takes heard int
+  gives came
+
+action work.left
+  takes items list
+  takes doing string needed
+  takes worked list
+  gives given
+
+action work.owed
+  takes item string needed
+  takes found bool needed
+  takes status string
+  takes here string needed
+  takes moved list
+  takes kept list
+  takes actions list
+  takes pressed list
+  takes name string
+  takes said int
+  takes most int
+  takes rows list
+  takes usual list
+  takes of object
+  takes labels list
+  takes part_of string
+  takes own object
+  gives came
+  gives hold
+  gives at
+  gives begins
+  gives lists
+  gives usual
+  gives with
+  gives called
+  gives most
+
+action work.started
+  takes name string needed
+  takes item string needed
+  takes said int
+  takes usual int
+  gives called
+  gives most
+
+action work.turn
+  takes found bool needed
+  takes status string
+  takes here string needed
+  takes doing string needed
+  takes taken string
+  takes again list
+  takes moved list
+  takes most int
+  takes to string
+  takes else_to string
+  takes at int
+  gives came
+  gives mine
+  gives back
+  gives resumed
+  gives answer
+  gives unkept
+  gives note
+  gives tries
+  gives most
+  gives to
+  gives again
+  gives asking
+  gives heard
+  gives round
+
+action work.worked
+  takes item string needed
+  takes available bool
+  takes named string
+  takes told string
+  takes external bool
+  takes decision string
+  takes by string
+  takes reply string
+  takes ends list
+  takes stays string
+  takes seats int
+  takes decided string
+  takes words string
+  takes refused list
+  takes refused_means string
+  takes finish list
+  takes given int
+  takes cut bool
+  gives came
+  gives nearly
+  gives time
+  gives says
+  gives why
+  gives asker
+  gives question
+  gives left_as
+
+event agent.output
+  passing
+  heard agents:read
+  carries slot string always
+  carries turn string always
+  carries project string
+  carries text string always
+
+event agent.signin.added
+  heard agents:read
+  carries signin string always
+  carries kind string always
+  carries for string always
+  carries at_once int always
+
+event agent.signin.held
+  heard agents:read
+  carries signin string always
+  carries kind string always
+  carries slot string always
+  carries turn string always
+
+event agent.signin.released
+  heard agents:read
+  carries signin string always
+  carries slot string always
+  carries turn string always
+
+event agent.signin.removed
+  heard agents:read
+  carries signin string always
+
+event agent.signin.restored
+  heard agents:read
+  carries signin string always
+
+event agent.signin.set_aside
+  heard agents:read
+  carries signin string always
+  carries slot string always
+  carries turn string always
+  carries until int always
+  carries why string always
+
+event agent.signin.waiting
+  heard agents:read
+  carries slot string always
+  carries turn string always
+  carries until int always
+
+event agent.slot.created
+  heard agents:read
+  carries slot string always
+  carries adapter string always
+  carries project string
+  carries role string
+  carries wall bool
+
+event agent.slot.invited
+  heard agents:read
+  carries slot string always
+  carries expires int always
+  carries project string
+
+event agent.slot.joined
+  heard agents:read
+  carries slot string always
+  carries project string
+
+event agent.slot.leaving
+  heard agents:read
+  carries slot string always
+  carries in_hand int always
+  carries project string
+
+event agent.slot.removed
+  heard agents:read
+  carries slot string always
+  carries turns int always
+  carries channels list always
+  carries project string
+
+event agent.slot.stopped
+  heard agents:read
+  carries slot string always
+  carries project string
+
+event agent.slot.unjoined
+  heard agents:read
+  carries slot string always
+  carries project string
+
+event agent.slot.updated
+  heard agents:read
+  carries slot string always
+  carries adapter string
+  carries project string
+  carries role string
+  carries wall bool
+  carries model string
+
+event agent.turn.finished
+  heard agents:read
+  carries slot string always
+  carries turn string always
+  carries project string
+  carries kind string always
+  carries channel string
+  carries ok bool always
+  carries error string
+  carries called_off bool
+  carries duration_ms int always
+  carries cost_usd number
+  carries input_tokens int
+  carries output_tokens int
+  carries decision string
+  carries refused list
+
+event agent.turn.queued
+  heard agents:read
+  carries slot string always
+  carries turn string always
+  carries project string
+
+event agent.turn.started
+  heard agents:read
+  carries slot string always
+  carries turn string always
+  carries project string
+  carries kind string always
+  carries channel string
+  carries thread string
+  carries again int
+  carries taken_up bool
+
+event appearance.kept
+  heard themes:read
+  carries owner string always
+  carries appearance object always
+  carries nth int always
+
+event arranged.kept
+  heard arranged:read
+  carries owner string always
+  carries arrangement object always
+  carries nth int always
+
+event board.columns
+  heard board:read
+  carries project string always
+  carries columns list always
+
+event board.item.created
+  heard board:read
+  carries id string always
+  carries project string always
+  carries fields object
+  carries title string always
+  carries status string always
+  carries by string
+  carries late bool
+  carries restored bool
+  carries through string
+  carries wrote string
+  carries doing string
+
+event board.item.held
+  heard board:read
+  carries id string always
+  carries project string always
+  carries fields object
+  carries card string always
+  carries status string always
+  carries coming int always
+  carries waits list always
+  carries who list always
+  carries says string always
+  carries through string
+
+event board.item.moved
+  heard board:read
+  carries id string always
+  carries project string always
+  carries fields object
+  carries title string always
+  carries from string always
+  carries to string always
+  carries by string always
+  carries note string
+  carries decided string
+  carries late bool
+  carries through string
+
+event board.item.pressed
+  heard board:read
+  carries id string always
+  carries project string always
+  carries fields object
+  carries status string always
+  carries action string always
+  carries title string always
+  carries by string always
+  carries name string always
+  carries coming int always
+  carries back bool always
+  carries did string always
+  carries released bool always
+  carries waits list always
+  carries through string
+
+event board.item.removed
+  heard board:read
+  carries id string always
+  carries project string always
+  carries fields object
+
+event board.item.updated
+  heard board:read
+  carries id string always
+  carries project string always
+  carries fields object
+  carries title string
+  carries status string always
+  carries assignee string
+  carries changed list always
+  carries reworded bool always
+  carries by string always
+  carries through string
+  carries decided string
+  carries approved_by string
+  carries asked string
+
+event caller.removed
+  heard admin
+  carries name string always
+  carries topic string always
+  carries by_name string always
+
+event caller.set
+  heard admin
+  carries name string always
+  carries topic string always
+  carries by_name string always
+
+event card.approved
+  heard board:read
+  carries card string always
+  carries project string always
+  carries by string always
+  carries words string always
+
+event channel.archived
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries by string always
+  carries by_name string always
+  carries at int always
+  carries title string
+  carries project string
+
+event channel.attachment.placed
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries message string always
+  carries attachment string always
+  carries project string always
+  carries path string always
+  carries file_name string always
+  carries by string always
+  carries by_name string always
+  carries title string
+
+event channel.created
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries project string
+  carries restored bool
+
+event channel.described
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries topic string always
+  carries was string always
+  carries by string always
+  carries by_name string always
+  carries title string
+  carries project string
+
+event channel.discussion.begun
+  heard channels:read
+  carries channel string always
+  carries channel_name string always
+  carries project string
+  carries root string always
+  carries message string always
+  carries why string always
+  carries agents list always
+  carries spoken list always
+  carries asker string
+  carries stretch int always
+  carries first string always
+
+event channel.discussion.ended
+  heard channels:read
+  carries channel string always
+  carries root string always
+  carries stretch int always
+  carries came string always
+  carries status string always
+  carries turns int always
+  carries agents list always
+  carries by string
+  carries by_name string
+
+event channel.discussion.offered
+  heard channels:read
+  carries channel string always
+  carries settings object always
+  carries instance string always
+
+event channel.discussion.resumed
+  heard channels:read
+  carries channel string always
+  carries channel_name string always
+  carries project string
+  carries root string always
+  carries message string always
+  carries why string always
+  carries agents list always
+  carries spoken list always
+  carries asker string
+  carries stretch int always
+  carries first string always
+
+event channel.discussion.turned
+  heard channels:read
+  carries channel string always
+  carries root string always
+  carries stretch int always
+  carries nth int always
+  carries slot string always
+  carries word string always
+  carries turns int always
+
+event channel.discussion.withdrawn
+  heard channels:read
+  carries channel string always
+
+event channel.docs
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries doc string always
+  carries did string always
+  carries by string always
+  carries by_name string always
+  carries title string
+  carries project string
+
+event channel.joined
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries member string always
+  carries member_name string always
+  carries project string
+
+event channel.kept
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries kept bool always
+  carries alone bool always
+  carries title string
+  carries was string
+  carries conversation bool
+  carries project string
+
+event channel.left
+  heard channels:read
+  carries channel string always
+  carries member string always
+  carries project string
+
+event channel.managers
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries member string always
+  carries manages bool always
+  carries managers list always
+  carries by string always
+  carries by_name string always
+  carries title string
+  carries project string
+
+event channel.message
+  heard channels:read
+  carries id string always
+  carries channel string always
+  carries channel_name string always
+  carries project string
+  carries author string always
+  carries author_kind string always
+  carries author_name string always
+  carries body string always
+  carries reply_to string
+  carries thread string
+  carries model string
+  carries attachments list
+  carries mentions list always
+  carries mark string
+  carries said_by object
+
+event channel.placed
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries project string
+  carries workspace string
+
+event channel.removed
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries project string
+  carries messages int always
+  carries attachments int always
+  carries trash string
+
+event channel.renamed
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries was string always
+  carries kept bool always
+  carries by string always
+  carries by_name string always
+  carries title string
+  carries project string
+
+event channel.speaker_held
+  heard channels:read
+  carries name string always
+  carries holds list
+
+event channel.unarchived
+  heard channels:read
+  carries channel string always
+  carries name string always
+  carries by string always
+  carries title string
+  carries project string
+
+event client.updated
+  heard anyone
+  carries build string always
+  carries was string always
+
+event clock.kept
+  heard clock:read
+  carries owner string always
+  carries clock object always
+  carries nth int always
+
+event collection.ensured
+  heard records:read
+  carries project string always
+  carries name string always
+  carries store string always
+  carries at string
+  carries owner string
+  carries made bool always
+
+event collection.exported
+  heard records:read
+  carries project string always
+  carries name string always
+  carries to string always
+  carries pages int always
+  carries files int always
+  carries left_out int always
+
+event collection.fields
+  heard records:read
+  carries project string always
+  carries name string always
+  carries field string always
+  carries did string always
+
+event collection.forgotten
+  heard records:read
+  carries project string always
+  carries name string always
+  carries store string always
+
+event collection.history
+  heard records:read
+  carries project string always
+  carries name string always
+  carries record string always
+  carries seq int always
+  carries topic string always
+  carries who string always
+  carries said string always
+
+event collection.icon
+  heard records:read
+  carries project string always
+  carries name string always
+  carries field string always
+  carries icon string
+
+event collection.indexed
+  heard records:read
+  carries project string always
+  carries name string always
+  carries field string always
+
+event collection.titled
+  heard records:read
+  carries project string always
+  carries name string always
+  carries title string
+  carries by string always
+
+event collection.views
+  heard records:read
+  carries project string always
+  carries name string always
+  carries view string always
+
+event device.added
+  heard fleet:read
+  carries device string always
+  carries id string always
+
+event device.changed
+  heard fleet:read
+  carries device string always
+
+event device.connected
+  heard fleet:read
+  carries device string always
+
+event device.disconnected
+  heard fleet:read
+  carries device string always
+
+event device.invited
+  heard fleet:read
+  carries device string always
+  carries expires int always
+
+event device.joined
+  heard fleet:read
+  carries hub string always
+  carries id string always
+
+event device.left
+  heard fleet:read
+  carries hub string always
+
+event device.refused
+  heard fleet:read
+  carries id string always
+  carries from string always
+  carries why string always
+
+event device.removed
+  heard fleet:read
+  carries device string always
+
+event device.sample
+  passing
+  heard fleet:read
+  carries host string always
+  carries os string always
+  carries arch string always
+  carries cpus int always
+  carries total_mem_mb int always
+  carries free_mem_mb int always
+  carries free_disk_mb int
+  carries load1 number
+
+event device.unjoined
+  heard fleet:read
+  carries hub string always
+  carries why string always
+
+event device.unproven
+  heard fleet:read
+  carries why string always
+
+event extension.added
+  heard agents:read
+  carries extension string always
+  carries program string
+  carries actions list always
+  carries blueprints list always
+
+event extension.broken
+  heard agents:read
+  carries problem string always
+
+event extension.removed
+  heard agents:read
+  carries extension string always
+
+event handler.failed
+  heard blueprints:read
+  carries handler string always
+  carries error string always
+
+event handler.runaway
+  heard blueprints:read
+  carries handler string always
+  carries topic string always
+  carries seq int always
+  carries depth int always
+  carries within_ms int always
+  carries error string always
+
+event hook.failed
+  heard blueprints:read
+  carries action string always
+  carries error string always
+
+event identity.given
+  heard admin
+  carries account string always
+  carries scope string always
+  carries given list always
+
+event identity.group.held
+  heard admin
+  carries group string always
+  carries name string always
+  carries holds list always
+  carries keys int always
+
+event identity.group.joined
+  heard channels:read
+  carries group string always
+  carries name string always
+  carries member string always
+
+event identity.group.left
+  heard channels:read
+  carries group string always
+  carries name string always
+  carries member string always
+  carries keys int always
+
+event identity.group.made
+  heard channels:read
+  carries group string always
+  carries name string always
+
+event identity.group.removed
+  heard channels:read
+  carries group string always
+  carries name string always
+  carries members list always
+  carries keys int always
+
+event identity.group.renamed
+  heard channels:read
+  carries group string always
+  carries name string always
+  carries was string always
+
+event identity.key.made
+  heard admin
+  carries key string always
+  carries name string always
+  carries account string always
+  carries scopes list always
+  carries with string
+
+event identity.key.revoked
+  heard admin
+  carries key string always
+  carries name string always
+  carries account string always
+  carries with string
+  carries leave bool
+
+event identity.key.rolled
+  heard admin
+  carries key string always
+  carries name string always
+  carries account string always
+
+event identity.password
+  heard admin
+  carries account string always
+
+event identity.registered
+  heard admin
+  carries account string always
+  carries role string always
+  carries made bool
+
+event identity.renamed
+  heard admin
+  carries account string always
+  carries name string always
+  carries was string always
+
+event identity.signed_out
+  heard admin
+  carries account string always
+  carries sessions int always
+
+event identity.taken
+  heard admin
+  carries account string always
+  carries scope string always
+  carries given list always
+  carries keys int always
+
+event identity.tier
+  heard admin
+  carries tier string always
+
+event inbox.away
+  heard inbox:read
+  carries owner string always
+  carries lines list always
+  carries place string
+  carries unread int always
+
+event inbox.follows
+  heard inbox:read
+  carries owner string always
+  carries kind string always
+  carries thing string always
+  carries follows bool always
+  carries pages bool
+  carries often string
+  carries at string
+
+event inbox.read
+  heard inbox:read
+  carries owner string always
+  carries lines list always
+  carries place string
+  carries unread int always
+
+event inbox.told
+  heard inbox:read
+  carries owner string always
+  carries line string always
+  carries kind string always
+  carries place string always
+  carries about string always
+  carries count int always
+  carries unread int always
+
+event inbox.unread
+  heard inbox:read
+  carries owner string always
+  carries lines list always
+  carries place string
+  carries unread int always
+
+event instance.active
+  heard blueprints:read
+  carries outputs object always
+
+event instance.call_kept
+  heard blueprints:read
+  carries blueprint string always
+  carries key string always
+  carries error string always
+  carries kept string always
+
+event instance.failed
+  heard blueprints:read
+  carries error string always
+  carries reason string
+  carries called_by string
+  carries let_be bool
+  carries run string
+
+event instance.finished
+  heard blueprints:read
+  carries status string always
+  carries key string
+  carries outputs object
+  carries error string
+
+event instance.started
+  heard blueprints:read
+  carries blueprint string always
+  carries key string always
+  carries parent string
+  carries project string
+  carries revision string always
+
+event instance.state
+  open
+  heard blueprints:read
+
+event instance.stopped
+  heard blueprints:read
+  carries blueprint string always
+  carries why string always
+
+event instance.text_left
+  heard blueprints:read
+  carries blueprint string always
+  carries error string always
+  carries kept string always
+  carries left string always
+
+event instance.update_failed
+  heard blueprints:read
+  carries error string always
+  carries kept string always
+
+event instance.updated
+  heard blueprints:read
+  carries blueprint string always
+  carries revision string always
+  carries from string always
+  carries in_place bool
+  carries carried bool
+
+event log.line
+  passing
+  heard blueprints:read
+  carries stream string always
+  carries text string always
+  carries service string
+
+event poll.failed
+  heard blueprints:read
+  carries handler string always
+  carries error string always
+
+event project.approval.asked
+  heard blueprints:read
+  carries ask string always
+  carries run string always
+  carries step string always
+  carries instance string always
+  carries blueprint string always
+  carries environment string always
+  carries asker string always
+  carries project string
+  carries to list always
+
+event project.approval.decided
+  heard blueprints:read
+  carries ask string always
+  carries run string always
+  carries step string always
+  carries instance string always
+  carries blueprint string always
+  carries environment string always
+  carries asker string always
+  carries project string
+  carries status string always
+  carries by string always
+  carries why string
+
+event project.arranged
+  heard projects:read
+  carries project string always
+  carries nth int always
+  carries by string always
+  carries forgot bool always
+
+event project.blueprints
+  heard projects:read
+  carries project string always
+  carries said string always
+  carries folder string
+  carries was string
+  carries was_said string
+  carries usual string always
+
+event project.branch.moved
+  heard projects:read
+  carries project string always
+  carries branch string always
+  carries from string always
+  carries to string always
+
+event project.created
+  heard projects:read
+  carries project string always
+  carries name string always
+  carries path string always
+  carries brownfield bool always
+  carries restored bool
+
+event project.environment.changed
+  heard projects:read
+  carries project string always
+  carries environment string always
+  carries set list always
+  carries changed list always
+  carries removed list always
+  carries marked list always
+  carries secrets list always
+  carries secrets_removed list always
+  carries secrets_marked list always
+  carries deploy bool always
+  carries rules bool always
+  carries by string always
+  carries by_name string always
+
+event project.environment.down
+  heard projects:read
+  carries project string always
+  carries environment string always
+  carries branch string always
+  carries commit string always
+  carries blueprint string always
+  carries instance string always
+  carries run string
+  carries up_ms int always
+  carries address string
+
+event project.environment.failed
+  heard projects:read
+  carries project string always
+  carries environment string always
+  carries branch string always
+  carries commit string always
+  carries blueprint string always
+  carries instance string always
+  carries run string
+  carries took_ms int always
+  carries cards list always
+  carries reason string
+
+event project.environment.made
+  heard projects:read
+  carries project string always
+  carries environment string always
+  carries by string always
+  carries by_name string always
+
+event project.environment.ran
+  heard projects:read
+  carries project string always
+  carries environment string always
+  carries branch string always
+  carries commit string always
+  carries blueprint string always
+  carries instance string always
+  carries run string
+  carries by string always
+  carries by_name string always
+
+event project.environment.ready
+  heard projects:read
+  carries project string always
+  carries environment string always
+  carries branch string always
+  carries commit string always
+  carries blueprint string always
+  carries instance string always
+  carries run string
+  carries took_ms int always
+  carries address string
+  carries cards list always
+
+event project.environment.removed
+  heard projects:read
+  carries project string always
+  carries environment string always
+  carries vars number always
+  carries secrets number always
+  carries by string always
+  carries by_name string always
+
+event project.file.changed
+  heard projects:read
+  carries project string always
+  carries path string always
+  carries folders list always
+  carries kind string always
+  carries change string always
+
+event project.flag.asked
+  heard projects:read
+  carries project string always
+  carries flag string always
+  carries name string always
+  carries record string always
+  carries kind string always
+  carries environment string always
+  carries variable string always
+  carries asked string always
+  carries value any always
+  carries was any
+  carries shown string always
+  carries by string always
+  carries by_name string always
+
+event project.flag.changed
+  heard projects:read
+  carries project string always
+  carries environment string always
+  carries flag string always
+  carries name string always
+  carries record string always
+  carries variable string always
+  carries value any
+  carries was any
+  carries shown string always
+  carries by string always
+  carries by_name string always
+  carries asked_by string
+  carries asked_by_name string
+  carries approved_by string
+
+event project.flag.unchanged
+  heard projects:read
+  carries project string always
+  carries environment string always
+  carries flag string always
+  carries name string always
+  carries record string always
+  carries variable string always
+  carries value any
+  carries was any
+  carries now any
+  carries overtaken string always
+  carries shown string always
+  carries by string always
+  carries by_name string always
+  carries asked_by string
+  carries asked_by_name string
+  carries approved_by string
+
+event project.folder.made
+  heard projects:read
+  carries project string always
+  carries path string always
+  carries folders list always
+
+event project.forked
+  heard projects:read
+  carries project string always
+  carries blueprint string always
+  carries version string
+  carries revision string always
+  carries path string always
+  carries by string always
+  carries by_name string always
+
+event project.git.changed
+  passing
+  heard projects:read
+  carries project string always
+
+event project.placed
+  heard projects:read
+  carries project string always
+  carries workspace string
+  carries was string
+
+event project.removed
+  heard projects:read
+  carries project string always
+
+event project.renamed
+  heard projects:read
+  carries project string always
+  carries name string always
+  carries was string always
+  carries by string always
+
+event project.rescanned
+  heard projects:read
+  carries project string always
+  carries changed int always
+
+event project.setup.removed
+  heard projects:read
+  carries name string always
+  carries by string always
+
+event project.setup.saved
+  heard projects:read
+  carries name string always
+  carries rows int always
+  carries by string always
+
+event project.trusted
+  heard projects:read
+  carries project string always
+
+event project.unforked
+  heard projects:read
+  carries project string always
+  carries blueprint string always
+  carries path string always
+  carries version string
+  carries lost bool always
+  carries by string always
+  carries by_name string always
+
+event project.untrusted
+  heard projects:read
+  carries project string always
+
+event record.ask.approved
+  heard records:read
+  carries ask string always
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries cells list always
+  carries asker string always
+  carries by string always
+
+event record.ask.decided
+  heard records:read
+  carries ask string always
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries cells list always
+  carries asker string always
+  carries by string always
+  carries status string always
+  carries why string
+
+event record.ask.declined
+  heard records:read
+  carries ask string always
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries cells list always
+  carries asker string always
+  carries by string always
+  carries why string always
+
+event record.asked
+  heard records:read
+  carries ask string always
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries cells list always
+  carries asker string always
+  carries why string always
+
+event record.attached
+  heard records:read
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries through string
+  carries fields object
+  carries attachment string always
+  carries name string always
+  carries media string always
+  carries size int always
+  carries by string always
+  carries restored bool
+
+event record.commented
+  heard records:read
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries through string
+  carries fields object
+  carries body string always
+  carries by string always
+  carries public bool
+  carries anchor object
+  carries decided string
+  carries once string
+  carries doing string
+  carries asker string
+  carries parent int
+
+event record.created
+  heard records:read
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries through string
+  carries fields object
+  carries restored bool
+  carries with string
+  carries wrote string
+  carries doing string
+
+event record.detached
+  heard records:read
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries through string
+  carries fields object
+  carries attachment string always
+  carries name string always
+  carries media string always
+  carries size int always
+  carries by string always
+  carries trash string
+  carries into string
+
+event record.removed
+  heard records:read
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries through string
+  carries fields object
+  carries with string
+  carries trash string
+  carries into string
+
+event record.reworded
+  heard records:read
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries through string
+  carries fields object
+  carries field string always
+  carries was number always
+  carries now string always
+
+event record.updated
+  heard records:read
+  carries id string always
+  carries project string always
+  carries collection string always
+  carries through string
+  carries fields object
+  carries changed list always
+  carries approved_by string
+  carries asked string
+  carries chose object
+  carries flags object
+
+event router.failed
+  heard fleet:read
+  carries router string always
+  carries error string always
+
+event router.listening
+  heard fleet:read
+  carries router string always
+  carries host string always
+  carries port int always
+
+event router.routed
+  heard fleet:read
+  carries router string always
+  carries backends list always
+
+event run.failed
+  heard blueprints:read
+  carries flow string always
+  carries blueprint string always
+  carries error string always
+  carries reason string
+  carries duration_ms int
+
+event run.finished
+  heard blueprints:read
+  carries flow string always
+  carries blueprint string always
+  carries status string always
+  carries duration_ms int
+  carries error string
+
+event run.resumed
+  heard blueprints:read
+  carries flow string always
+  carries blueprint string always
+
+event run.started
+  heard blueprints:read
+  carries flow string always
+  carries blueprint string always
+
+event search.indexed
+  heard search
+  carries docs int always
+  carries written int always
+  carries took_ms int always
+
+event search.progress
+  passing
+  heard search
+  carries phase string always
+  carries done int always
+  carries total int always
+  carries docs int always
+
+event secret.removed
+  heard secrets:use
+  carries name string always
+  carries by_name string always
+
+event secret.set
+  heard secrets:use
+  carries name string always
+  carries by_name string always
+
+event service.exited
+  heard fleet:read
+  carries service string always
+  carries code int
+  carries while string
+
+event service.failed
+  heard fleet:read
+  carries service string always
+  carries reason string always
+
+event service.healthy
+  heard fleet:read
+  carries service string always
+
+event service.restarting
+  heard fleet:read
+  carries service string always
+  carries attempt int always
+  carries in_ms int always
+
+event service.started
+  heard fleet:read
+  carries service string always
+  carries pid int
+  carries port int
+
+event service.stopped
+  heard fleet:read
+  carries service string always
+
+event service.unhealthy
+  heard fleet:read
+  carries service string always
+  carries reason string always
+
+event step.cancelled
+  heard blueprints:read
+  carries attempt int
+
+event step.failed
+  heard blueprints:read
+  carries attempt int always
+  carries error string always
+  carries code string
+  carries timed_out bool
+  carries tolerated bool
+  carries duration_ms int
+
+event step.finished
+  heard blueprints:read
+  carries attempt int always
+  carries status string always
+  carries duration_ms int always
+
+event step.retrying
+  heard blueprints:read
+  carries attempt int always
+  carries error string always
+  carries in_ms int always
+  carries by string always
+
+event step.skipped
+  heard blueprints:read
+  carries when string
+
+event step.started
+  heard blueprints:read
+  carries attempt int always
+  carries verb string always
+  carries target string always
+  carries resumed bool always
+
+event step.waiting
+  heard blueprints:read
+  carries event string
+  carries ended list
+  carries until int
+
+event system.across
+  heard anyone
+  carries across object
+  carries quiet bool always
+
+event system.comparison.added
+  heard blueprints:read
+  carries name string always
+  carries project string
+  carries of string always
+  carries per string
+  carries also list
+  carries also_per string
+  carries counts list
+  carries ways list always
+  carries by string always
+  carries held list always
+  carries started int always
+  carries ended int
+  carries goes string
+  carries until object
+  carries asked bool
+  carries rule object
+  carries rolling object
+  carries shared list
+
+event system.comparison.ended
+  heard blueprints:read
+  carries name string always
+  carries project string
+  carries of string always
+  carries per string
+  carries also list
+  carries also_per string
+  carries counts list
+  carries ways list always
+  carries by string always
+  carries held list always
+  carries started int always
+  carries ended int
+  carries goes string
+  carries until object
+  carries asked bool
+  carries rule object
+  carries rolling object
+  carries shared list
+
+event system.comparison.ruled
+  heard blueprints:read
+  carries name string always
+  carries project string
+  carries of string always
+  carries per string
+  carries also list
+  carries also_per string
+  carries counts list
+  carries ways list always
+  carries by string always
+  carries held list always
+  carries started int always
+  carries ended int
+  carries goes string
+  carries until object
+  carries asked bool
+  carries rule object
+  carries rolling object
+  carries shared list
+
+event system.comparison.shared
+  heard blueprints:read
+  carries name string always
+  carries project string
+  carries at int always
+  carries by string always
+  carries was object always
+  carries now object always
+  carries why string always
+
+event system.comparison.started
+  heard blueprints:read
+  carries name string always
+  carries project string
+  carries of string always
+  carries per string
+  carries also list
+  carries also_per string
+  carries counts list
+  carries ways list always
+  carries by string always
+  carries held list always
+  carries started int always
+  carries ended int
+  carries goes string
+  carries until object
+  carries asked bool
+  carries rule object
+  carries rolling object
+  carries shared list
+
+event system.copied
+  heard admin
+  carries snapshot string always
+  carries from object always
+  carries profile string always
+  carries note string always
+  carries made int always
+  carries arrived int always
+  carries files int always
+  carries projects int always
+  carries left_out object always
+  carries removed object always
+  carries without_files list always
+  carries announced bool always
+
+event system.degraded
+  heard fleet:read
+  carries what string always
+  carries reason string always
+  carries effect string always
+
+event system.draining
+  heard anyone
+  carries since int always
+  carries until int always
+  carries turns int always
+  carries runs int always
+
+event system.experiment
+  heard anyone
+  carries name string always
+  carries on bool always
+  carries by string always
+  carries by_name string always
+
+event system.logs
+  heard blueprints:read
+  carries days int
+  carries was any
+  carries folder string
+  carries by string always
+  carries by_name string always
+
+event system.logs.let_go
+  heard blueprints:read
+  carries before int always
+  carries days int always
+  carries events int always
+  carries files int always
+  carries bytes int always
+  carries held string
+
+event system.move_cleared
+  heard admin
+  carries files int always
+  carries bytes int always
+
+event system.moved_apart
+  heard admin
+  carries moved string always
+  carries journal string always
+  carries rows object always
+  carries beside object always
+  carries at int always
+  carries took_ms int always
+
+event system.named
+  heard fleet:read
+  carries name string always
+
+event system.profile
+  heard blueprints:read
+  carries set list always
+  carries changed list always
+  carries removed list always
+  carries by string
+  carries by_name string always
+
+event system.reindexed
+  heard admin
+  carries took_ms int
+
+event system.repack_cleared
+  heard admin
+  carries bytes int always
+
+event system.repacked
+  heard admin
+  carries before int always
+  carries after int always
+  carries events int always
+  carries took_ms int always
+
+event system.restarting
+  heard anyone
+  carries at_rest bool always
+
+event system.snapshot
+  heard admin
+  carries snapshot string always
+  carries to string always
+  carries profile string
+  carries note string always
+  carries made int always
+  carries files int always
+  carries bytes int always
+  carries holds object always
+  carries left_out object always
+  carries took_ms number always
+
+event system.started
+  heard anyone
+  carries address string always
+  carries version string always
+  carries resumed int always
+  carries note string
+  carries profile string
+  carries runs_from string always
+
+event system.stopped
+  heard anyone
+
+event system.stopping
+  heard anyone
+  carries at string
+  carries of string
+  carries drained bool
+  carries cut list
+
+event system.texts
+  heard blueprints:read
+  carries come string always
+  carries land string always
+  carries was string always
+  carries landed string always
+  carries by string always
+  carries by_name string always
+  carries gives_up string
+
+event system.unnamed
+  heard fleet:read
+  carries name string always
+
+event theme.chosen
+  heard themes:read
+  carries owner string always
+  carries theme any always
+
+event theme.gone
+  heard themes:read
+  carries owner string always
+  carries theme string always
+  carries offered bool always
+
+event theme.kept
+  heard themes:read
+  carries owner string always
+  carries theme object always
+
+event theme.offered
+  heard themes:read
+  carries owner string always
+  carries theme object always
+  carries by string always
+
+event theme.withdrawn
+  heard themes:read
+  carries owner string always
+  carries theme string always
+  carries by string always
+
+event topic.answered
+  heard records:read
+  carries record string always
+  carries title string always
+  carries project string
+  carries workspace string
+  carries by string
+  carries answer string
+
+event topic.closed
+  heard records:read
+  carries record string always
+  carries title string always
+  carries project string
+  carries workspace string
+  carries by string
+
+event topic.followed
+  heard records:read
+  carries record string always
+  carries title string always
+  carries project string
+  carries workspace string
+  carries by string
+  carries follows bool always
+
+event topic.moved
+  heard records:read
+  carries record string always
+  carries title string always
+  carries project string
+  carries workspace string
+  carries by string
+  carries parent string
+  carries position number always
+  carries was object always
+
+event topic.opened
+  heard records:read
+  carries record string always
+  carries title string always
+  carries project string
+  carries workspace string
+  carries by string
+
+event topic.placed
+  heard records:read
+  carries record string always
+  carries title string always
+  carries project string
+  carries workspace string
+  carries by string
+  carries was string
+
+event topic.revised
+  heard records:read
+  carries record string always
+  carries title string always
+  carries project string
+  carries workspace string
+  carries by string
+  carries nth int always
+
+event topic.standing
+  heard records:read
+  carries record string always
+  carries title string always
+  carries project string
+  carries workspace string
+  carries by string
+
+event topic.untracked
+  heard records:read
+  carries record string always
+  carries title string always
+  carries project string
+  carries workspace string
+  carries by string
+
+event trash.gone
+  heard projects:read
+  carries id string always
+  carries kind string always
+  carries thing string always
+  carries project string
+  carries why string always
+
+event trash.put
+  heard projects:read
+  carries id string always
+  carries kind string always
+  carries thing string always
+  carries project string
+
+event trash.restored
+  heard projects:read
+  carries id string always
+  carries kind string always
+  carries thing string always
+  carries project string
+  carries to string
+  carries with int
+  carries said string
+
+event workspace.created
+  heard projects:read
+  carries workspace string always
+  carries name string always
+
+event workspace.removed
+  heard projects:read
+  carries workspace string always
+  carries name string always
+  carries projects list always
+  carries channels list always
+  carries to string
+
+event workspace.renamed
+  heard projects:read
+  carries workspace string always
+  carries name string always
+  carries was string always

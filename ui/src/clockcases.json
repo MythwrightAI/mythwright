@@ -1,0 +1,27 @@
+{
+  "longest": 64,
+  "cases": [
+    [{ "zone": "America/Denver" }, null],
+    [{ "zone": "America/Denver", "hours": "24h" }, null],
+    [{ "zone": "America/Argentina/Buenos_Aires", "hours": "12h" }, null],
+    [{ "zone": "Etc/GMT+5" }, null],
+    [{ "zone": "UTC", "hours": null }, null],
+    [{ "zone": "America/Port-au-Prince" }, null],
+    ["America/Denver", "How a time is written is a mapping of `zone` and `hours`."],
+    [[], "How a time is written is a mapping of `zone` and `hours`."],
+    [{ "zone": "UTC", "seconds": true }, "`seconds` is nothing said of how a time is written: it says `zone` and `hours`."],
+    [{}, "A zone is said by its name, such as `America/Denver`, which is text."],
+    [{ "zone": 7 }, "A zone is said by its name, such as `America/Denver`, which is text."],
+    [{ "zone": "" }, "Say which zone, by its name, such as `America/Denver`."],
+    [{ "zone": "Abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm" }, "A zone's name is 64 letters at most, and this one is 65."],
+    [{ "zone": "America/\nDenver" }, "A zone's name is one line."],
+    [{ "zone": "America/New York" }, "A zone's name is made of letters, digits, `_`, `-` and `+`, in parts between `/`, and ` ` is none of them."],
+    [{ "zone": "../etc/passwd" }, "A zone's name is made of letters, digits, `_`, `-` and `+`, in parts between `/`, and `.` is none of them."],
+    [{ "zone": "America//Denver" }, "`America//Denver` is no zone's name: each of its parts between `/` begins with a letter, such as `America/Denver`."],
+    [{ "zone": "/America" }, "`/America` is no zone's name: each of its parts between `/` begins with a letter, such as `America/Denver`."],
+    [{ "zone": "America/" }, "`America/` is no zone's name: each of its parts between `/` begins with a letter, such as `America/Denver`."],
+    [{ "zone": "+05" }, "`+05` is no zone's name: each of its parts between `/` begins with a letter, such as `America/Denver`."],
+    [{ "zone": "America/Denver", "hours": "12" }, "`hours` is `12h` or `24h`, and \"12\" is neither."],
+    [{ "zone": "America/Denver", "hours": 24 }, "`hours` is `12h` or `24h`, and 24 is neither."]
+  ]
+}

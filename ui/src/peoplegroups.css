@@ -1,0 +1,19 @@
+/* Settings' Groups (`views/peoplegroups.tsx`): each group a block of
+   lines, its members as words that wrap, nothing wider than the panel. */
+.people-groups-about { min-width: 0; overflow-wrap: anywhere; }
+.people-groups-said { padding: 10px 14px; margin: 0; }
+.group-make { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px 0; }
+.group-make input { flex: 1 1 12em; min-width: 0; }
+.group-line { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); min-width: 0; }
+.group-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.group-name { flex: 0 1 18em; min-width: 6em; font-weight: 600; }
+.group-count { white-space: nowrap; }
+.group-said { margin: 0; overflow-wrap: anywhere; }
+.group-members { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.group-member { display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; padding: 0 0 0 calc(8px * var(--density)); border: 1px solid var(--line); border-radius: calc(12px * var(--round)); }
+.group-member-name { min-width: 0; overflow-wrap: anywhere; }
+.group-add { display: inline-flex; align-items: center; gap: 6px; flex: none; max-width: 100%; }
+.group-add select { min-width: 0; max-width: 100%; }
+.group-closed { overflow-wrap: anywhere; min-width: 0; }
+.group-fold { display: block; height: auto; min-height: calc(28px * var(--tall)); line-height: 1.35; padding: calc(4px * var(--density)) 10px; align-self: flex-start; text-align: left; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.group-holds { min-width: 0; overflow-x: auto; }

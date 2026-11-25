@@ -1,0 +1,8 @@
+/* A key's line in Settings, with Roll and Revoke at its end, and the questions each asks. */
+.key-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.key-revoke h2, .key-roll h2 { margin: 0; overflow-wrap: anywhere; }
+.key-revoke p, .key-roll p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.key-revoke ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; color: var(--dim); font-size: calc(13px * var(--size)); line-height: 1.45; }
+.key-revoke li { overflow-wrap: anywhere; }
+.key-revoke-leave { gap: 8px; align-items: flex-start; }
+.key-roll .code-box { overflow-wrap: anywhere; word-break: break-all; }

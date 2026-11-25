@@ -1,0 +1,1448 @@
+{
+  "decisions": [
+    "retry",
+    "continue",
+    "fail"
+  ],
+  "functions": [
+    {
+      "example": "blueprint: said\n\nparams:\n  names: [ada, grace]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"There are ${ len(params.names) }.\" }\n",
+      "name": "len",
+      "usage": "len(x): length of a string, list or mapping"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  names: [ada, grace]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Ada is among them: ${ contains(params.names, 'ada') }\" }\n",
+      "name": "contains",
+      "usage": "contains(haystack, needle): substring, list member or key"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  branch: release/2\n\nsteps:\n  said:\n    do: log\n    with: { message: \"A release: ${ starts_with(params.branch, 'release/') }\" }\n",
+      "name": "starts_with",
+      "usage": "starts_with(text, prefix): whether the text begins with the prefix"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  file: notes.md\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Markdown: ${ ends_with(params.file, '.md') }\" }\n",
+      "name": "ends_with",
+      "usage": "ends_with(text, suffix): whether the text ends with the suffix"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  name: Ada\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Called ${ lower(params.name) }\" }\n",
+      "name": "lower",
+      "usage": "lower(text): the text in small letters, to compare words however they were written"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  name: Ada\n\nsteps:\n  said:\n    do: log\n    with: { message: \"CALLED ${ upper(params.name) }\" }\n",
+      "name": "upper",
+      "usage": "upper(text): the text in capital letters"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  name: \"  Ada  \"\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Called ${ trim(params.name) }\" }\n",
+      "name": "trim",
+      "usage": "trim(text): the text without the spaces and lines at either end"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  count: 3\n\nsteps:\n  said:\n    do: log\n    with: { message: \"${ string(params.count) } of them\" }\n",
+      "name": "string",
+      "usage": "string(x): x as text, a number or a list written out"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  count: \"3\"\n\nsteps:\n  said:\n    do: log\n    with: { message: \"One more than ${ int(params.count) }\" }\n",
+      "name": "int",
+      "usage": "int(x): x as a whole number, from text or a number"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  share: \"0.5\"\n\nsteps:\n  said:\n    do: log\n    with: { message: \"A share of ${ float(params.share) }\" }\n",
+      "name": "float",
+      "usage": "float(x): x as a number that may have a fraction, from text or a number"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  names: [ada, grace]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"As JSON: ${ json(params.names) }\" }\n",
+      "name": "json",
+      "usage": "json(x): x written as JSON text, for a program that reads it"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  ages: { default: { ada: 36, grace: 85 } }\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Who: ${ keys(params.ages) }\" }\n",
+      "name": "keys",
+      "usage": "keys(mapping): its keys as a list"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  names: [ada, grace]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Hello, ${ join(params.names, ' and ') }.\" }\n",
+      "name": "join",
+      "usage": "join(list, separator): the elements of a list as one text, the separator between each two"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  names: ada grace\n\nsteps:\n  said:\n    do: log\n    with: { message: \"The first is ${ split(params.names, ' ')[0] }\" }\n",
+      "name": "split",
+      "usage": "split(text, separator): the text cut into a list wherever the separator is"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  title: The old way\n\nsteps:\n  said:\n    do: log\n    with: { message: \"${ replace(params.title, 'old', 'new') }\" }\n",
+      "name": "replace",
+      "usage": "replace(text, from, to): the text with every `from` in it written as `to`"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  to: \"ops-1\"\n\nsteps:\n  said:\n    do: log\n    with: { message: \"A plain name: ${ matches(params.to, '^[a-z0-9-]+$') }\" }\n",
+      "name": "matches",
+      "usage": "matches(text, pattern): whether the pattern is found in the text; `^` and `$` are its ends"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  title: A Better Way\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Kept as ${ slug(params.title) }\" }\n",
+      "name": "slug",
+      "usage": "slug(text): lowercase words joined by dashes"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  asked: 12\n\nsteps:\n  said:\n    do: log\n    with: { message: \"At most ${ min(params.asked, 8) }\" }\n",
+      "name": "min",
+      "usage": "min(a, b, ...): the least of the numbers it is handed"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  asked: 0\n\nsteps:\n  said:\n    do: log\n    with: { message: \"At least ${ max(params.asked, 1) }\" }\n",
+      "name": "max",
+      "usage": "max(a, b, ...): the greatest of the numbers it is handed"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  people: [{ name: ada, free: true }, { name: grace, free: false }]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Free: ${ where(params.people, 'free', true)[0].name }\" }\n",
+      "name": "where",
+      "usage": "where(list, field, value): the mappings of a list whose field is that value; a field within a field is `a.b`"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  people: [{ name: grace, age: 85 }, { name: ada, age: 36 }]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Youngest: ${ sort(params.people, 'age')[0].name }\" }\n",
+      "name": "sort",
+      "usage": "sort(list) or sort(list, field): smallest first, a list of mappings by a field of each; equals keep their order"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  names: [ada, grace]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Others: ${ without(params.names, 'ada') }\" }\n",
+      "name": "without",
+      "usage": "without(list, value): the list with that value left out, or with every value of a second list left out"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  count: 3\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Counted ${ range(params.count) }\" }\n",
+      "name": "range",
+      "usage": "range(n): the whole numbers from 1 to n, as a list; none for less than 1"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  people: [{ name: ada }, { name: grace }]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Who: ${ pluck(params.people, 'name') }\" }\n",
+      "name": "pluck",
+      "usage": "pluck(list, field): that field of each mapping of a list, as a list; one that has none is left out"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  names: [ada, grace, alan]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"The ends: ${ at(params.names, [1, 3]) }\" }\n",
+      "name": "at",
+      "usage": "at(list, places): the elements at those places, counted from 1, in the order asked; a place nothing is at is left out"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  written: '{\"name\": \"ada\"}'\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Called ${ from_json(params.written).name }\" }\n",
+      "name": "from_json",
+      "usage": "from_json(text): what the JSON text says, as a value"
+    },
+    {
+      "example": "blueprint: said\n\nparams:\n  counts: [1, 2, 3]\n\nsteps:\n  said:\n    do: log\n    with: { message: \"In all ${ sum(params.counts) }\" }\n",
+      "name": "sum",
+      "usage": "sum(list): the numbers of a list added up; nothing, for an empty one, is 0"
+    }
+  ],
+  "names": [
+    {
+      "example": "blueprint: greeting\n\nparams:\n  who: { type: string, default: everyone, description: Who is greeted. }\n\nsteps:\n  greet:\n    do: log\n    with: { message: \"Hello, ${params.who}.\" }\n",
+      "meaning": "the values this instance was started with, each by its name: `params.<name>`",
+      "members": [],
+      "name": "params"
+    },
+    {
+      "example": "blueprint: lock\none_at_a_time: true\n\nstate:\n  holder: \"\"\n\non:\n  take:\n    event: lock.take\n    outside: true\n    when: ${ state.holder == \"\" }\n    do: set\n    with: { holder: \"${event.data.who}\" }\n\n  give:\n    event: lock.give\n    outside: true\n    do: set\n    with: { holder: \"\" }\n",
+      "meaning": "what the instance keeps between one run and the next, as declared under `state` and changed with `set`: `state.<key>`",
+      "members": [],
+      "name": "state"
+    },
+    {
+      "example": "blueprint: tidy\npermissions: [shell]\n\nsteps:\n  lint:\n    do: shell\n    with: { cmd: [make, lint] }\n    allow_failure: true\n\n  said:\n    do: log\n    with: { message: \"The lint went well: ${steps.lint.ok}\" }\n",
+      "meaning": "results of earlier steps: steps.<id>.ok, .failed, .skipped, .out, .error, .duration_ms",
+      "members": [],
+      "name": "steps"
+    },
+    {
+      "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_start:\n      - emit: { topic: build.started }\n    on_success:\n      - do: log\n        with: { message: \"Built in ${self.duration_ms} ms.\" }\n    on_finish:\n      - emit: { topic: build.over, went: \"${self.status}\" }\n",
+      "meaning": "inside a hook or watch rule, the step it belongs to: how it went and what it gave",
+      "members": [
+        {
+          "help": "true when it finished without failing",
+          "name": "ok"
+        },
+        {
+          "help": "true when it failed",
+          "name": "failed"
+        },
+        {
+          "help": "true when its `when` was false",
+          "name": "skipped"
+        },
+        {
+          "help": "how it went, as a word",
+          "name": "status"
+        },
+        {
+          "help": "what its action returned",
+          "name": "out"
+        },
+        {
+          "help": "how many things that is, where it is a list: one for each element of a `for_each`",
+          "name": "count"
+        },
+        {
+          "help": "why it failed, when it did",
+          "name": "error"
+        },
+        {
+          "help": "why it failed, alone: what the innermost step said, without the steps it came up through",
+          "name": "reason"
+        },
+        {
+          "help": "how many times it was tried",
+          "name": "attempts"
+        },
+        {
+          "help": "how long it took",
+          "name": "duration_ms"
+        }
+      ],
+      "name": "self"
+    },
+    {
+      "example": "blueprint: shipped-news\npermissions: [channels:write]\n\non:\n  shipped:\n    event: order.shipped\n    outside: true\n    when: ${ event.data.to != \"\" }\n    do: channel.post\n    with: { channel: general, body: \"Order ${event.data.order} is on its way to ${event.data.to}.\" }\n",
+      "meaning": "inside an `on` handler, the event that fired it: event.topic, event.data",
+      "members": [
+        {
+          "help": "what happened, as dotted words",
+          "name": "topic"
+        },
+        {
+          "help": "what the event carries",
+          "name": "data"
+        },
+        {
+          "help": "where it came from: `.instance`, `.run`, `.step`, `.device`, `.actor`",
+          "name": "source"
+        },
+        {
+          "help": "when, in milliseconds since 1970",
+          "name": "ts"
+        },
+        {
+          "help": "its place in the journal",
+          "name": "seq"
+        }
+      ],
+      "name": "event"
+    },
+    {
+      "example": "blueprint: greet-each\n\nparams:\n  names: [ada, grace]\n\nsteps:\n  greet:\n    for_each: ${params.names}\n    do: log\n    with: { message: \"Hello, ${item}, number ${index}.\" }\n",
+      "meaning": "inside a `for_each` step, the current element",
+      "members": [],
+      "name": "item"
+    },
+    {
+      "example": "blueprint: greet-each\n\nparams:\n  names: [ada, grace]\n\nsteps:\n  greet:\n    for_each: ${params.names}\n    do: log\n    with: { message: \"Hello, ${item}, number ${index}.\" }\n",
+      "meaning": "inside a `for_each` step, the current position, counted from 0",
+      "members": [],
+      "name": "index"
+    },
+    {
+      "example": "blueprint: who-am-i\n\nsteps:\n  said:\n    do: log\n    with: { message: \"I am ${instance.id}, of ${instance.name}.\" }\n",
+      "meaning": "this instance: instance.id, .name, .key, .device",
+      "members": [
+        {
+          "help": "this instance's id",
+          "name": "id"
+        },
+        {
+          "help": "the blueprint it is an instance of",
+          "name": "name"
+        },
+        {
+          "help": "its name within its parent",
+          "name": "key"
+        },
+        {
+          "help": "the instance that started it, if one did",
+          "name": "parent"
+        },
+        {
+          "help": "the project it belongs to",
+          "name": "project"
+        },
+        {
+          "help": "the device it runs on",
+          "name": "device"
+        }
+      ],
+      "name": "instance"
+    },
+    {
+      "example": "blueprint: beside\n\nsteps:\n  said:\n    do: log\n    with: { message: \"Attached to ${target.id}.\" }\n",
+      "meaning": "the instance this one is attached to, in a blueprint that is attached under another's `uses`",
+      "members": [
+        {
+          "help": "the id of the instance this one is attached to",
+          "name": "id"
+        }
+      ],
+      "name": "target"
+    },
+    {
+      "example": "blueprint: staged\npermissions: [shell]\n\nsteps:\n  migrate:\n    when: ${ environment.name == \"prod\" }\n    do: shell\n    env: { API: \"${environment.vars.api}\" }\n    with: { cmd: [./migrate] }\n",
+      "meaning": "the environment of its project's it was applied under (dev, staging, prod): environment.name, environment.vars.<name>",
+      "members": [
+        {
+          "help": "what the environment of its project's it was applied under is called, as text; empty where it was applied under none",
+          "name": "name"
+        },
+        {
+          "help": "what that environment says, by name: `environment.vars.<name>` is text, a number, or true or false, and nothing where it says none. Not for secrets: those are named in `env` as `{ secret: <name> }`",
+          "name": "vars"
+        }
+      ],
+      "name": "environment"
+    },
+    {
+      "example": "blueprint: careful\npermissions: [shell]\n\nsteps:\n  ship:\n    when: ${ profile.name != \"prod\" }\n    do: shell\n    with: { cmd: [make, ship] }\n",
+      "meaning": "the profile it runs in, the copy of the factory (prod, dev1): profile.name, profile.vars.<name>",
+      "members": [
+        {
+          "help": "what this profile, the copy of the factory, is called, as text; empty for one with none",
+          "name": "name"
+        },
+        {
+          "help": "what the owner has said is true of this profile, by name: `profile.vars.<name>` is text, a number, or true or false, and nothing if it was not set. Not for secrets",
+          "name": "vars"
+        }
+      ],
+      "name": "profile"
+    },
+    {
+      "example": "blueprint: last-seen\nversion: 2\n\nstate:\n  last: \"\"\n\non_update:\n  - do: log\n    with: { message: \"Carried over from version ${was.version}.\" }\n\non:\n  seen:\n    event: visitor.seen\n    outside: true\n    do: set\n    with: { last: \"${event.data.name}\" }\n",
+      "meaning": "inside `on_update`, the instance as it was before it took this text: was.version, .revision, .state, .params",
+      "members": [
+        {
+          "help": "what the text it ran before called its own version; nothing if it did not say",
+          "name": "version"
+        },
+        {
+          "help": "the revision of the text it ran before",
+          "name": "revision"
+        },
+        {
+          "help": "its state as it was, with the keys this text no longer declares: `was.state.<key>`",
+          "name": "state"
+        },
+        {
+          "help": "the params it had before: `was.params.<name>`",
+          "name": "params"
+        }
+      ],
+      "name": "was"
+    },
+    {
+      "example": "blueprint: release\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make, release] }\n\non_success:\n  - emit: { topic: release.built }\n\non_fail:\n  - do: channel.post\n    with: { channel: ops, body: \"The release failed: ${run.error}\" }\n\non_finish:\n  - do: log\n    with: { message: \"The release ended: ${run.status}\" }\n",
+      "meaning": "inside the blueprint's own `on_success`, `on_fail` and `on_finish`, the run of its steps: run.status, .error, .id",
+      "members": [
+        {
+          "help": "how its steps went: `ok` or `failed`",
+          "name": "status"
+        },
+        {
+          "help": "why they failed, when they did",
+          "name": "error"
+        },
+        {
+          "help": "the run's id",
+          "name": "id"
+        }
+      ],
+      "name": "run"
+    }
+  ],
+  "shapes": [
+    {
+      "alternatives": [],
+      "example": "blueprint: nightly-copy\ndescription: Copy the database somewhere safe every night.\npermissions: [shell]\n\non:\n  night:\n    every: 24h\n    do: shell\n    with: { cmd: [cp, data.db, backup/data.db] }\n",
+      "fields": [
+        {
+          "after": "text",
+          "example": "blueprint: nightly-copy\ndescription: Copy the database somewhere safe every night.\npermissions: [shell]\n\non:\n  night:\n    every: 24h\n    do: shell\n    with: { cmd: [cp, data.db, backup/data.db] }\n",
+          "help": "Its name, which is how it is applied, called and found again. Lowercase letters, digits, `-`, `_`, `.` and `/`.",
+          "name": "blueprint",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: greeting\nversion: 2\ndescription: Say hello in the run's log.\n\nsteps:\n  greet:\n    do: log\n    with: { message: Hello. }\n",
+          "help": "A version of your own choosing, kept with it: what is said of an instance running an earlier text names it, so it goes up when what the text does changes.",
+          "name": "version",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: greeting\nversion: 2\ndescription: Say hello in the run's log.\n\nsteps:\n  greet:\n    do: log\n    with: { message: Hello. }\n",
+          "help": "What it is for, in a sentence: shown where blueprints are listed, and first in what it says in plain words.",
+          "name": "description",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "names, each a param",
+          "example": "blueprint: greeting\n\nparams:\n  who: { type: string, default: everyone, description: Who is greeted. }\n\nsteps:\n  greet:\n    do: log\n    with: { message: \"Hello, ${params.who}.\" }\n",
+          "help": "What an instance is started with. `port: 8080` gives a default; a name with nothing after it must be given.",
+          "name": "params",
+          "value": {
+            "kind": "map_of",
+            "of": "param"
+          }
+        },
+        {
+          "after": "a mapping of your own",
+          "example": "blueprint: last-seen\n\nstate:\n  last: \"\"\n\non:\n  seen:\n    event: visitor.seen\n    outside: true\n    do: set\n    with: { last: \"${event.data.name}\" }\n",
+          "help": "Durable properties of an instance, with the values they start at. Change them with `do: set`.",
+          "name": "state",
+          "value": {
+            "kind": "data"
+          }
+        },
+        {
+          "after": "a list of capabilities",
+          "example": "blueprint: disk-room\npermissions: [shell]\n\nsteps:\n  room:\n    do: shell\n    with: { cmd: [df, -h, .] }\n",
+          "help": "What it may use, checked before anything runs. With none listed it runs with everything its caller has.",
+          "name": "permissions",
+          "value": {
+            "kind": "capabilities"
+          }
+        },
+        {
+          "after": "a mapping of your own",
+          "example": "blueprint: build\npermissions: [shell]\n\nenv:\n  CARGO_TERM_COLOR: never\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [cargo, build] }\n",
+          "help": "Environment for every action it runs: each variable text, or a secret's name as `{ secret: <name> }`.",
+          "name": "env",
+          "value": {
+            "kind": "data"
+          }
+        },
+        {
+          "after": "names, each an attachment",
+          "example": "blueprint: order-news\n\nuses:\n  watch:\n    blueprint: std/watch\n    with: { channel: general, collection: orders }\n",
+          "help": "Other blueprints attached to every instance of this one, each started as a child.",
+          "name": "uses",
+          "value": {
+            "kind": "map_of",
+            "of": "attachment"
+          }
+        },
+        {
+          "after": "names, each a step",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "help": "The work, as a graph of steps. Runs once, when an instance starts.",
+          "name": "steps",
+          "value": {
+            "kind": "map_of",
+            "of": "step"
+          }
+        },
+        {
+          "after": "names, each a handler",
+          "example": "blueprint: shipped-news\npermissions: [channels:write]\n\non:\n  shipped:\n    event: order.shipped\n    outside: true\n    when: ${ event.data.to != \"\" }\n    do: channel.post\n    with: { channel: general, body: \"Order ${event.data.order} is on its way to ${event.data.to}.\" }\n",
+          "help": "Handlers: what to do each time something happens while the instance is alive.",
+          "name": "on",
+          "value": {
+            "kind": "map_of",
+            "of": "handler"
+          }
+        },
+        {
+          "after": "a mapping of your own",
+          "example": "blueprint: where-it-runs\npermissions: [shell]\n\nsteps:\n  host:\n    do: shell\n    with: { cmd: [hostname] }\n\noutputs:\n  host: ${steps.host.out.stdout}\n",
+          "help": "What a blueprint that calls this one is given back once its steps have run: names, and what each comes to.",
+          "name": "outputs",
+          "value": {
+            "kind": "data"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: release\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make, release] }\n\non_success:\n  - emit: { topic: release.built }\n\non_fail:\n  - do: channel.post\n    with: { channel: ops, body: \"The release failed: ${run.error}\" }\n\non_finish:\n  - do: log\n    with: { message: \"The release ended: ${run.status}\" }\n",
+          "help": "Done when the steps have gone well, to tell of it or go on from it.",
+          "name": "on_success",
+          "value": {
+            "kind": "list_of",
+            "of": "hook"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: release\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make, release] }\n\non_success:\n  - emit: { topic: release.built }\n\non_fail:\n  - do: channel.post\n    with: { channel: ops, body: \"The release failed: ${run.error}\" }\n\non_finish:\n  - do: log\n    with: { message: \"The release ended: ${run.status}\" }\n",
+          "help": "Done when the steps have failed, to tell of it or undo what they began.",
+          "name": "on_fail",
+          "value": {
+            "kind": "list_of",
+            "of": "hook"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: release\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make, release] }\n\non_success:\n  - emit: { topic: release.built }\n\non_fail:\n  - do: channel.post\n    with: { channel: ops, body: \"The release failed: ${run.error}\" }\n\non_finish:\n  - do: log\n    with: { message: \"The release ended: ${run.status}\" }\n",
+          "help": "Done when the steps have ended, however they went, after `on_success` or `on_fail`; `run.status` says which.",
+          "name": "on_finish",
+          "value": {
+            "kind": "list_of",
+            "of": "hook"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: on-duty\npermissions: [channels:write]\n\nsteps:\n  here:\n    do: channel.post\n    with: { channel: ops, body: On duty. }\n\non:\n  hourly:\n    every: 1h\n    do: channel.post\n    with: { channel: ops, body: Still on duty. }\n\non_stop:\n  - do: channel.post\n    with: { channel: ops, body: Off duty. }\n",
+          "help": "Done when the instance is stopped, before what it holds is given back: where it undoes what it set up outside the factory.",
+          "name": "on_stop",
+          "value": {
+            "kind": "list_of",
+            "of": "hook"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: last-seen\nversion: 2\n\nstate:\n  last: \"\"\n\non_update:\n  - do: log\n    with: { message: \"Carried over from version ${was.version}.\" }\n\non:\n  seen:\n    event: visitor.seen\n    outside: true\n    do: set\n    with: { last: \"${event.data.name}\" }\n",
+          "help": "Done when a running instance takes this text, in place of running its steps again: it carries on from where it is. `was` is what it was before: `was.version`, `was.revision`, `was.state`, `was.params`. If one of these fails, the instance goes back to the text and the state it had.",
+          "name": "on_update",
+          "value": {
+            "kind": "list_of",
+            "of": "hook"
+          }
+        },
+        {
+          "after": "a number",
+          "example": "blueprint: pictures\npermissions: [shell]\nmax_parallel: 2\n\nsteps:\n  small:\n    needs: []\n    do: shell\n    with: { cmd: [convert, photo.jpg, -resize, 64x64, small.jpg] }\n\n  large:\n    needs: []\n    do: shell\n    with: { cmd: [convert, photo.jpg, -resize, 512x512, large.jpg] }\n",
+          "help": "How many of its steps may run side by side, 8 unless said: for steps that each take a share of something there is only so much of.",
+          "name": "max_parallel",
+          "value": {
+            "kind": "number"
+          }
+        },
+        {
+          "after": "true or false",
+          "example": "blueprint: ping\ndurable: false\npermissions: [shell]\n\nsteps:\n  ping:\n    do: shell\n    with: { cmd: [ping, -c, \"1\", localhost] }\n",
+          "help": "Whether what an instance is doing is written down as it goes, to be picked up after a restart: true unless said. With `false` it keeps nothing as it goes: what each step did is written once, when the run ends, its state is its own while it lives, and a restart ends it. For work that is short and can simply be done again.",
+          "name": "durable",
+          "value": {
+            "kind": "flag"
+          }
+        },
+        {
+          "after": "true or false",
+          "example": "blueprint: lock\none_at_a_time: true\n\nstate:\n  holder: \"\"\n\non:\n  take:\n    event: lock.take\n    outside: true\n    when: ${ state.holder == \"\" }\n    do: set\n    with: { holder: \"${event.data.who}\" }\n\n  give:\n    event: lock.give\n    outside: true\n    do: set\n    with: { holder: \"\" }\n",
+          "help": "Its handlers take turns: one run of any of them at a time, so that one which looks at `state` and then changes it is not overtaken by another. A handler that waits holds up the rest.",
+          "name": "one_at_a_time",
+          "value": {
+            "kind": "flag"
+          }
+        }
+      ],
+      "help": "The text a piece of work is written as: what it is started with, the steps it runs once, and what it does each time something happens while it is alive. Applied, it is an instance, which runs it.",
+      "name": "blueprint",
+      "short": null,
+      "what": "a blueprint"
+    },
+    {
+      "alternatives": [],
+      "example": "blueprint: greeting\n\nparams:\n  who: { type: string, default: everyone, description: Who is greeted. }\n\nsteps:\n  greet:\n    do: log\n    with: { message: \"Hello, ${params.who}.\" }\n",
+      "fields": [
+        {
+          "after": "one of a few words",
+          "example": "blueprint: build\npermissions: [shell]\n\nparams:\n  profile: { type: string, default: release, enum: [debug, release] }\n  target: { type: string, required: true, description: The system it is built for. }\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [cargo, build, --profile, \"${params.profile}\", --target, \"${params.target}\"] }\n",
+          "help": "What it must be. Without it, the type follows from the default.",
+          "name": "type",
+          "value": {
+            "kind": "one_of",
+            "of": [
+              {
+                "help": "text",
+                "name": "string"
+              },
+              {
+                "help": "a whole number",
+                "name": "int"
+              },
+              {
+                "help": "a number",
+                "name": "number"
+              },
+              {
+                "help": "true or false",
+                "name": "bool"
+              },
+              {
+                "help": "a list",
+                "name": "list"
+              },
+              {
+                "help": "a mapping",
+                "name": "object"
+              },
+              {
+                "help": "a length of time, such as `30s` or `5m`",
+                "name": "duration"
+              },
+              {
+                "help": "anything",
+                "name": "any"
+              }
+            ]
+          }
+        },
+        {
+          "after": "any value",
+          "example": "blueprint: build\npermissions: [shell]\n\nparams:\n  profile: { type: string, default: release, enum: [debug, release] }\n  target: { type: string, required: true, description: The system it is built for. }\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [cargo, build, --profile, \"${params.profile}\", --target, \"${params.target}\"] }\n",
+          "help": "Its value when none is given, which also says its type.",
+          "name": "default",
+          "value": {
+            "kind": "any"
+          }
+        },
+        {
+          "after": "true or false",
+          "example": "blueprint: build\npermissions: [shell]\n\nparams:\n  profile: { type: string, default: release, enum: [debug, release] }\n  target: { type: string, required: true, description: The system it is built for. }\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [cargo, build, --profile, \"${params.profile}\", --target, \"${params.target}\"] }\n",
+          "help": "Whether it must be given. A param with no default must be.",
+          "name": "required",
+          "value": {
+            "kind": "flag"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: build\npermissions: [shell]\n\nparams:\n  profile: { type: string, default: release, enum: [debug, release] }\n  target: { type: string, required: true, description: The system it is built for. }\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [cargo, build, --profile, \"${params.profile}\", --target, \"${params.target}\"] }\n",
+          "help": "What it is, in a sentence, shown to whoever applies the blueprint and fills it in.",
+          "name": "description",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "any value",
+          "example": "blueprint: build\npermissions: [shell]\n\nparams:\n  profile: { type: string, default: release, enum: [debug, release] }\n  target: { type: string, required: true, description: The system it is built for. }\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [cargo, build, --profile, \"${params.profile}\", --target, \"${params.target}\"] }\n",
+          "help": "The values it may have, as a list; any other is refused.",
+          "name": "enum",
+          "value": {
+            "kind": "any"
+          }
+        }
+      ],
+      "help": "One thing an instance is started with, under `params`: what type it is, what it is when nobody says, and whether it must be given. Read in the text as `params.<name>`.",
+      "name": "param",
+      "short": {
+        "kind": "any"
+      },
+      "what": "a param"
+    },
+    {
+      "alternatives": [],
+      "example": "blueprint: order-news\n\nuses:\n  watch:\n    blueprint: std/watch\n    with: { channel: general, collection: orders }\n",
+      "fields": [
+        {
+          "after": "a blueprint",
+          "example": "blueprint: order-news\n\nuses:\n  watch:\n    blueprint: std/watch\n    with: { channel: general, collection: orders }\n",
+          "help": "The blueprint that is attached, by its name.",
+          "name": "blueprint",
+          "value": {
+            "kind": "blueprint"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: order-news\n\nuses:\n  watch:\n    blueprint: std/watch\n    with: { channel: general, collection: orders }\n",
+          "help": "What the action named beside it is handed, or the params the blueprint named beside it is started with: each by its name.",
+          "name": "with",
+          "value": {
+            "kind": "arguments",
+            "of": null
+          }
+        }
+      ],
+      "help": "Another blueprint started as a child of every instance of this one, under `uses`, and stopped with it: for what is always to be there beside it.",
+      "name": "attachment",
+      "short": {
+        "kind": "blueprint"
+      },
+      "what": "an attachment"
+    },
+    {
+      "alternatives": [
+        [
+          "do",
+          "call",
+          "spawn",
+          "task"
+        ]
+      ],
+      "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+      "fields": [
+        {
+          "after": "an action",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "help": "The action the step runs, by its name, with what it is handed under `with`: what most steps are.",
+          "name": "do",
+          "value": {
+            "kind": "action"
+          }
+        },
+        {
+          "after": "a blueprint",
+          "example": "blueprint: order-news\npermissions: [blueprints:run]\n\nsteps:\n  watch:\n    call: std/watch\n    with: { channel: general, collection: orders }\n",
+          "help": "Run another blueprint as a child and wait for its steps. Its outputs become this step's.",
+          "name": "call",
+          "value": {
+            "kind": "blueprint"
+          }
+        },
+        {
+          "after": "a blueprint",
+          "example": "blueprint: order-news\npermissions: [blueprints:run]\n\nsteps:\n  watch:\n    spawn: std/watch\n    as: order-watch\n    with: { channel: general, collection: orders }\n",
+          "help": "Start another blueprint as a child and carry on, for something that is to go on beside this one.",
+          "name": "spawn",
+          "value": {
+            "kind": "blueprint"
+          }
+        },
+        {
+          "after": "names, each a step",
+          "example": "blueprint: release\npermissions: [shell]\n\nsteps:\n  build:\n    description: Everything it takes to have something to ship.\n    task:\n      compile: { do: shell, with: { cmd: [make] } }\n      test: { do: shell, with: { cmd: [make, test] } }\n    retry: 1\n    timeout: 30m\n",
+          "help": "Run the steps under it as one: if one fails the rest do not run and the task has failed. What is said beside it (`when`, `retry`, `timeout`, `on_fail`) is said once, for all of them.",
+          "name": "task",
+          "value": {
+            "kind": "map_of",
+            "of": "step"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "help": "What the action named beside it is handed, or the params the blueprint named beside it is started with: each by its name.",
+          "name": "with",
+          "value": {
+            "kind": "arguments",
+            "of": null
+          }
+        },
+        {
+          "after": "a list of steps",
+          "example": "blueprint: deploy\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n\n  lint:\n    needs: []\n    do: shell\n    with: { cmd: [make, lint] }\n\n  ship:\n    needs: [build, lint]\n    do: shell\n    with: { cmd: [make, ship] }\n",
+          "help": "Steps that must settle first. Without it a step follows the one above it; `[]` starts at once.",
+          "name": "needs",
+          "value": {
+            "kind": "steps"
+          }
+        },
+        {
+          "after": "an expression",
+          "example": "blueprint: deploy\npermissions: [shell]\n\nparams:\n  ship: false\n\nsteps:\n  ship:\n    when: ${params.ship}\n    do: shell\n    with: { cmd: [make, ship] }\n",
+          "help": "A guard. When false the step is skipped, and what follows still runs.",
+          "name": "when",
+          "value": {
+            "kind": "expression"
+          }
+        },
+        {
+          "after": "a length of time, such as 30s or 5m",
+          "example": "blueprint: tests\npermissions: [shell, channels:write]\n\nsteps:\n  test:\n    do: shell\n    with: { cmd: [make, test] }\n    timeout: 10m\n    on_timeout:\n      - do: channel.post\n        with: { channel: ops, body: The tests ran for ten minutes and were stopped. }\n",
+          "help": "Fail the step if it runs longer, so that one that hangs does not hold the run up.",
+          "name": "timeout",
+          "value": {
+            "kind": "duration"
+          }
+        },
+        {
+          "after": "a number, or a mapping",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "help": "Try again after a failure: a count, or `max`, `backoff` and `factor`. For a step that may fail for a moment, such as one that asks something over the network.",
+          "name": "retry",
+          "value": {
+            "kind": "shape",
+            "of": "retry"
+          }
+        },
+        {
+          "after": "true or false",
+          "example": "blueprint: tidy\npermissions: [shell]\n\nsteps:\n  lint:\n    do: shell\n    with: { cmd: [make, lint] }\n    allow_failure: true\n\n  said:\n    do: log\n    with: { message: \"The lint went well: ${steps.lint.ok}\" }\n",
+          "help": "A failure here does not fail the run; later steps see `steps.<id>.failed`.",
+          "name": "allow_failure",
+          "value": {
+            "kind": "flag"
+          }
+        },
+        {
+          "after": "true or false",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    again: true\n",
+          "help": "Run the step again from its start where the daemon was stopped in the middle of it, in place of failing it as not safe to repeat: for a command that does no harm done twice, such as a build or a test. A failure of its own is not tried again; that is `retry`.",
+          "name": "again",
+          "value": {
+            "kind": "flag"
+          }
+        },
+        {
+          "after": "a list, each a watch rule",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+          "help": "Rules looked at while the step is still running: after so long, every so often, or when a line it prints matches.",
+          "name": "watch",
+          "value": {
+            "kind": "list_of",
+            "of": "watch"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_start:\n      - emit: { topic: build.started }\n    on_success:\n      - do: log\n        with: { message: \"Built in ${self.duration_ms} ms.\" }\n    on_finish:\n      - emit: { topic: build.over, went: \"${self.status}\" }\n",
+          "help": "Done as the step starts, before its own action begins.",
+          "name": "on_start",
+          "value": {
+            "kind": "list_of",
+            "of": "hook"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_start:\n      - emit: { topic: build.started }\n    on_success:\n      - do: log\n        with: { message: \"Built in ${self.duration_ms} ms.\" }\n    on_finish:\n      - emit: { topic: build.over, went: \"${self.status}\" }\n",
+          "help": "Done when the step has gone well, with `self` the step it belongs to.",
+          "name": "on_success",
+          "value": {
+            "kind": "list_of",
+            "of": "hook"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_start:\n      - emit: { topic: build.started }\n    on_success:\n      - do: log\n        with: { message: \"Built in ${self.duration_ms} ms.\" }\n    on_finish:\n      - emit: { topic: build.over, went: \"${self.status}\" }\n",
+          "help": "Done when the step has ended, however it went, after `on_success`, `on_fail` or `on_timeout`; `self.status` says which.",
+          "name": "on_finish",
+          "value": {
+            "kind": "list_of",
+            "of": "hook"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: build\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_fail:\n      - when: ${ self.attempts < 3 }\n        do: retry\n      - emit: { topic: build.broken, why: \"${self.error}\" }\n      - do: channel.post\n        with: { channel: ops, body: \"The build failed: ${self.error}\" }\n",
+          "help": "Done when the step fails. It may decide what happens next: `retry`, `continue` or `fail`.",
+          "name": "on_fail",
+          "value": {
+            "kind": "list_of",
+            "of": "failure_hook"
+          }
+        },
+        {
+          "after": "a list, each a hook",
+          "example": "blueprint: tests\npermissions: [shell, channels:write]\n\nsteps:\n  test:\n    do: shell\n    with: { cmd: [make, test] }\n    timeout: 10m\n    on_timeout:\n      - do: channel.post\n        with: { channel: ops, body: The tests ran for ten minutes and were stopped. }\n",
+          "help": "Done when the step runs out of time, in place of `on_fail`. It may decide what happens next.",
+          "name": "on_timeout",
+          "value": {
+            "kind": "list_of",
+            "of": "failure_hook"
+          }
+        },
+        {
+          "after": "a device",
+          "example": "blueprint: build-there\npermissions: [shell]\n\nparams:\n  device: { type: string, description: The device to build on. }\n\nsteps:\n  build:\n    device: ${params.device}\n    do: shell\n    with: { cmd: [make] }\n",
+          "help": "Run on another device, through the gateway: for work that has to be done where something is.",
+          "name": "device",
+          "value": {
+            "kind": "device"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    measure: build\n",
+          "help": "Also report how long the step took under this name, to be looked at beside every other time it ran.",
+          "name": "measure",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "a mapping of your own",
+          "example": "blueprint: two-builds\npermissions: [shell]\n\nsteps:\n  quick:\n    task:\n      fast: { do: shell, with: { cmd: [make, fast] } }\n    labels: { experiment: build, variant: quick }\n\n  whole:\n    needs: []\n    task:\n      full: { do: shell, with: { cmd: [make] } }\n    labels: { experiment: build, variant: whole }\n",
+          "help": "For `call`, `spawn` and `task`: names and values that everything measured under the step carries, as in `{ experiment: cart, variant: a }`, so that two ways of doing the same work can be told apart and compared.",
+          "name": "labels",
+          "value": {
+            "kind": "data"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: order-news\npermissions: [blueprints:run]\n\nsteps:\n  watch:\n    spawn: std/watch\n    as: order-watch\n    with: { channel: general, collection: orders }\n",
+          "help": "For `call` and `spawn`: the child's name within its parent, by which it is found again when the blueprint is applied again.",
+          "name": "as",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: release\npermissions: [blueprints:run, shell]\n\nparams:\n  branch: { type: string, default: main }\n  loads: { type: string, default: deploy }\n\nsteps:\n  build: { do: shell, with: { cmd: [make] } }\n\n  deploy:\n    needs: [build]\n    call: \"${params.loads}\"\n    as: deploy-prod\n    environment: prod\n    with: { branch: \"${params.branch}\" }\n",
+          "help": "For `call` and `spawn`, where the blueprint runs under none of its project's environments: the one its child is started under, as `prod`, held there to that environment's rules (who approves what goes under it, which branches it lets run). Under one, a child is under that one and no other.",
+          "name": "environment",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "an agent",
+          "example": "blueprint: build\npermissions: [shell, agents:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    if_fail_ask_agent: builder\n    else: build-broken\n",
+          "help": "When the step fails, tell this agent what failed and let it put it right; it says whether the step is run again.",
+          "name": "if_fail_ask_agent",
+          "value": {
+            "kind": "agent"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: build\npermissions: [shell, agents:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    if_fail_ask_agent: builder\n    else: build-broken\n",
+          "help": "With `if_fail_ask_agent`: the name the step fails under when the agent could not put it right.",
+          "name": "else",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "an expression",
+          "example": "blueprint: greet-each\n\nparams:\n  names: [ada, grace]\n\nsteps:\n  greet:\n    for_each: ${params.names}\n    do: log\n    with: { message: \"Hello, ${item}, number ${index}.\" }\n",
+          "help": "Run once for each element of a list, in order, or so many times where it is handed a number (`item` then goes from 1 to it); `item` and `index` are available.",
+          "name": "for_each",
+          "value": {
+            "kind": "expression"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: release\npermissions: [shell]\n\nsteps:\n  build:\n    description: Everything it takes to have something to ship.\n    task:\n      compile: { do: shell, with: { cmd: [make] } }\n      test: { do: shell, with: { cmd: [make, test] } }\n    retry: 1\n    timeout: 30m\n",
+          "help": "What the step is for, in a sentence. Shown for the step in the node view and in the steps of a run.",
+          "name": "description",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "a mapping of your own",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    env: { RELEASE: \"1\" }\n",
+          "help": "Environment for the action, added to the blueprint's: each variable text, or a secret's name as `{ secret: <name> }`.",
+          "name": "env",
+          "value": {
+            "kind": "data"
+          }
+        }
+      ],
+      "help": "One thing a blueprint does: an action, another blueprint called or started, or a task of steps, with what is said around it: when it runs, what it waits for, how long it may take and what happens if it fails.",
+      "name": "step",
+      "short": null,
+      "what": "a step"
+    },
+    {
+      "alternatives": [],
+      "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+      "fields": [
+        {
+          "after": "a number",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "help": "How many times to try again after the first.",
+          "name": "max",
+          "value": {
+            "kind": "number"
+          }
+        },
+        {
+          "after": "a length of time, such as 30s or 5m",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "help": "How long to wait before trying again. 1s unless said.",
+          "name": "backoff",
+          "value": {
+            "kind": "duration"
+          }
+        },
+        {
+          "after": "a number",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "help": "What each wait is multiplied by to make the next. 2 unless said.",
+          "name": "factor",
+          "value": {
+            "kind": "number"
+          }
+        },
+        {
+          "after": "a length of time, such as 30s or 5m",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "help": "The longest a wait may grow to. 5m unless said.",
+          "name": "max_backoff",
+          "value": {
+            "kind": "duration"
+          }
+        }
+      ],
+      "help": "How a step that failed is tried again: a count alone, or how many times and how long to wait before each, the wait growing each time.",
+      "name": "retry",
+      "short": {
+        "kind": "number"
+      },
+      "what": "`retry`"
+    },
+    {
+      "alternatives": [
+        [
+          "do",
+          "emit"
+        ]
+      ],
+      "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_start:\n      - emit: { topic: build.started }\n    on_success:\n      - do: log\n        with: { message: \"Built in ${self.duration_ms} ms.\" }\n    on_finish:\n      - emit: { topic: build.over, went: \"${self.status}\" }\n",
+      "fields": [
+        {
+          "after": "an action",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_start:\n      - emit: { topic: build.started }\n    on_success:\n      - do: log\n        with: { message: \"Built in ${self.duration_ms} ms.\" }\n    on_finish:\n      - emit: { topic: build.over, went: \"${self.status}\" }\n",
+          "help": "The action done at that point, by its name, with what it is handed under `with`.",
+          "name": "do",
+          "value": {
+            "kind": "action"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_start:\n      - emit: { topic: build.started }\n    on_success:\n      - do: log\n        with: { message: \"Built in ${self.duration_ms} ms.\" }\n    on_finish:\n      - emit: { topic: build.over, went: \"${self.status}\" }\n",
+          "help": "Say an event when this is done: short for `do: emit`, with its topic and what it carries.",
+          "name": "emit",
+          "value": {
+            "kind": "arguments",
+            "of": "emit"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_start:\n      - emit: { topic: build.started }\n    on_success:\n      - do: log\n        with: { message: \"Built in ${self.duration_ms} ms.\" }\n    on_finish:\n      - emit: { topic: build.over, went: \"${self.status}\" }\n",
+          "help": "What the action named beside it is handed, or the params the blueprint named beside it is started with: each by its name.",
+          "name": "with",
+          "value": {
+            "kind": "arguments",
+            "of": null
+          }
+        },
+        {
+          "after": "an expression",
+          "example": "blueprint: build\npermissions: [shell, channels:write]\n\nparams:\n  tell: true\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_success:\n      - when: ${params.tell}\n        do: channel.post\n        with: { channel: ops, body: Built. }\n",
+          "help": "Only when this holds is the hook done; it is passed over otherwise.",
+          "name": "when",
+          "value": {
+            "kind": "expression"
+          }
+        }
+      ],
+      "help": "Something done at a point in the life of a step or of the blueprint (as it starts, goes well, fails, ends or is stopped): an action, or an event said. Written as the action's name alone where it needs nothing.",
+      "name": "hook",
+      "short": {
+        "kind": "action"
+      },
+      "what": "a hook"
+    },
+    {
+      "alternatives": [
+        [
+          "do",
+          "emit"
+        ]
+      ],
+      "example": "blueprint: build\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_fail:\n      - when: ${ self.attempts < 3 }\n        do: retry\n      - emit: { topic: build.broken, why: \"${self.error}\" }\n      - do: channel.post\n        with: { channel: ops, body: \"The build failed: ${self.error}\" }\n",
+      "fields": [
+        {
+          "after": "an action, or a decision",
+          "example": "blueprint: build\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_fail:\n      - when: ${ self.attempts < 3 }\n        do: retry\n      - emit: { topic: build.broken, why: \"${self.error}\" }\n      - do: channel.post\n        with: { channel: ops, body: \"The build failed: ${self.error}\" }\n",
+          "help": "Run an action, or decide what happens to the step: `retry`, `continue` or `fail`.",
+          "name": "do",
+          "value": {
+            "kind": "decision"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: build\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_fail:\n      - when: ${ self.attempts < 3 }\n        do: retry\n      - emit: { topic: build.broken, why: \"${self.error}\" }\n      - do: channel.post\n        with: { channel: ops, body: \"The build failed: ${self.error}\" }\n",
+          "help": "Say an event when this is done: short for `do: emit`, with its topic and what it carries.",
+          "name": "emit",
+          "value": {
+            "kind": "arguments",
+            "of": "emit"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: build\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_fail:\n      - when: ${ self.attempts < 3 }\n        do: retry\n      - emit: { topic: build.broken, why: \"${self.error}\" }\n      - do: channel.post\n        with: { channel: ops, body: \"The build failed: ${self.error}\" }\n",
+          "help": "What the action named beside it is handed, or the params the blueprint named beside it is started with: each by its name.",
+          "name": "with",
+          "value": {
+            "kind": "arguments",
+            "of": null
+          }
+        },
+        {
+          "after": "an expression",
+          "example": "blueprint: build\npermissions: [shell, channels:write]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    on_fail:\n      - when: ${ self.attempts < 3 }\n        do: retry\n      - emit: { topic: build.broken, why: \"${self.error}\" }\n      - do: channel.post\n        with: { channel: ops, body: \"The build failed: ${self.error}\" }\n",
+          "help": "Only when this holds is it done or decided, as `self.attempts` says how often the step was tried.",
+          "name": "when",
+          "value": {
+            "kind": "expression"
+          }
+        }
+      ],
+      "help": "Something done when a step has failed or run out of time, which may also decide what becomes of the step: tried again (`retry`), let pass (`continue`) or failed (`fail`).",
+      "name": "failure_hook",
+      "short": {
+        "kind": "decision"
+      },
+      "what": "a hook"
+    },
+    {
+      "alternatives": [
+        [
+          "after",
+          "every",
+          "log"
+        ],
+        [
+          "do",
+          "emit"
+        ]
+      ],
+      "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+      "fields": [
+        {
+          "after": "a length of time, such as 30s or 5m",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+          "help": "Once, when the step has run this long. Written with `${ }` it is worked out as the step begins, and where it comes to nothing the rule is never timed.",
+          "name": "after",
+          "value": {
+            "kind": "duration"
+          }
+        },
+        {
+          "after": "a length of time, such as 30s or 5m",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+          "help": "Again and again, this far apart, while the step runs: worked out as the step begins where it is written with `${ }`, and never timed where that comes to nothing.",
+          "name": "every",
+          "value": {
+            "kind": "duration"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+          "help": "When a line the step prints matches this pattern, once per attempt.",
+          "name": "log",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "an action",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+          "help": "The action done when the rule fires, with what it is handed under `with`.",
+          "name": "do",
+          "value": {
+            "kind": "action"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+          "help": "Say an event when this is done: short for `do: emit`, with its topic and what it carries.",
+          "name": "emit",
+          "value": {
+            "kind": "arguments",
+            "of": "emit"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+          "help": "What the action named beside it is handed, or the params the blueprint named beside it is started with: each by its name.",
+          "name": "with",
+          "value": {
+            "kind": "arguments",
+            "of": null
+          }
+        },
+        {
+          "after": "an expression",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+          "help": "Only when this holds does the rule fire.",
+          "name": "when",
+          "value": {
+            "kind": "expression"
+          }
+        },
+        {
+          "after": "true or false",
+          "example": "blueprint: build\npermissions: [shell]\n\nsteps:\n  build:\n    do: shell\n    with: { cmd: [make] }\n    watch:\n      - after: 5m\n        emit: { topic: build.slow }\n      - every: 1m\n        when: ${ self.duration_ms > 120000 }\n        do: log\n        with: { message: \"Still building after ${self.duration_ms} ms.\" }\n      - log: \"^error\"\n        emit: { topic: build.error }\n        fail: true\n",
+          "help": "Also stop the step, as failed.",
+          "name": "fail",
+          "value": {
+            "kind": "flag"
+          }
+        }
+      ],
+      "help": "A rule looked at while a step is still running: after so long, every so often, or when a line the step prints matches, something is done, and the step may be stopped as failed.",
+      "name": "watch",
+      "short": null,
+      "what": "a watch rule"
+    },
+    {
+      "alternatives": [
+        [
+          "event",
+          "every",
+          "poll",
+          "at"
+        ],
+        [
+          "steps",
+          "do",
+          "call"
+        ]
+      ],
+      "example": "blueprint: shipped-news\npermissions: [channels:write]\n\non:\n  shipped:\n    event: order.shipped\n    outside: true\n    when: ${ event.data.to != \"\" }\n    do: channel.post\n    with: { channel: general, body: \"Order ${event.data.order} is on its way to ${event.data.to}.\" }\n",
+      "fields": [
+        {
+          "after": "a topic",
+          "example": "blueprint: shipped-news\npermissions: [channels:write]\n\non:\n  shipped:\n    event: order.shipped\n    outside: true\n    when: ${ event.data.to != \"\" }\n    do: channel.post\n    with: { channel: general, body: \"Order ${event.data.order} is on its way to ${event.data.to}.\" }\n",
+          "help": "Fires on an event whose topic matches. `*` is one word, `**` any number.",
+          "name": "event",
+          "value": {
+            "kind": "topic"
+          }
+        },
+        {
+          "after": "a length of time, such as 30s or 5m",
+          "example": "blueprint: hourly-copy\npermissions: [shell]\n\non:\n  hourly:\n    every: 1h\n    do: shell\n    with: { cmd: [cp, data.db, backup/data.db] }\n",
+          "help": "Fires on a timer, this far apart: for what is done again and again while the instance is alive.",
+          "name": "every",
+          "value": {
+            "kind": "duration"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: copy-before-dawn\ndescription: Copy the database somewhere safe at half past two each night, by the clock in Zagreb.\npermissions: [shell]\n\non:\n  copied:\n    at: 02:30 Europe/Zagreb\n    do: shell\n    with: { cmd: [cp, data.db, backup/data.db] }\n",
+          "help": "Fires at a time of day in the zone written after it, `02:00 Europe/Zagreb`, with the days before it where it is not every day (`mon,thu 09:30 UTC`). A time that came while the factory was stopped is fired once, as it is back.",
+          "name": "at",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "a mapping",
+          "example": "blueprint: code-moved\npermissions: [shell]\n\non:\n  moved:\n    poll: { every: 1m, do: shell, with: { cmd: [git, rev-parse, HEAD] } }\n    do: emit\n    with: { topic: code.moved, head: \"${event.data.stdout}\" }\n",
+          "help": "Fires when an action's result changes. For things that cannot say when they change.",
+          "name": "poll",
+          "value": {
+            "kind": "shape",
+            "of": "poll"
+          }
+        },
+        {
+          "after": "a mapping of your own",
+          "example": "blueprint: one-order\n\nparams:\n  order: { type: string, description: The order to follow. }\n\nstate:\n  where: \"\"\n\non:\n  shipped:\n    event: order.shipped\n    outside: true\n    for: { order: \"${params.order}\" }\n    do: set\n    with: { where: \"${event.data.to}\" }\n",
+          "help": "Which events are addressed to it: fields of the event's data and the value each must have, as in `{ id: \"${params.item}\" }`, a field inside one named by its path (`fields.sprint`). The conductor decides that, so a handler is not woken for what is another's.",
+          "name": "for",
+          "value": {
+            "kind": "data"
+          }
+        },
+        {
+          "after": "an expression",
+          "example": "blueprint: shipped-news\npermissions: [channels:write]\n\non:\n  shipped:\n    event: order.shipped\n    outside: true\n    when: ${ event.data.to != \"\" }\n    do: channel.post\n    with: { channel: general, body: \"Order ${event.data.order} is on its way to ${event.data.to}.\" }\n",
+          "help": "A guard over `event`: the handler runs only for an event of which it holds.",
+          "name": "when",
+          "value": {
+            "kind": "expression"
+          }
+        },
+        {
+          "after": "one of a few words",
+          "example": "blueprint: every-failure\npermissions: [channels:write]\n\non:\n  failed:\n    event: run.failed\n    scope: fleet\n    do: channel.post\n    with: { channel: ops, body: \"${event.data.blueprint} failed: ${event.data.error}\" }\n",
+          "help": "Whose events it hears: its own project's unless said, or every project's, or only those of what it started.",
+          "name": "scope",
+          "value": {
+            "kind": "one_of",
+            "of": [
+              {
+                "help": "events of its own project and the factory's own, which are no project's (the default)",
+                "name": "project"
+              },
+              {
+                "help": "every event in the factory, whichever project's",
+                "name": "fleet"
+              },
+              {
+                "help": "only events from this instance and its children",
+                "name": "own"
+              },
+              {
+                "help": "only events from the instance this one is attached to",
+                "name": "target"
+              }
+            ]
+          }
+        },
+        {
+          "after": "a length of time, such as 30s or 5m",
+          "example": "blueprint: burst-news\n\non:\n  changed:\n    event: record.updated\n    debounce: 10s\n    do: emit\n    with: { topic: news.changed, record: \"${event.data.id}\" }\n",
+          "help": "Makes a burst of events one run, with the latest of them.",
+          "name": "debounce",
+          "value": {
+            "kind": "duration"
+          }
+        },
+        {
+          "after": "true or false",
+          "example": "blueprint: lock\none_at_a_time: true\n\nstate:\n  holder: \"\"\n\non:\n  take:\n    event: lock.take\n    outside: true\n    when: ${ state.holder == \"\" }\n    do: set\n    with: { holder: \"${event.data.who}\" }\n\n  give:\n    event: lock.give\n    outside: true\n    do: set\n    with: { holder: \"\" }\n",
+          "help": "Its event is said from outside: by a person, a key or a caller, and by no blueprint. The check then does not look for a blueprint that says it.",
+          "name": "outside",
+          "value": {
+            "kind": "flag"
+          }
+        },
+        {
+          "after": "text",
+          "example": "blueprint: orders\npermissions: [shell]\n\non:\n  paid:\n    event: order.paid\n    outside: true\n    turn: \"${event.data.order}\"\n    do: shell\n    with: { cmd: [./pack, \"${event.data.order}\"] }\n",
+          "help": "What its events take turns by, worked out from each as it comes: `turn: \"${event.data.id}\"`. What comes to the same key, here or at another handler of this instance that says `turn`, is handled one at a time, and what one handler hears of it in the order it was said; what comes to another key is handled beside it. For an instance that looks after many things of a kind, so that one of them holds up none of the others.",
+          "name": "turn",
+          "value": {
+            "kind": "text"
+          }
+        },
+        {
+          "after": "names, each a step",
+          "example": "blueprint: shipped-news\npermissions: [channels:write]\n\non:\n  shipped:\n    event: order.shipped\n    outside: true\n    steps:\n      said:\n        do: channel.post\n        with: { channel: general, body: \"Order ${event.data.order} is on its way.\" }\n\n      kept:\n        do: emit\n        with: { topic: news.said, order: \"${event.data.order}\" }\n",
+          "help": "What to do, as a graph of steps, where it is more than one thing.",
+          "name": "steps",
+          "value": {
+            "kind": "map_of",
+            "of": "step"
+          }
+        },
+        {
+          "after": "an action",
+          "example": "blueprint: hourly-copy\npermissions: [shell]\n\non:\n  hourly:\n    every: 1h\n    do: shell\n    with: { cmd: [cp, data.db, backup/data.db] }\n",
+          "help": "What to do, when it is one action.",
+          "name": "do",
+          "value": {
+            "kind": "action"
+          }
+        },
+        {
+          "after": "a blueprint",
+          "example": "blueprint: copy-on-asking\npermissions: [blueprints:run]\n\non:\n  asked:\n    event: copy.asked\n    outside: true\n    call: std/snapshot\n    with: { to: \"${event.data.to}\" }\n",
+          "help": "What to do, when it is one blueprint.",
+          "name": "call",
+          "value": {
+            "kind": "blueprint"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: copy-on-asking\npermissions: [blueprints:run]\n\non:\n  asked:\n    event: copy.asked\n    outside: true\n    call: std/snapshot\n    with: { to: \"${event.data.to}\" }\n",
+          "help": "What the action named beside it is handed, or the params the blueprint named beside it is started with: each by its name.",
+          "name": "with",
+          "value": {
+            "kind": "arguments",
+            "of": null
+          }
+        }
+      ],
+      "help": "What an instance does each time something happens while it is alive: an event it hears, a timer, or an answer that changes, and the steps it runs then. Written under `on`, each by a name of your own.",
+      "name": "handler",
+      "short": null,
+      "what": "a handler"
+    },
+    {
+      "alternatives": [],
+      "example": "blueprint: code-moved\npermissions: [shell]\n\non:\n  moved:\n    poll: { every: 1m, do: shell, with: { cmd: [git, rev-parse, HEAD] } }\n    do: emit\n    with: { topic: code.moved, head: \"${event.data.stdout}\" }\n",
+      "fields": [
+        {
+          "after": "a length of time, such as 30s or 5m",
+          "example": "blueprint: code-moved\npermissions: [shell]\n\non:\n  moved:\n    poll: { every: 1m, do: shell, with: { cmd: [git, rev-parse, HEAD] } }\n    do: emit\n    with: { topic: code.moved, head: \"${event.data.stdout}\" }\n",
+          "help": "How often to ask, after the first time, which is as the handler begins to listen. Never more often than every 5s.",
+          "name": "every",
+          "value": {
+            "kind": "duration"
+          }
+        },
+        {
+          "after": "an action",
+          "example": "blueprint: code-moved\npermissions: [shell]\n\non:\n  moved:\n    poll: { every: 1m, do: shell, with: { cmd: [git, rev-parse, HEAD] } }\n    do: emit\n    with: { topic: code.moved, head: \"${event.data.stdout}\" }\n",
+          "help": "The action whose result is watched.",
+          "name": "do",
+          "value": {
+            "kind": "action"
+          }
+        },
+        {
+          "after": "arguments",
+          "example": "blueprint: code-moved\npermissions: [shell]\n\non:\n  moved:\n    poll: { every: 1m, do: shell, with: { cmd: [git, rev-parse, HEAD] } }\n    do: emit\n    with: { topic: code.moved, head: \"${event.data.stdout}\" }\n",
+          "help": "What the action named beside it is handed, or the params the blueprint named beside it is started with: each by its name.",
+          "name": "with",
+          "value": {
+            "kind": "arguments",
+            "of": null
+          }
+        }
+      ],
+      "help": "What a handler asks again and again of something that cannot say when it changes: an action and how often, the handler running each time the answer is other than the time before. It is first asked as the handler begins to listen, and that answer is only what the next is told from.",
+      "name": "poll",
+      "short": null,
+      "what": "`poll`"
+    }
+  ],
+  "step": [
+    {
+      "help": "true when it finished without failing",
+      "name": "ok"
+    },
+    {
+      "help": "true when it failed",
+      "name": "failed"
+    },
+    {
+      "help": "true when its `when` was false",
+      "name": "skipped"
+    },
+    {
+      "help": "how it went, as a word",
+      "name": "status"
+    },
+    {
+      "help": "what its action returned",
+      "name": "out"
+    },
+    {
+      "help": "how many things that is, where it is a list: one for each element of a `for_each`",
+      "name": "count"
+    },
+    {
+      "help": "why it failed, when it did",
+      "name": "error"
+    },
+    {
+      "help": "why it failed, alone: what the innermost step said, without the steps it came up through",
+      "name": "reason"
+    },
+    {
+      "help": "how many times it was tried",
+      "name": "attempts"
+    },
+    {
+      "help": "how long it took",
+      "name": "duration_ms"
+    }
+  ]
+}

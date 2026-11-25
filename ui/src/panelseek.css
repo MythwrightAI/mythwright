@@ -1,0 +1,19 @@
+/* The box under a side panel's head that narrows what it lists (views/panelseek.tsx): as the search under it is drawn,
+   and as wide as the panel lets it be, giving way before it leaves the panel. */
+.panel-seek { flex: none; display: flex; flex-direction: column; gap: calc(4px * var(--density)); margin: 0 10px 8px; min-width: 0; }
+.panel-seek-box { position: relative; display: flex; min-width: 0; }
+.panel-seek input { flex: 1; width: 100%; min-width: 0; height: calc(28px * var(--tall)); padding: 0 8px; font-size: calc(12.5px * var(--size)); background: var(--bg0); border-color: var(--line); }
+/* Where there are keys, room is kept at the box's right for the ones that search everything, whether or not they are
+   drawn, so that nothing typed runs under them and nothing moves as they come and go. */
+.panel-seek.keyed input { padding-right: calc(14px + 44px * var(--size)); }
+/* The keys, faint at the box's right edge as they were on the button they took the place of, and pressed. */
+.panel-seek-keys { position: absolute; top: 50%; right: 5px; transform: translateY(-50%); height: auto; padding: 1px 5px; background: transparent; }
+.panel-seek-keys:hover { color: var(--text); background: var(--bg2); }
+/* What is typed, offered to be searched for everywhere: a line as the panel's lines are, as tall as its words need, which
+   wrap onto a second line rather than being cut, so that what was typed is always read whole. */
+.panel-everywhere { width: 100%; min-width: 0; height: auto; min-height: calc(27px * var(--tall)); margin: 0; padding-top: calc(4px * var(--density)); padding-bottom: calc(4px * var(--density)); color: var(--dim); white-space: normal; }
+.panel-everywhere-says { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.panel-everywhere-words { color: var(--text); }
+.panel-none { padding: 6px 8px; }
+/* The line after the files a search drew under a project, which draws more of them: said as a note is, and pressed. */
+.nav-more .truncate { color: var(--dim); }

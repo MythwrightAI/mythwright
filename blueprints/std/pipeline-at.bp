@@ -1,0 +1,23 @@
+# Says that a row of a project's `triggers` is due, at the time of day it
+# says with its zone (`02:00 Europe/Zagreb`). Started for each such row by
+# `std/pipeline-timed`, and heard by `std/pipeline`, which runs the row's
+# pipeline. A time that came while the factory was stopped is said once,
+# as it is back.
+blueprint: std/pipeline-at
+version: 2
+description: "Say that a row of a project's triggers is due at the time of day it says."
+
+params:
+  project: { type: string, description: "The project whose pipelines these are." }
+  row: { type: string, description: "The row, by its id." }
+  at: { type: string, description: "The time of day with its zone, as `02:00 Europe/Zagreb`." }
+
+on:
+  came:
+    at: "${params.at}"
+    do: emit
+    with:
+      topic: pipeline.due
+      project: "${params.project}"
+      row: "${params.row}"
+      at: "${event.data.at}"

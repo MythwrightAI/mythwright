@@ -1,0 +1,32 @@
+[package]
+name = "topics"
+description = "A forum's topics beside the channels: the factory's own table of them, a topic made, moved, followed and answered through its own doors, each change of one written with its revision and what its status came to, in one write whichever door it came by."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+test = false
+doctest = false
+
+[dependencies]
+blueprint = { workspace = true }
+brand = { workspace = true }
+conductor = { workspace = true }
+journal = { workspace = true }
+kernel = { workspace = true }
+rusqlite = { workspace = true }
+serde_json = { workspace = true }
+studio = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

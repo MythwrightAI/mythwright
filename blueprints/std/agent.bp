@@ -1,0 +1,156 @@
+# One agent: its slot, which is where it gets its tooling and context,
+# made and kept as this says.
+#
+# An agent is a name, the program that runs it, what it may do and what
+# it is told on every turn. Applied, this brings it in as said; applied
+# again with other params, the agent follows; stopped, it is stopped and
+# kept, and what it did is kept. Its project and the environment it
+# works under are those this is applied for and under.
+#
+# Every agent the factory starts is one of these: those a role brings
+# up (`std/role`, one for each, under it) and those added by hand
+# (`mw agent add`, which applies this keyed by the agent's name). A
+# project that would set up its agents another way forks this and says
+# so here: a param more, a step more.
+#
+#   mw apply std/agent --project shop --key helper \
+#       --param name=helper --param permission=read \
+#       --param instructions="You answer questions. You change nothing."
+#
+# With `leave`, it is no longer brought in: `finish` has it take no more
+# work and stop when it has finished what it has in hand, `now` stops it
+# where it is.
+blueprint: std/agent
+version: 2
+description: Bring in one agent, set up as its params say, and keep it so.
+permissions: [agents]
+
+params:
+  name:
+    type: string
+    description: "What the agent is called: a name of its own in the whole factory."
+
+  role:
+    type: string
+    default: ""
+    description: "The role it is in: a word, such as `worker`, by which work is given to whichever of that role is free. None, if empty."
+
+  rank:
+    type: int
+    default: 0
+    description: "How it is ranked among those of its role, the higher before the lower: read where work is given to the one ranked highest (`pick: rank`), and nowhere else."
+
+  instructions:
+    type: string
+    default: ""
+    description: "What it is told on every turn: what it is for, and how it is to work."
+
+  adapter:
+    type: string
+    default: ""
+    description: "What runs it: an installed package's program, or the assistant that is built in. The device's usual, if empty."
+
+  model: { type: string, default: "", description: "Which model, where what runs it has a choice." }
+
+  permission:
+    type: string
+    default: edit
+    enum: [read, edit, full]
+    description: "How much it may do unasked: `read` looks and changes nothing, `edit` changes files where it works, `full` anything."
+
+  holds:
+    type: list
+    default: []
+    description: "What its credential holds, as scopes (`board:read`, `channels`); what an agent usually holds, if empty. No more than whoever applies this holds."
+
+  wall:
+    type: string
+    default: ""
+    description: "Whether its program works behind a wall, shown its work and a home of its own and nothing else of this device: `on` or `off`. If empty, as it was, and a new one has one. `off` takes `shell`."
+
+  reads:
+    type: list
+    default: []
+    description: "What else its program may read behind its wall: folders or files, written from the top or from the home of whoever runs the daemon (`~/.cargo`). Takes `shell`."
+
+  changes:
+    type: list
+    default: []
+    description: "What else it may change there, written the same way. Takes `shell`."
+
+  git:
+    type: string
+    default: ""
+    description: "What its program may do with the project's repository behind its wall: `off`, `read`, `commit` (its own work) or `write` (all of it). If empty, as it was, and a new one reads."
+
+  secrets:
+    type: list
+    default: []
+    description: "The keys its program is handed: secrets the factory keeps, each under a variable of its environment, written `VARIABLE=name` (`REMOTE_TOKEN=remote-bot`). Takes `secrets:use`."
+
+  signins:
+    type: list
+    default: []
+    description: "What it draws its sign-in from, in order (`subscription`, `key`, or the name of one); nothing, for a program that signs in as whoever runs the daemon. Takes `secrets:use`."
+
+  outlives:
+    type: string
+    default: ""
+    description: "Whether its program goes on without the daemon, and is taken up where it is by the next one: `on` or `off`. If empty, as it was, and a new one's does not."
+
+  web:
+    type: string
+    default: ""
+    description: "Whether its program may use the web unasked, looking things up and fetching pages by itself: `on` or `off`. If empty, as it was, and a new one's may not. `on` takes `shell`."
+
+  joins:
+    type: string
+    default: ""
+    description: "A channel it is brought into, to listen in; none, if empty. Brought in as this is applied with it, and not again: one it has left since is not joined again by this being applied with something else changed."
+
+  reports:
+    type: string
+    default: ""
+    description: "A channel it is in to say there what it is asked there, as what brings it up reports there: listed among its members and asked there by its name. None, if empty. It leaves it when it stops."
+
+  leave:
+    type: string
+    default: ""
+    enum: ["", finish, now]
+    description: "Whether it leaves: empty, it is brought in as said; `finish`, it takes no more work and is stopped when it has finished what it has in hand; `now`, it is stopped where it is. What it did is kept."
+
+steps:
+  agent:
+    description: The agent is a slot of its own, told and allowed what this says, and held by this, which stops it when this is stopped.
+    when: ${ params.leave == "" }
+    do: agent.ensure
+    with:
+      name: "${params.name}"
+      role: "${params.role}"
+      rank: ${params.rank}
+      instructions: "${params.instructions}"
+      adapter: "${params.adapter}"
+      model: "${params.model}"
+      permission_mode: "${params.permission}"
+      scopes: ${params.holds}
+      wall: "${params.wall}"
+      reads: ${params.reads}
+      changes: ${params.changes}
+      git: "${params.git}"
+      secrets: ${params.secrets}
+      signins: ${params.signins}
+      outlives: "${params.outlives}"
+      web: "${params.web}"
+      channel: "${params.joins}"
+      reports: "${params.reports}"
+
+  left:
+    description: Leaving, it is stopped as `leave` says and no longer held by this. What it did is kept; brought in again, it is back.
+    when: ${ params.leave != "" }
+    do: agent.stop
+    with:
+      name: "${params.name}"
+      idle: ${ params.leave == "finish" }
+
+outputs:
+  name: "${params.name}"

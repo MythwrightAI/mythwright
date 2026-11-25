@@ -1,0 +1,41 @@
+/* A tick is drawn here and not by the browser. The browser's own is a
+   colour of its choosing, not the theme's, and where the box is told a
+   size its mark is scaled with it and sits off the middle. So the box is
+   a square of the theme's own line, filled with the text's colour once it
+   is ticked, and the mark is two strokes laid in its middle. A switch
+   (`.switch`) is something else and is drawn where switches are. */
+input[type="checkbox"]:not(.switch) {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  flex: none;
+  box-sizing: border-box;
+  width: calc(16px * var(--tall));
+  height: calc(16px * var(--tall));
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--faint);
+  border-radius: calc(4px * var(--round));
+  background: transparent;
+  vertical-align: middle;
+  cursor: pointer;
+}
+input[type="checkbox"]:not(.switch):hover { border-color: var(--dim); }
+/* The mark: the two strokes of a tick are the left and bottom edges of a
+   box turned an eighth of a turn. Turned about its middle it sits a
+   little low, since the long stroke's end is above the short one's: it
+   is raised by that much. */
+input[type="checkbox"]:not(.switch)::after {
+  content: "";
+  box-sizing: border-box;
+  width: 9px;
+  height: 5px;
+  border: solid var(--bg0);
+  border-width: 0 0 2px 2px;
+  transform: translateY(-1px) rotate(-45deg);
+  opacity: 0;
+}
+input[type="checkbox"]:not(.switch):checked { border-color: var(--text); background: var(--text); }
+input[type="checkbox"]:not(.switch):checked::after { opacity: 1; }
+input[type="checkbox"]:not(.switch):disabled { opacity: 0.5; cursor: default; }

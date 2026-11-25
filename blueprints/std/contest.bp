@@ -1,0 +1,139 @@
+# A card's A/B test, done where the card is worked: one of the things
+# done with a card there (a *segment*), laid into its list in the place
+# of the work by `std/ab` while the card has a test to be done.
+#
+# It finds which of the card's tests is to be done now (the oldest that
+# has not come to something) and has it done (`std/contended`): each
+# contender works the card in a place of its own, the judges look, and
+# the winner's work becomes the card's, so that what comes after it in
+# the list (keeping, sending) and the review take it as they take any
+# card's. It ends in the word the test came to: `on`, `asks` (a person
+# is asked which entry is taken) or `left`.
+blueprint: std/contest
+version: 4
+description: "Do a card's A/B test where the card is worked: its contenders each work it in a place of their own, the judges look, and the winner's work becomes the card's."
+durable: false
+permissions: [board, records, agents, shell, projects, blueprints, channels]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+
+  channel:
+    type: string
+    default: ""
+    description: "Where what comes of it is reported; nowhere if empty."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which round of the card this is, for asking each agent once."
+
+  answer:
+    type: bool
+    default: false
+    description: "What was said as the card came is the answer to which entry is taken."
+
+  note: { type: string, default: "", description: "What was said as the card came." }
+
+  back:
+    type: bool
+    default: false
+    description: "The card was worked before and comes again: sent back from its review."
+
+  finish:
+    type: list
+    default: []
+    description: "How the card is finished where it is worked, as its stage's row says (`std/turn`): each contender is told it."
+
+  later:
+    type: list
+    default: []
+    description: "With `finish`: what somebody else checks after a contender."
+
+  lasts:
+    type: string
+    default: ""
+    description: "How long a contender's turn may take, as `45m`."
+
+steps:
+  tests:
+    description: The card's tests, with what a test that says nothing is taken to say.
+    do: rows.read
+    with:
+      project: "${params.project}"
+      collection: contests
+      saying: { card: "${params.item}" }
+      fill:
+        judging: std/judge
+        judges: reviewer
+        seats: 1
+        needed: 0
+        council: votes
+        stretches: 3
+        then: person
+        scale: 10
+        known_by: letters
+        losers: branch
+        alone: person
+        undecided: person
+        challengers: judged
+        state: waiting
+
+  next:
+    description: Which of them is to be done now.
+    do: contest.pending
+    with: { item: "${params.item}", contests: "${steps.tests.out.chosen}" }
+
+  done:
+    description: The test is done.
+    when: ${ steps.next.out.came == "next" }
+    call: std/contended
+    as: "contended-${params.item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      test: ${steps.next.out.contest}
+      asking: "${params.asking}"
+      answer: ${params.answer}
+      note: "${params.note}"
+      channel: "${params.channel}"
+      finish: ${params.finish}
+      later: ${params.later}
+      lasts: "${params.lasts}"
+
+  handed:
+    description: A test that came to a winner already asks again for the card's work to be handed to the winner's agent, which the test asks for once it comes to its winner, and where it was stopped before it did.
+    when: ${ steps.next.out.came == "done" }
+    do: emit
+    with: { topic: contest.handed, test: "${steps.next.out.id}", project: "${params.project}" }
+
+  again:
+    description: A card that comes again once its test came to a winner (sent back from its review) is worked by the winner's agent, whether or not the card's list says so yet.
+    when: ${ steps.next.out.came == "done" && params.back }
+    call: std/work
+    as: "again-${params.item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      channel: "${params.channel}"
+      agent: "${steps.next.out.agent}"
+      back: true
+      note: "${params.note}"
+      answer: ${params.answer}
+      asking: "${params.asking}"
+      finish: ${params.finish}
+      later: ${params.later}
+      lasts: "${params.lasts}"
+
+outputs:
+  # A test that came to a winner already (a round begun again after a stop)
+  # goes on with the winner's work, which is the card's.
+  came: "${ steps.done.out.came ?? steps.again.out.came ?? steps.next.out.ends ?? 'left' }"
+  says: "${ steps.done.out.says ?? steps.again.out.says ?? steps.next.out.says ?? 'its A/B test is no longer there to be done; move it to ready again and it is worked as any card is' }"
+  why: "${ steps.done.out.why ?? steps.again.out.why ?? 'its A/B test is no longer there to be done' }"
+  asker: "${ steps.done.out.asker ?? steps.again.out.asker ?? '' }"
+  question: "${ steps.done.out.question ?? steps.again.out.question ?? '' }"
+  # Handed on to what is done next: who worked the card, and where.
+  by: "${ steps.done.out.by ?? steps.again.out.by ?? steps.next.out.agent ?? '' }"
+  dir: "${ steps.done.out.dir ?? steps.again.out.dir ?? '' }"

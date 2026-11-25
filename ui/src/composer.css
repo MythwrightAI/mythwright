@@ -1,0 +1,116 @@
+/* The composer's newer parts: its tools' own tooltips, who can be asked,
+   the picture that is waiting to go, and the box drawn tall in the panel
+   beside the channel. The box itself, and the tools, are in style.css;
+   this is read after it. */
+/* A message written at length has the whole of the panel: the tools, and under them as much room as there is. */
+.context-write { display: flex; min-height: 0; padding: 4px 6px 10px; }
+.composer.wide { flex: 1; display: flex; flex-direction: column; width: auto; min-height: 0; margin: 0; }
+.composer.wide > .composer-box { flex: 1; width: auto; min-height: 0; margin: 0; }
+.composer.wide > .composer-box textarea { flex: 1; max-height: none; }
+/* In a panel, which is narrow, the tools are one run that goes on to the next line where it must, each beside the last. */
+.composer.wide .composer-foot, .thread .composer-foot { justify-content: flex-start; flex-wrap: wrap; gap: 1px; }
+.composer.wide .format, .thread .format { display: contents; }
+.composer.wide .composer-foot > .format-rule, .thread .composer-foot > .format-rule, .composer.wide .format-rule, .thread .format-rule { align-self: center; margin: 0 4px; }
+
+/* What stands over the box and outside it: what is waiting to go with the message (who can be named and
+   what the bot takes, offered, stand over that, though they are drawn on the page's body). It lies over
+   the foot of what was said and takes no room, so that nothing moves as it comes and goes and what is
+   written keeps its room; it begins where the box does. Under the channel the line that says who is writing is between the two, so this stands over that. */
+.composer-box { position: relative; }
+.composer-over { position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: 8; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; pointer-events: none; }
+.composer-over > * { pointer-events: auto; }
+.typing-edge + .composer .composer-over { bottom: calc(100% + 16px * var(--tall) + 8px); }
+/* What floats beside something being written (who can be named, what the bot takes, the composer's menus, who can be
+   named on a record): on the page's body and over everything there, placed by where it is beside (`offered.tsx`).
+   Inside the panel beside a channel a thread's list was cut off under its tabs. */
+body > .floated { position: fixed; right: auto; bottom: auto; z-index: 30; box-sizing: border-box; }
+/* On the channel's own ground, so that what it lies over does not show between what is in it; as many
+   lines as it takes, growing upward, and scrolling in itself past three. How tall it is is said where
+   the list beside it reads it (`--waiting`, by `Attaching`). */
+.composer-over > .attaching { align-self: stretch; box-sizing: border-box; flex-wrap: wrap; align-items: center; gap: 10px 8px; max-height: 214px; padding: 8px 8px 6px 0; overflow: hidden auto; background: var(--bg0); }
+.composer-over > .attaching > * { flex: none; }
+/* So the last thing said can be scrolled up clear of it: room at the list's foot, which moves nothing. Not in a
+   thread, whose list is as tall as what is said in it and whose box follows it: room there would move the box. */
+.messages:not(.thread > .messages):has(~ .typing-edge + .composer .composer-over > .attaching) { padding-bottom: calc(12px * var(--density) + var(--waiting, 74px)); }
+/* Written at length, in the panel, it is under what is written, at the foot of the box. */
+.composer.wide .composer-over { display: contents; }
+.composer.wide .composer-over > .attaching { order: 1; height: auto; padding: 8px 8px 0 0; flex-wrap: wrap; overflow: visible; background: none; }
+/* What a paste brought that could not be attached: a line under the box, in the room the channel leaves
+   there, until the next key. */
+.composer-note { position: absolute; left: 0; right: 0; top: 100%; padding: 2px 10px 0; font-size: calc(12px * var(--size)); line-height: calc(16px * var(--tall)); }
+.composer.wide .composer-note { position: static; order: 2; padding: 4px 0 0; }
+
+/* A picture that is waiting to go is a small one of itself, with what takes it away on its corner. */
+.attaching-picture { position: relative; display: inline-flex; width: 56px; height: 56px; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+.attaching-picture img { width: 100%; height: 100%; object-fit: cover; border-radius: calc(7px * var(--round)); }
+.attaching-picture button { position: absolute; top: -7px; right: -7px; width: calc(18px * var(--tall)); height: calc(18px * var(--tall)); padding: 0; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--bg2); color: var(--text); font-size: calc(12px * var(--size)); line-height: 1; }
+.attaching-picture button:hover { background: var(--bg3); }
+
+/* What each tool is, said over it. The system's own would sit under the
+   pointer, on what is being written, and cannot be put anywhere else. It
+   comes a moment after the pointer does, and not while the tool's menu is open. */
+.composer-foot [data-tip] { position: relative; }
+.composer-foot [data-tip]::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: 260px; padding: 4px 8px; border-radius: calc(6px * var(--round)); border: 1px solid var(--line-strong); background: var(--bg3); color: var(--text);
+  font: calc(12px * var(--size))/1.4 var(--sans); white-space: normal; text-align: left; box-shadow: var(--shadow); z-index: 45; pointer-events: none;
+  opacity: 0; visibility: hidden;
+}
+.composer-foot [data-tip]:hover::after, .composer-foot [data-tip]:focus-visible::after { opacity: 1; visibility: visible; transition: opacity 0.1s 0.4s, visibility 0s 0.4s; }
+.composer-foot [data-tip][aria-expanded="true"]::after { content: none; }
+/* The first and the last of them keep theirs inside the box they are at the edge of. */
+.composer-foot .attach[data-tip]::after { left: 0; transform: none; }
+.composer-foot .send[data-tip]::after { left: auto; right: 0; transform: none; }
+@media (hover: none) {
+  .composer-foot [data-tip]::after { content: none; }
+}
+/* Who can be asked, behind one button beside it; a mark on the button while one of them is at work. */
+.asking { position: relative; display: inline-flex; align-self: flex-end; }
+.asking-button { position: relative; width: calc(30px * var(--tall)); height: calc(30px * var(--tall)); font: calc(15px * var(--size)) var(--sans); color: var(--faint); }
+.asking-button:hover, .asking-button.on { color: var(--text); }
+.asking-button.on { background: var(--bg3); }
+.asking-mark { position: absolute; top: 5px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 2px var(--bg0); }
+.asking-menu { position: absolute; z-index: 20; left: 0; bottom: calc(100% + 4px); display: grid; width: max-content; min-width: min(calc(220px * var(--size)), calc(100vw - 16px)); max-width: min(calc(320px * var(--size)), calc(100vw - 16px)); max-height: 260px; overflow: auto; padding: 4px; background: var(--bg2); border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); box-shadow: var(--shadow); }
+/* As wide as its widest line up to its most, so that a name wraps only where the list is that wide. Each is its name and, under it, what is said of it, whole: a line as tall as it needs. */
+.asking-menu button { justify-content: flex-start; align-items: flex-start; gap: 8px; height: auto; min-height: calc(30px * var(--tall)); padding: 5px 8px; white-space: normal; text-align: left; }
+.asking-menu button > .standing, .asking-menu button > .asking-bot { flex: none; margin-top: 6px; }
+.asking-menu strong { color: var(--text); }
+/* A name and what is said under it, where somebody is offered to be asked or mentioned. Neither is cut off: both wrap. */
+.asked-words { display: grid; gap: 1px; min-width: 0; flex: 1 1 auto; text-align: left; }
+.asked-name { overflow-wrap: anywhere; line-height: 1.3; }
+.asked-under { font-size: calc(12px * var(--size)); line-height: 1.3; color: var(--dim); overflow-wrap: anywhere; white-space: normal; }
+.asking-bot { width: 7px; text-align: center; font-size: calc(10px * var(--size)); color: var(--faint); }
+
+/* Pointed at, a tool is lit and nothing is put behind it; only one that is on, or whose menu is open, has a ground of its own. */
+.composer-foot button.icon:hover:not(.on) { background: transparent; color: var(--text); }
+.composer-foot button.icon.send:hover:not(.on) { color: var(--accent); }
+/* What moves the box into the panel and back: one of the tools, as quiet as they are. */
+.composer-foot .widen { align-self: flex-end; width: 28px; height: calc(30px * var(--tall)); color: var(--faint); }
+.composer-foot .widen[data-tip]::after { left: auto; right: 0; transform: none; }
+/* Drawn tall, the tools are at the head of the panel with nothing over them: what opens from one opens under it, and so does what says what it is. */
+.composer.wide .composer-foot [data-tip]::after { top: calc(100% + 6px); bottom: auto; }
+
+/* Somebody is writing: three dots that swell in turn before the words, and the words a shade stronger, so that the
+   line is seen when it comes. The dots are placed inside the line's own room and only fade and swell there: nothing
+   is laid out again for them, so nothing else moves. Whoever asked for less movement is shown them still. */
+.typing-line:has(.typing-dots) { color: var(--dim); }
+.typing-dots { position: relative; display: inline-block; width: 19px; height: calc(16px * var(--tall)); margin-right: 5px; vertical-align: top; }
+.typing-dots i { position: absolute; top: 6px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); opacity: 0.35; animation: typing-dot 1.2s ease-in-out infinite; }
+.typing-dots i:nth-child(1) { left: 1px; }
+.typing-dots i:nth-child(2) { left: 7px; animation-delay: 0.16s; }
+.typing-dots i:nth-child(3) { left: 13px; animation-delay: 0.32s; }
+@keyframes typing-dot { 0%, 60%, 100% { opacity: 0.35; transform: translateY(0) scale(0.85); } 30% { opacity: 1; transform: translateY(-2px) scale(1.2); } }
+@media (prefers-reduced-motion: reduce) {
+  .typing-dots i { animation: none; opacity: 0.8; }
+}
+
+/* Who is at work for a channel and not writing in it (`WorkingLine`): an element of no height before the line of who
+   is typing, its words lying over the right of that line's room, so that it takes no room and nothing moves as it
+   comes and goes. Quieter than who is typing, and never mistaken for it: no dots, and at the other end. */
+.working-room { position: relative; height: 0; min-width: 0; }
+.working-line { position: absolute; top: 0; right: calc(var(--said-side) + var(--said-pad)); max-width: 48%; height: calc(16px * var(--tall)); display: flex; gap: 10px; justify-content: flex-end; overflow: hidden; font-size: calc(11.5px * var(--size)); line-height: calc(16px * var(--tall)); color: var(--faint); white-space: nowrap; z-index: 1; }
+.working-on { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.working-on { height: calc(16px * var(--tall)); padding: 0; border: 0; background: none; color: var(--faint); font: inherit; line-height: inherit; cursor: pointer; }
+button.working-on:hover { color: var(--dim); text-decoration: underline; }
+/* While it is there, who is typing gives way before it. */
+.working-room:has(.working-line) + .typing-edge { padding-right: calc(52% + var(--said-side) + var(--said-pad)); }

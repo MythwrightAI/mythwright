@@ -1,0 +1,492 @@
+# One round of a card where it is worked: the card is taken, the things
+# that are done with it there are done one after another, and it is
+# handed on.
+#
+# What is done is a short list of small blueprints, each one thing done
+# with the card (a *segment*): an agent works it (`std/work`), what the
+# agent changed is kept as a commit on the card's branch (`std/keep`),
+# and the branch is sent to the remote where that was asked for
+# (`std/send`). The project's `segments` may lay more into the list, a
+# row each: a command of the project's own before the commit, a blueprint
+# of its own in place of one of the three for some cards. Each ends in a
+# word, and what comes next is asked of the list (`segments.next`): the
+# next of it, or the card goes on, goes back to whoever worked it, waits
+# on what its agent asked, or is left for a person.
+#
+# Or the agent asks. One that cannot tell what is wanted, or why the card
+# came back to it, is not to guess and hand the card on: it changes
+# nothing and says what it needs to know. Nothing is then kept, sent or
+# moved, and the card stays in doing; what a question on a card is
+# belongs to the board's cards (`std/cards`), and whoever then answers on
+# the card has its stage begin the next round (`std/working`).
+#
+# Where the fleet works a limited number of cards at once, a round first
+# takes its place in the fleet's pool (`std/pool`) and waits for it if it
+# has to; the card is taken, moved to doing, only when its turn has come,
+# and says meanwhile that it waits and what for. A card that waits on
+# other cards (its `after`) is not begun until each of them is done.
+#
+# A stage that works has this done when a card's turn has come, and
+# again each time someone sends the card back from review (`std/working`).
+# To change what is done with a card in a round, lay a row into the
+# project's `segments`; a whole round of a project's own is named there
+# in the place of the first (`order: 10`).
+blueprint: std/lane-round
+version: 15
+description: "One round of a card where it is worked: it is taken, an agent works it, the work is kept and sent, with whatever the project's segments lay between, and the card goes on."
+# A round keeps nothing as it goes. An agent's turn cannot be taken up half
+# way, so a round that the daemon was stopped in the middle of is not
+# picked up where it was: it is over, its place in the pool is free, and
+# the stage's run for the card (`go` in `std/working`), which is kept,
+# begins the round again, from the first of its list: what was done
+# already is found done.
+durable: false
+permissions: [board, channels, agents, shell, projects, secrets, blueprints]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card's id." }
+  channel: { type: string, default: "", description: "Where to report; nowhere if empty." }
+
+  agent:
+    type: string
+    default: ""
+    description: "Which agent. If empty: the one this card's conversation was held with, or for its first round whichever has nothing in hand."
+
+  role:
+    type: string
+    default: ""
+    description: "With no `agent` named: the role the card is worked by, so that whichever takes it is one of those."
+
+  after_restart:
+    type: string
+    default: again
+    enum: [again, leave]
+    description: "What becomes of what an agent had in hand here when the daemon is stopped and started again: `again`, it goes on (an agent whose program outlives the daemon is taken up where it is; another is asked again); `leave`, it is left where it is for a person, and the channel says why."
+
+  restarts:
+    type: int
+    default: 3
+    description: "How many times at most the daemon may be started again in the middle of the same piece of work before it is left for a person, whatever `after_restart` says."
+
+  refused_means:
+    type: string
+    default: note
+    enum: [note, blocked]
+    description: "Where an agent's program says it was refused something and the agent went on: `note`, the card goes on and what was refused is said of it; `blocked`, it is left for a person."
+
+  finish:
+    type: list
+    default: []
+    description: "How a card is finished here, as the stage's row says: each step its agent sees to before it says it is done (`std/turn`)."
+
+  later:
+    type: list
+    default: []
+    description: "With `finish`: what somebody else checks after its agent."
+
+  lasts:
+    type: string
+    default: ""
+    description: "How long its agent's turn may take, as `45m`."
+
+  picks:
+    type: string
+    default: first
+    enum: [first, turn, least, rank]
+    description: "For a card's first round, with no agent named: which of the role's agents takes it, of those with as little in hand as each other. `first`, the one brought up first; `turn`, each in turn; `least`, the one given the least so far; `rank`, the one ranked highest (`std/role`)."
+
+  push:
+    type: bool
+    default: false
+    description: "Send the lane's branch to the repository's remote when the agent has finished."
+
+  remote:
+    type: string
+    default: origin
+    description: "The remote the branch is sent to, and asked with `fetch`, by the name the repository knows it by."
+
+  key:
+    type: string
+    default: ""
+    description: "A secret the factory keeps (`mw secret set <name>`) that the remote is asked and sent to with: a key of the service's own, such as a bot's, which says what may be done there. Left empty, the remote is reached as whoever runs the daemon. The key is given only to the remote's own address, which has to be one reached over https."
+
+  fetch:
+    type: bool
+    default: false
+    description: "Ask the remote first when the card's place is made. A branch the remote already has for the card (`lane/<card>`) is pulled down and taken up where it is; a branch that is new is cut from the remote's `base` when that has everything the project's folder has, and more. Nothing is asked of a remote unless this is said."
+
+  base:
+    type: string
+    default: ""
+    description: "With `fetch`: the branch on the remote that new work is cut from; the one the project's folder has checked out, if empty."
+
+  worktree:
+    type: bool
+    default: true
+    description: "Work in a git worktree of the card's own, on a branch of its own, when the project is a repository. It is made when the card's turn has come, from the project as it is then."
+
+  dir:
+    type: string
+    default: ""
+    description: "A place the card already has, from the top of the project, said by a lane that made it itself: one opened before a round made the card's place. With it, that place is used and none is made."
+
+  from:
+    type: string
+    default: ready
+    description: "The column the card is taken from when its turn comes."
+
+  to:
+    type: string
+    default: review
+    description: "The column the card goes to when its agent has finished."
+
+  back:
+    type: bool
+    default: false
+    description: "The card was sent back from review, and this is not its first round."
+
+  note:
+    type: string
+    default: ""
+    description: "What was said when it was sent back, if anything was; or, for a card that was not, what was said as it was put where it is worked."
+
+  answer:
+    type: bool
+    default: false
+    description: "What was said is the answer to what the agent asked on the card."
+
+  resumed:
+    type: bool
+    default: false
+    description: "The card was in hand when the stage that had it was stopped, and is taken up again where it was left: nobody sent it back."
+
+  unkept:
+    type: bool
+    default: false
+    description: "The card is given again because what its agent changed could not be committed; `note` is what git said."
+
+  tries:
+    type: int
+    default: 0
+    description: "How many times the card has been given again for that."
+
+  most:
+    type: int
+    default: 2
+    description: "How many times a card is given again because its work could not be committed, before it is left where it is for a person."
+
+  most_done:
+    type: int
+    default: 6
+    description: "How many things at most are done in one round: a list with more in it leaves the card for a person, and says how to raise the number (none, if 0)."
+
+  most_of:
+    type: string
+    default: ""
+    description: "The record that says that, for the sentence that says how to raise it: the stage's row."
+
+  pool:
+    type: string
+    default: ""
+    description: "The pool this round takes a place in before it begins (`std/pool`), where a limited number of cards are worked at once. With none it begins at once."
+
+  place:
+    type: string
+    default: ""
+    description: "The pool in which a place was already taken for the card, by its id, by whatever looks after the cards of its column (`std/working`). The round then asks for no turn of its own, and gives that place back as soon as its agent has finished."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which round of the card this is, in a word of whatever asks for it that it says again for this round and for no other (`std/working` says the event that gave the card its turn). A round begun again where the daemon was stopped then finds the turn it asked its agent for before, still in hand or ended with its answer, and the agent is not asked twice. Left empty, only a turn that was still in hand is found."
+
+  heard:
+    type: int
+    default: -1
+    description: "Which of the card's moves this round is told of, by the move's count, as the card's row keeps it (`moved`): what whoever asks for the round read there. The round holds the row against it, as it begins and before it hands the card on, and hands on only a card that is still as it has it. Not said (less than 0), it goes by where the card is."
+
+  segments:
+    type: list
+    default: []
+    description: "The rows of the project's `segments`, as whoever asks for the round read them: what more is done with a card in a round beside what is usual. With none, the usual."
+
+  of:
+    type: object
+    default: {}
+    description: "Which of those rows are this round's list: the cells a row of it says, and what each says (`std/working` says the stage it is)."
+
+  at:
+    type: list
+    default: []
+    description: "Where in the list the card was when its agent asked, as its row keeps it: with `answer`, the round begins there."
+
+steps:
+  planned:
+    description: The card as it is when its round is asked for, for whether it waits on other cards.
+    do: board.get
+    with: { id: "${params.item}" }
+
+  due:
+    description: A card that waits on others is not begun until each of them is done. Asked of the card as the wait begins to listen; the card answers when nothing it waits on is left, and says meanwhile what it waits for.
+    when: ${ (steps.planned.out.more.after ?? []) && params.place == "" }
+    do: wait
+    with:
+      event: after.clear
+      where: event.data.card == params.item
+      say: { topic: after.asked, card: "${params.item}", project: "${params.project}" }
+
+  place:
+    description: Its turn. Asked for as the wait begins to listen, so the answer cannot come too soon to be heard; what it is about is the card, which is told if it has to wait.
+    when: ${ params.pool != "" }
+    do: wait
+    with:
+      event: pool.granted
+      where: event.data.to == instance.id
+      say: { topic: pool.asked, pool: "${params.pool}", about: "${params.item}" }
+
+  taken:
+    description: Said of a card that had to wait, for its own blueprint to take what it waited for off it.
+    when: ${ steps.place.out.event.data.waited ?? false }
+    do: emit
+    with: { topic: card.taken, card: "${params.item}", project: "${params.project}" }
+
+  card:
+    needs: [place]
+    do: board.get
+    with: { id: "${params.item}" }
+
+  left:
+    description: A card that was taken out of the way while it waited its turn is not worked. Put in ready again it is taken up again.
+    when: ${ !(steps.card.out.status in [params.from, "doing"]) }
+    do: end
+    with:
+      reason: "${params.item} was moved to ${steps.card.out.status} before its turn came, and was not taken"
+
+  still:
+    description: Whether the card is still as this round has it, by what its row says of its moves. A round is begun again where the daemon stopped in the middle of it, and may have handed its card on already; and somebody may have moved the card since the round was told of it. In doing, it is this round's where its last move is the one the round was told of, or the round's own taking of it.
+    needs: [left]
+    do: work.held
+    with:
+      status: "${steps.card.out.status}"
+      from: "${params.from}"
+      doing: doing
+      moved: ${ steps.card.out.moved ?? [] }
+      heard: ${params.heard}
+
+  since:
+    description: A card somebody has moved since this round was told of it is no longer the round's. Nothing is worked, said or handed on, and the round ends; what moved the card is heard as any move is, and the card is taken up from there.
+    when: ${ steps.still.out.came == "gone" }
+    do: end
+    with:
+      reason: "${params.item} was moved by somebody after its round was told of it, and the round hands nothing on"
+
+  claim:
+    description: The card is taken when its round begins, and not while it waits its turn.
+    needs: [since]
+    when: ${ steps.still.out.came == "take" }
+    do: board.move
+    with: { id: "${params.item}", to: doing }
+
+  # The list. Its first thing is asked for and called here, and the rest
+  # by `std/through`, which calls itself once for each thing done: as
+  # many as the stage says are done at most in one round (`most_done`).
+  first:
+    description: "Which of the list is begun: the first of it, by the usual three and the rows as they are laid into them; or, where the card was answered, the one that asked. What it is begun with is this step's answer."
+    needs: [claim]
+    do: segments.next
+    with:
+      rows: ${params.segments}
+      usual:
+        - { order: 10, does: std/work }
+        - { order: 20, does: std/keep }
+        - { order: 30, does: std/send, only: "${params.push}" }
+      of: ${params.of}
+      item: "${params.item}"
+      labels: ${ steps.card.out.labels ?? [] }
+      part_of: "${ steps.card.out.more.part_of ?? '' }"
+      found: true
+      status: doing
+      here: "${params.from}"
+      doing: doing
+      begin: true
+      asking: true
+      through: true
+      answer: ${params.answer}
+      at: ${params.at}
+      given: ${params.tries}
+      most_given: ${params.most}
+      most_done: ${params.most_done}
+      most_of: "${params.most_of}"
+      own:
+        role: "${params.role}"
+        picks: "${params.picks}"
+        after_restart: "${params.after_restart}"
+        restarts: ${params.restarts}
+        refused_means: "${params.refused_means}"
+        finish: ${params.finish}
+        later: ${params.later}
+        lasts: "${params.lasts}"
+        fetch: ${params.fetch}
+        remote: "${params.remote}"
+        base: "${params.base}"
+        key: "${params.key}"
+      journey:
+        channel: "${params.channel}"
+        title: "${ steps.card.out.title ?? '' }"
+        agent: "${params.agent}"
+        worktree: ${params.worktree}
+        dir: "${params.dir}"
+        back: ${params.back}
+        note: "${params.note}"
+        answer: ${params.answer}
+        resumed: ${params.resumed}
+        unkept: ${params.unkept}
+        tries: ${params.tries}
+        most: ${params.most}
+        place: "${params.place}"
+        asking: "${params.asking}"
+
+  one:
+    description: The first thing of the list is called for the card, and ends in a word.
+    when: ${steps.first.out.calls}
+    call: "${steps.first.out.name}"
+    as: "segment-${params.item}-1"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      ...: ${steps.first.out.with}
+
+  free:
+    description: A place the round took for itself is given back as soon as the first thing has been done, so the next card's turn does not wait on this one's work being kept and sent. A round that ends before this has its place freed by ending.
+    when: ${ params.pool != "" && params.place == "" }
+    do: emit
+    with: { topic: pool.released, pool: "${params.pool}", as: "" }
+
+  second:
+    description: What comes after it, from what it came to.
+    do: segments.next
+    with:
+      item: "${params.item}"
+      found: true
+      here: "${params.from}"
+      was: ${steps.first.out}
+      gave: ${steps.one.out}
+
+  rest:
+    description: Where that is another thing to do, the rest of the list from there, a thing at a time.
+    when: ${steps.second.out.calls}
+    call: std/through
+    as: "through-${params.item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      here: "${params.from}"
+      next: ${steps.second.out}
+
+  last:
+    description: "What the round came to: the word the list ended with, and what goes with it."
+    do: segments.next
+    with:
+      item: "${params.item}"
+      found: true
+      here: "${params.from}"
+      was: ${ steps.rest.out.answer ?? steps.second.out }
+      last: true
+
+  told:
+    description: Said where the work is reported, when the card is left for a person and why.
+    when: ${ steps.last.out.came == "left" && params.channel != "" && steps.last.out.says != "" }
+    allow_failure: true
+    do: channel.post
+    with: { channel: "${params.channel}", body: "${steps.last.out.says}" }
+
+  now:
+    description: The card as it is when it is to be handed on, the list having been gone through. A card whose work could not be kept, whose agent asked, or that is left, does not go on.
+    when: ${ steps.last.out.came == "on" }
+    allow_failure: true
+    do: board.get
+    with: { id: "${params.item}" }
+
+  mine:
+    description: Whether it is still as this round has it. One that somebody moved while it was worked is theirs to say where it goes.
+    when: ${steps.now.ok}
+    do: work.held
+    with:
+      status: "${steps.now.out.status}"
+      from: "${params.from}"
+      doing: doing
+      moved: ${ steps.now.out.moved ?? [] }
+      heard: ${params.heard}
+
+  review:
+    description: Handed on, where it is still this round's to hand on.
+    when: ${ steps.mine.out.came == "mine" }
+    do: board.move
+    with: { id: "${params.item}", to: "${params.to}" }
+
+  # A round that ends with its card neither handed on nor to be given to
+  # its agent again leaves it in doing, and the card says so: that its
+  # agent asked, or that it is left for a person and why. Nothing is at
+  # work on it, and without that it would be taken for one that was sent
+  # back with nobody told (`std/owed`).
+  leaves:
+    description: The card says that it is left, and why.
+    when: ${ steps.last.out.came == "left" }
+    allow_failure: true
+    do: board.update
+    with:
+      id: "${params.item}"
+      fields: { again: ["left", "${steps.last.out.why}"] }
+
+  waits:
+    description: The card says that its agent asked, where the round ended in a question.
+    when: ${ steps.last.out.came == "asks" }
+    allow_failure: true
+    do: board.update
+    with:
+      id: "${params.item}"
+      fields: { again: ["asked", ""] }
+
+  asked_at:
+    description: And where in its list it asked, so that the round its answer begins is begun there. A board that keeps no `at` of its cards has the answer go to the first of the list.
+    when: ${ steps.last.out.came == "asks" }
+    allow_failure: true
+    do: board.update
+    with:
+      id: "${params.item}"
+      fields: { at: "${steps.last.out.at}" }
+
+# A round that fails leaves its card where it is for a person, and the
+# card says so, as one that ends without handing it on does (`leaves`).
+on_fail:
+  - do: board.update
+    with:
+      id: "${params.item}"
+      fields: { again: ["left", "${ run.error ?? 'its round failed' }"] }
+
+outputs:
+  # Whether the round got as far as giving its place back: what was handed
+  # on by whatever worked the card.
+  available: ${steps.last.out.journey.available}
+  asked: ${ steps.last.out.came == "asks" }
+  # Who asked and what, for whatever asked for this round to say of the
+  # card: a round keeps nothing, and one begun again where the daemon
+  # stopped before it was over would say the question a second time.
+  asker: "${ steps.last.out.asker ?? '' }"
+  question: "${ steps.last.out.question ?? '' }"
+  # Whether the card is to be given to its agent again, and what it is to
+  # be told: all that git said, where what was changed could not be
+  # committed, or what sent it back said.
+  again: ${ steps.last.out.came == "back" }
+  why: "${ steps.last.out.says ?? '' }"
+  # It is given again because something sent it back, and not because
+  # what was changed could not be kept.
+  back: ${ steps.last.out.back ?? false }
+  # Whether the card is left for a person, and why: said of the card by
+  # whatever asked for this round, as what its agent asked is.
+  left: ${ steps.last.out.came == "left" }
+  leaves: "${ steps.last.out.why ?? '' }"
+  # Which way, where the thing done said: its agent could not do what it
+  # needed (`blocked`), or nobody was there.
+  left_as: "${ steps.last.out.journey.left_as ?? '' }"

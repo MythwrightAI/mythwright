@@ -1,0 +1,232 @@
+# The gate, on a machine that has never built this, when it is asked for.
+#
+# `cargo xtask check` is the one thing that says a change is sound, and
+# every change passes it where it is made before it is landed, held to
+# four processors as these machines are. This runs it where nobody's own
+# setup can be what made it pass. It is asked for (`gh workflow run
+# gate.yml`, or from the page of this workflow) and runs for a pull
+# request. It is not run for every push to main: with twenty landings a
+# day that was a machine's half hour for each of them. It has found what
+# the gate where a change was made did not (an order of two things that a
+# slower machine comes to), so it is asked for after each batch of
+# landings and before anything is released, and by the nightly on the
+# commit it packages. The `offline`
+# gate needs to make a place with no network, which these machines do not
+# allow, so here it runs its tests with the network there and says it
+# could not count what was sent; it counts wherever a person runs the gate
+# themselves.
+name: gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+  # The nightly calls it on the commit it is to package, and makes nothing
+  # where it fails (`nightly.yml`).
+  workflow_call:
+
+# A newer run of the same branch makes the one before it pointless; a run
+# of another branch is another question, and is left to finish. Called by
+# the nightly, `github.workflow` is the nightly's name, so a gate asked for
+# by hand on main and the nightly's own are two questions and neither
+# cancels the other.
+concurrency:
+  group: gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: the gate, on Linux
+    runs-on: ubuntu-24.04
+    # The gate took 33 minutes here on 2026-11-25.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      # The toolchain is the one `rust-toolchain.toml` pins; asking what is
+      # installed is what installs it.
+      - name: The pinned toolchain
+        run: rustup show
+
+      # What was built before, for exactly these dependencies and this
+      # toolchain, and never what was built for others. A cache that begins
+      # from the last one and is kept again holds every build there has
+      # been: after three days of that, putting it back filled the disk.
+      - uses: actions/cache/restore@v4
+        id: built
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: gate-2-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+
+      - name: The client's packages
+        working-directory: ui
+        run: npm ci
+
+      # Tests make repositories and commits of their own.
+      - name: Someone for git to commit as
+        run: |
+          git config --global user.name "gate"
+          git config --global user.email "gate@example.invalid"
+          git config --global init.defaultBranch main
+
+      - name: The gate
+        run: cargo xtask check
+
+      # What a play that did not come to what was meant wrote down:
+      # everything its daemon said. A fault that shows once in many runs,
+      # and only on a machine like this one, can be read from nothing
+      # else, and the machine is gone when the run is over. Before the
+      # step that clears `target/tmp`.
+      - name: What a play that failed wrote down
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plays
+          path: |
+            target/tmp/simulation
+            target/tmp/anywhere
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # Kept once, by the first run that found nothing to put back, and
+      # without what only that run could use. Whether the gate passed or
+      # not, so long as something was built.
+      - name: What the next run cannot use
+        id: worth
+        if: always() && steps.built.outputs.cache-hit != 'true'
+        run: |
+          rm -rf target/debug/incremental target/tmp target/xtask
+          if [ -d target/debug/deps ]; then echo "keep=yes" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/cache/save@v4
+        if: always() && steps.worth.outputs.keep == 'yes'
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ steps.built.outputs.cache-primary-key }}
+
+  # The gate plays every suite the usual way: a project that is added has
+  # a journal of its own, and work is kept by a commit of its own unless
+  # much is waiting. The suites are to hold three other ways too, each
+  # told to a test program by one word (`xtask::ways`): every project in
+  # the factory's own journal, which is a factory an earlier program made
+  # and what every upgrade meets; each play of the runner's suite a
+  # project's with a journal of its own; and whatever waits for a database
+  # kept by one commit. Each is a run of every test again, which is why no
+  # gate plays them, and nothing did for long enough that thirty-two tests
+  # failed the first with nobody told. (A fourth is the journal's own
+  # suite with every piece of work kept by a commit of its own, which
+  # takes seconds, and goes with the third.) Each took about twenty
+  # minutes here, so after the gate in one job they came to more than
+  # its ninety (the nightly of 2026-11-25): each is a job of its own,
+  # beside the gate, on the gate's cache, which only the gate keeps.
+  ways:
+    name: the suites, played ${{ matrix.ways }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        ways: ["one", "own", "gathered ungathered"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: The pinned toolchain
+        run: rustup show
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: gate-2-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+
+      - name: The client's packages
+        working-directory: ui
+        run: npm ci
+
+      - name: Someone for git to commit as
+        run: |
+          git config --global user.name "gate"
+          git config --global user.email "gate@example.invalid"
+          git config --global init.defaultBranch main
+
+      - name: The suites, played so
+        run: cargo xtask ways ${{ matrix.ways }}
+
+      - name: What a play that failed wrote down
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plays-${{ strategy.job-index }}
+          path: |
+            target/tmp/simulation
+            target/tmp/anywhere
+          if-no-files-found: ignore
+          retention-days: 7
+
+  desktop:
+    name: the desktop program builds, on Linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # The window is the system's own web view, which has to be there to
+      # build against.
+      - name: What the window is built on
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
+
+      - name: The pinned toolchain
+        run: rustup show
+
+      # As for the gate: for exactly these dependencies, kept once.
+      - uses: actions/cache/restore@v4
+        id: built
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: desktop-2-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+
+      - name: Build it, and run its tests
+        run: |
+          cargo build -p desktop
+          cargo test -p desktop
+
+      - name: What the next run cannot use
+        id: worth
+        if: always() && steps.built.outputs.cache-hit != 'true'
+        run: |
+          rm -rf target/debug/incremental target/tmp
+          if [ -d target/debug/deps ]; then echo "keep=yes" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/cache/save@v4
+        if: always() && steps.worth.outputs.keep == 'yes'
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ steps.built.outputs.cache-primary-key }}

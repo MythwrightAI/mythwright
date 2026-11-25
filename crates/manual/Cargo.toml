@@ -1,0 +1,25 @@
+[package]
+name = "manual"
+description = "What the program says of itself: the help of its command line, the guides it carries, and all of it written out as pages a library reads."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# Its tests are the command line's suite (`documented.rs`: what `help
+# --json` says, the guides held to the program) and the API suite's
+# (`documented.rs`: the pages, the kept list of them and the action).
+test = false
+doctest = false
+
+[dependencies]
+brand = { workspace = true }
+blueprint = { workspace = true }
+kernel = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

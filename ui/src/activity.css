@@ -1,0 +1,30 @@
+/* Activity: what an instance's row says beside its status, in a column of its own. */
+
+/* An instance's status and whether it is behind, each a pill: side by side where the column has room for both, and
+   one under the other where it has not, with room between them either way. */
+.activity-status { display: flex; flex-wrap: wrap; align-items: center; gap: calc(4px * var(--tall)) 6px; }
+
+/* The column takes what the table has to spare, and its words never make it wider: they are cut at its edge. */
+table.instances th.activity-note { width: 32%; }
+table.instances td.activity-note { width: 32%; max-width: 0; }
+.activity-said {
+  display: flex; width: 100%; max-width: 100%; min-width: 0;
+  height: auto; min-height: calc(20px * var(--tall)); padding: 0;
+  border: 0; background: transparent; text-align: left; justify-content: flex-start;
+}
+.activity-said:hover { background: transparent; text-decoration: underline; }
+.activity-said > .truncate { min-width: 0; }
+.activity-said.failure { color: var(--bad); }
+/* Something it went on past is a warning, drawn as a warning is, and never as an error. */
+.activity-said.warning { color: var(--accent); }
+.activity-said code { color: inherit; }
+/* Under the name only where there is no room for its column. */
+.activity-said.under { display: none; }
+
+@media (max-width: 760px) {
+  table.instances .activity-note { display: none; }
+  .activity-said.under { display: flex; max-width: calc(220px * var(--size)); margin-top: 2px; }
+}
+
+/* The whole of it in the instance's details, in the same colour as its line. */
+.code-box.said-whole.warn-text { color: var(--accent); }

@@ -1,0 +1,6 @@
+blueprint: shop/least
+
+steps:
+  greet:
+    do: log
+    with: { message: hello }

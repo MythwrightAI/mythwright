@@ -1,0 +1,34 @@
+[package]
+name = "people"
+description = "Who is who: people's accounts and sessions, invitations to register, the credentials given to keys, agents and devices, and the services outside that prove each call by signing it."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# All tests live in tests/suite. Compiling the library a second time in test
+# mode was the single largest rustc invocation on the previous codebase.
+test = false
+doctest = false
+
+[dependencies]
+blueprint = { workspace = true }
+kernel = { workspace = true }
+journal = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+rusqlite = { workspace = true }
+argon2 = { workspace = true }
+sha2 = { workspace = true }
+hmac = { workspace = true }
+base64 = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

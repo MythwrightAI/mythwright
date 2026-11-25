@@ -1,0 +1,339 @@
+# A card given to an agent: one of the things done with a card where it
+# is worked (`std/lane-round`, which does them one after another: this,
+# then `std/keep`, then `std/send`, and whatever the project's `segments`
+# lays between them).
+#
+# The card's place to work in is made, the first time, or found; an agent
+# of the role is given the card for a turn (`std/turn`), asked to do what
+# the card says, told why it comes to it (new, sent back, answered, or
+# because what it changed could not be kept) and what was said; and the
+# card's place in the fleet's pool is given back as soon as the agent has
+# finished.
+#
+# It ends in a word, as every segment does. `on`: the card was worked,
+# and goes to what is done next. `asks`: the agent asked something in
+# place of working, and the card waits where it is for an answer. `left`:
+# there was nobody to give it to, or its agent could not do what it
+# needed (`blocked`), which is said with the card as it is left
+# (`left_as`). `nothing`: the card was gone. A row
+# that offers its agent another word says what that comes to (`ends`).
+#
+# To have some cards worked another way, name a blueprint of the
+# project's own in a row of `segments` at this one's place (`order: 10`),
+# held to those cards (`labelled`, `item`, `part_of`); to have them go to
+# one agent, name this one there and say `agent=<name>` in the row's
+# `with`.
+blueprint: std/work
+version: 11
+description: "Give a card to an agent of a role, in a place of the card's own, and say what that came to: it was worked, the agent asked, or nobody was there."
+# It keeps nothing as it goes. An agent's turn cannot be taken up half
+# way, so the round that called this calls it again where the daemon was
+# stopped in the middle of it, and it asks for the turn it asked for
+# before (`asking`).
+durable: false
+permissions: [board, channels, agents, shell, projects, secrets, blueprints, records:read]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+
+  agent:
+    type: string
+    default: ""
+    description: "Which agent. If empty: the one this card's conversation was held with, or for its first round whichever of the role has nothing in hand."
+
+  role: { type: string, default: "", description: "The role the card is worked by." }
+
+  picks:
+    type: string
+    default: first
+    description: "Which of the role's agents takes a card the first time, of those with as little in hand: `first`, `turn`, `least` or `rank`."
+
+  after_restart:
+    type: string
+    default: again
+    description: "What becomes of what the agent had in hand when the daemon is stopped and started again: `again`, it goes on; `leave`, it is left for a person."
+
+  restarts:
+    type: int
+    default: 3
+    description: "How often at most the daemon may be started again in the middle of the same work."
+
+  fetch:
+    type: bool
+    default: false
+    description: "Ask the remote first when the card's place is made."
+
+  remote: { type: string, default: origin, description: "The remote that is asked." }
+
+  base:
+    type: string
+    default: ""
+    description: "With `fetch`: the remote's branch new work is cut from."
+
+  key:
+    type: string
+    default: ""
+    description: "The secret the remote is asked with; as whoever runs the daemon, if empty."
+
+  worktree:
+    type: bool
+    default: true
+    description: "Work in a git worktree of the card's own, where the project is a repository."
+
+  dir:
+    type: string
+    default: ""
+    description: "A place the card already has: it is used, and none is made."
+
+  back: { type: bool, default: false, description: "The card was worked before and comes again." }
+
+  resumed:
+    type: bool
+    default: false
+    description: "The card was taken out of its agent's hands before it was done (the stage that had it was stopped, or somebody moved it away), and is taken up again where it was left."
+
+  note:
+    type: string
+    default: ""
+    description: "What was said as it came, the answer, or why what was changed could not be kept."
+
+  answer:
+    type: bool
+    default: false
+    description: "What was said is the answer to what the agent asked."
+
+  unkept:
+    type: bool
+    default: false
+    description: "It comes again because what was changed could not be committed."
+
+  place:
+    type: string
+    default: ""
+    description: "The pool in which a place was taken for the card by its id: given back when the agent has finished."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which asking of the card this is: asked for again after a restart, the agent is given the turn it had."
+
+  refused_means:
+    type: string
+    default: note
+    description: "Where its agent's program says it was refused something and the agent went on: `note`, the card goes on and what was refused is said of it; `blocked`, it is left for a person. A stage's row says it for its cards."
+
+  thread:
+    type: string
+    default: lane
+    description: "What the card's conversation is called, before the card's id: `lane` where it is worked, and `contend` where it is one of several pieces of work on it at once."
+
+  way:
+    type: string
+    default: ""
+    description: "Which of several pieces of work on the card at once this is, where it is one of them: the way of a comparison it is started under, which its conversation is called after."
+
+  compared:
+    type: string
+    default: ""
+    description: "The comparison it is started under, where it is one of several pieces of work on the card at once: whatever started it names the comparison and the way, and the comparison says what it hands."
+
+  entry:
+    type: string
+    default: ""
+    description: "What the piece of work it is is known by among those of the comparison: the row of it that the contest keeps."
+
+  hidden:
+    type: list
+    default: []
+    description: "Folders of the project its agent is not shown, from the top: the places of the other pieces of work on the card."
+
+  ends:
+    type: list
+    default: [done=on, ask=asks, blocked=left]
+    description: "The words its agent may end with, each as `word=what it comes to`: the work done, a question in place of it, or that something it needed was refused it, which leaves the card for a person. One that chooses none of them is taken to have done the work."
+
+  finish:
+    type: list
+    default: []
+    description: "How a card is finished here: each step its agent sees to before it says it is done, told as a checklist (`std/turn`)."
+
+  later:
+    type: list
+    default: []
+    description: "With `finish`: what somebody else checks after its agent, never its to wait on."
+
+  lasts:
+    type: string
+    default: ""
+    description: "How long its agent's turn may take, as `45m`; no bound, if empty."
+
+steps:
+  card:
+    do: board.get
+    with: { id: "${params.item}" }
+
+  # A place of its own to work in, made now that its turn has come and not
+  # before: a worktree on a branch of its own, cut from the project as it
+  # is now. Only the conductor makes and removes it, and it asks git with
+  # none of the repository's hooks.
+  made:
+    description: "The card's place: the one it has, or one made now. With `fetch` the remote is asked first what it has. Where there is no repository with history to branch from, the card is worked in the project itself."
+    allow_failure: true
+    do: place.make
+    # The key the remote is asked with, where one was said. It is handed to
+    # what speaks to the remote and to nothing else.
+    env: { FACTORY_REMOTE_KEY: { secret: "${params.key}" } }
+    with:
+      item: "${params.item}"
+      worktree: ${params.worktree}
+      dir: "${params.dir}"
+      fetch: ${params.fetch}
+      remote: "${params.remote}"
+      base: "${params.base}"
+
+  unplaced:
+    description: "A repository in which the card's place could not be made. The card is not worked in the project's own folder instead: this fails, and says what git said."
+    when: ${steps.made.failed}
+    do: fail
+    with:
+      message: "${params.item} was not worked: ${ steps.made.error ?? 'its place could not be made' }. It stays in doing. Put that right and move the card to ready again"
+
+  unasked:
+    description: Said where the work is reported, when the remote could not be asked.
+    when: ${ params.channel != "" && steps.made.ok && steps.made.out.unasked != "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: ${params.remote} could not be asked what it has (${steps.made.out.unasked}); the card is begun from what is here"
+
+  discussed:
+    description: What others said on the card since its agent last had it, which it is told; not what it is told already as what was said as the card came.
+    allow_failure: true
+    do: record.said
+    with: { id: "${params.item}", since: [card.worked, card.asked], leaving: "${params.note}" }
+
+  asks:
+    description: What its agent is asked, which is `prompts/lane-round.md`. Its blanks are why the card is given to it, and what was said, where anything was; what was said on the card since it last had it; the card, and how it was planned, where it was; where it is to work; and where what it says is posted.
+    needs: [unplaced, discussed]
+    do: text.put
+    with:
+      parts:
+        - from: lane-round.md
+          with:
+            why:
+              - { if: "${ params.resumed && params.note == '' }", from: lane-round/resumed.md }
+              - { if: "${ params.resumed && params.note != '' }", from: lane-round/resumed-said.md }
+              - if: "${ !params.back && !params.resumed && params.note != '' }"
+                from: lane-round/new-said.md
+              - if: "${ !params.back && !params.resumed && params.note == '' }"
+                from: lane-round/new.md
+              - { if: "${ params.back && params.unkept }", from: lane-round/unkept.md }
+              - if: "${ params.back && !params.unkept && params.answer }"
+                from: lane-round/answered.md
+              - if: "${ params.back && !params.unkept && !params.answer }"
+                say:
+                  - { if: "${ params.note != '' }", from: lane-round/back-said.md }
+                  - { if: "${ params.note == '' }", from: lane-round/back.md }
+            note:
+              - "${params.note}"
+              - if: "${ steps.discussed.out.text ?? '' }"
+                say:
+                  - "\n\n"
+                  - from: lane-round/discussed.md
+                    with: { said: "${steps.discussed.out.text}" }
+            item: "${params.item}"
+            title: "${steps.card.out.title}"
+            body: "${steps.card.out.body}"
+            planned:
+              - { if: "${steps.card.out.more.plan}", from: lane-round/planned.md }
+            plan: "${ steps.card.out.more.plan ?? '' }"
+            where:
+              - if: "${steps.made.out.dir}"
+                from: lane-round/in-worktree.md
+                with: { dir: "${steps.made.out.dir}" }
+              - { if: "${ steps.made.out.dir == '' }", from: lane-round/in-project.md }
+            posted:
+              - if: "${params.channel}"
+                say:
+                  - " "
+                  - from: lane-round/posted.md
+                    with: { channel: "${params.channel}", item: "${params.item}" }
+        # What it may say where something it needed was refused it, where
+        # it may end with `blocked`.
+        - { if: '${ "blocked=left" in params.ends }', from: lane-round/blocked.md }
+        - "\n"
+
+  work:
+    description: "The card is given to an agent for one turn, in its place, asked what is above: every round of a card is one conversation, in one place, and what it did is said where the work is reported by the agent that did it, in its own name."
+    needs: [asks]
+    call: std/turn
+    as: "turn-${params.item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      channel: "${params.channel}"
+      agent: "${params.agent}"
+      role: "${params.role}"
+      picks: "${params.picks}"
+      after_restart: "${params.after_restart}"
+      restarts: ${params.restarts}
+      asking: "${params.asking}"
+      thread: "${params.thread}"
+      way: "${params.way}"
+      hidden: ${params.hidden}
+      dir: "${steps.made.out.dir}"
+      ends: ${params.ends}
+      refused_means: "${params.refused_means}"
+      finish: ${params.finish}
+      later: ${params.later}
+      lasts: "${params.lasts}"
+      prompt: "${steps.asks.out.text}"
+      stays: in doing
+
+  given_back:
+    description: The place that was taken for the card by its id is given back as soon as the agent has finished, so the next card's turn does not wait on this one's work being kept and sent.
+    needs: [work]
+    when: ${ params.place != "" }
+    do: emit
+    with: { topic: pool.released, pool: "${params.place}", as: "${params.item}" }
+
+  worked:
+    description: Said of the card, so that its history names the agent that did the work and not only the blueprint that moved it.
+    when: ${ steps.work.out.came == "on" }
+    do: emit
+    with:
+      topic: card.worked
+      card: "${params.item}"
+      project: "${params.project}"
+      agent: "${steps.work.out.slot}"
+      refused: ${steps.work.out.refused}
+
+  went_on:
+    description: Said of the card where the daemon was stopped while its agent had it, so that its history says the work went on from there and was not begun by anyone.
+    when: ${ steps.work.out.there && steps.work.out.restarted > 0 }
+    do: emit
+    with:
+      topic: card.went_on
+      card: "${params.item}"
+      project: "${params.project}"
+      agent: "${steps.work.out.slot}"
+      times: ${steps.work.out.restarted}
+
+outputs:
+  came: "${ steps.work.out.came ?? 'nothing' }"
+  says: "${ steps.work.out.says ?? '' }"
+  why: "${ steps.work.out.why ?? '' }"
+  asker: "${ steps.work.out.asker ?? '' }"
+  question: "${ steps.work.out.question ?? '' }"
+  left_as: "${ steps.work.out.left_as ?? '' }"
+  # Handed on to what is done next: who worked it, that it was got as far
+  # as giving the card's place back, and where it was worked.
+  by: "${ steps.work.out.slot ?? '' }"
+  available: ${steps.work.out.there}
+  # What its agent said, and whether it could see the other pieces of work
+  # on the card where several were done at once.
+  reply: "${ steps.work.out.reply ?? '' }"
+  unhidden: ${ steps.work.out.unhidden ?? false }
+  dir: "${ steps.made.out.dir ?? '' }"

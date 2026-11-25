@@ -1,0 +1,31 @@
+/* The Topics panel as one tree of wikis (`views/wikitree.tsx`). A page's line is a thing's line or a fold's
+   as the side panel draws them; what is its own is here. A closed page is faint where it stands, and what is under it
+   is not. */
+.wiki-page.closed > :is(.nav-line, .nav-row) > .nav-item { opacity: 0.6; }
+/* The `+` stands after the menu at the line's end, in room kept whether or not it is drawn, as the menu's is. */
+.row-more.wiki-add { font-size: calc(15px * var(--size)); line-height: 1; }
+/* A page's title written in its line as it is made: the field where the title is, as tall as the line. */
+.nav-item.wiki-writing { display: flex; align-items: center; min-width: 0; flex: 1; cursor: text; }
+.wiki-title-field { flex: 1; min-width: 0; height: calc(22px * var(--tall)); padding: 0 4px; font: inherit; font-size: calc(13px * var(--size)); }
+
+/* Move to… of a page (`views/wikimoved.tsx`): a box, and under it where it could go, each at its depth, in a list
+   that scrolls in itself. */
+.wiki-moved input[type='search'] { width: 100%; box-sizing: border-box; }
+.wiki-moves { display: flex; flex-direction: column; max-height: min(52vh, calc(420px * var(--tall))); overflow-y: auto; min-width: 0; }
+.wiki-move {
+  display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; box-sizing: border-box;
+  min-height: calc(30px * var(--tall)); padding: 0 8px 0 calc(8px + var(--depth, 0) * 14px); margin: 0;
+  border: 0; border-radius: calc(4px * var(--round)); background: transparent; color: inherit; text-align: left; justify-content: flex-start;
+}
+.wiki-move:hover:not([aria-disabled]) { background: var(--bg2); }
+.wiki-move[aria-current] { color: var(--dim); cursor: default; }
+.wiki-move .truncate { min-width: 0; flex: 1; }
+.wiki-moves-head { margin: 8px 0 2px; font-size: calc(12px * var(--size)); }
+@media (pointer: coarse), (max-width: 760px) {
+  .wiki-move { min-height: calc(40px * var(--tall)); }
+}
+/* A page's title gives way first, as a line's name always does, and what is said beside it (how it stands, the project
+   of a wiki) only once the title is down to a few letters, where the panel is dragged narrow, so that nothing of a
+   line runs past it. */
+.wiki-page .nav-item .nav-hint { flex: 0 0.001 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.wiki-page .nav-item > .truncate { flex: 0 100 auto; min-width: 2.5em; }

@@ -1,0 +1,16 @@
+shop/in-place
+
+What it is
+  It takes a new text where it is, and does nothing for it.
+  What it is doing is written down as it goes, so that it is taken up where it was after a restart.
+  It goes on running once its steps are done, for what it hears.
+
+What it hears, and what it then does
+  When this happens: a thing was changed (`thing.changed`). Heard from its own project, and from the factory itself. [changed]
+    1. Do nothing. [run]
+
+What it may do
+  It runs as whoever applies it, and can do no more than they can.
+
+What it does as it ends or is changed
+  When it takes a new text while it is running, it goes on where it is: its steps are not run again.

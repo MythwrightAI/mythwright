@@ -1,0 +1,55 @@
+/* Channels in groups of a person's own (views/grouped.tsx). */
+/* What makes a group or a channel, in the panel's head beside what folds it, and of its size: 22px across under a
+   pointer, a little narrower than a button elsewhere, so that the panel's name is whole at its usual width beside
+   five of them at the largest size of text (it was 6px short at 24). Each is 2px clear of the next (its margin and
+   the group's gap), and a finger's size on a phone (`phone.css`). */
+.brand .brand-act { flex: none; display: inline-grid; place-items: center; width: 22px; height: calc(24px * var(--tall)); margin: -2px -7px -2px 0; color: var(--faint); font-weight: 400; }
+.brand .brand-act:hover { color: var(--text); }
+.group-row .group-name { color: var(--dim); font-weight: 600; }
+.row-more { flex: none; width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); margin-right: 2px; padding: 0; opacity: 0; }
+.nav-row:hover .row-more, .nav-row:focus-within .row-more { opacity: 1; }
+@media (hover: none) { .row-more { opacity: 1; } }
+.grouped { border-radius: calc(6px * var(--round)); }
+/* Where a dragged channel would be let go, the panel's head among it: outlined, which moves nothing. */
+.grouped.drop > .group-row, .grouped-loose.drop, .brand.drop { outline: 1px dashed var(--accent); outline-offset: -1px; border-radius: calc(6px * var(--round)); }
+.row-menu { position: fixed; z-index: 60; display: grid; min-width: 168px; max-width: 228px; padding: calc(4px * var(--density)) 4px; background: var(--bg2); border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); box-shadow: var(--shadow); }
+.row-menu button { justify-content: flex-start; gap: 8px; height: calc(28px * var(--tall)); padding: 0 8px; border: 0; background: transparent; color: var(--text); text-align: left; }
+.row-menu button:hover, .row-menu button:focus-visible { background: var(--bg3); }
+.row-menu .mark { margin-left: auto; color: var(--accent); }
+/* How many wait unread under something a menu offers, and a line over the first of another kind of thing. */
+.row-menu .waits { flex: none; margin-left: auto; min-width: 18px; height: calc(16px * var(--tall)); padding: 0 5px; border-radius: calc(8px * var(--round)); background: var(--accent-soft); color: var(--accent); font-size: calc(10.5px * var(--size)); font-weight: 600; line-height: calc(16px * var(--tall)); text-align: center; font-variant-numeric: tabular-nums; }
+.row-menu .waits + .mark { margin-left: 0; }
+.row-menu button.apart { position: relative; margin-top: 9px; }
+.row-menu button.apart::before { content: ""; position: absolute; left: 4px; right: 4px; top: -5px; border-top: 1px solid var(--line); }
+/* What a menu may also hold, where it is handed it (the gear of a page's head, and what it is shared by): a few
+   faint words at a line's end, a switch, and a line that cannot be pressed as things stand. What only says
+   something, and what takes away, are drawn as the side panel's foot draws them (foot.css). */
+.row-menu .hint { flex: none; max-width: 55%; margin-left: auto; padding-left: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--faint); font-size: calc(11.5px * var(--size)); }
+.row-menu .switch { flex: none; position: relative; width: 26px; height: 15px; margin-left: auto; border-radius: calc(8px * var(--round)); background: var(--line-strong); }
+.row-menu .hint + .switch { margin-left: 8px; }
+.row-menu .switch::after { content: ""; position: absolute; left: 2px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--bg0); }
+.row-menu [aria-checked="true"] > .switch { background: var(--accent); }
+.row-menu [aria-checked="true"] > .switch::after { left: 13px; }
+.row-menu button[aria-disabled="true"], .row-menu button[aria-disabled="true"]:hover, .row-menu button[aria-disabled="true"] .menu-sign { color: var(--faint); background: transparent; cursor: default; }
+/* Something a menu says that is longer than a line: it is read whole, on as many lines as it takes. */
+.row-menu .menu-note { padding: 5px 0 4px; font-size: calc(11.5px * var(--size)); line-height: 1.35; overflow-wrap: anywhere; }
+
+/* A line that opens a menu beside it (views/rowmenu.tsx): a mark at its end, and drawn as pointed at while what it opened is there,
+   which lies over the menu it came from where it is put over it on a narrow screen. */
+.row-menu .menu-opens { flex: none; margin-left: auto; padding-left: 8px; color: var(--faint); font-size: calc(15px * var(--size)); line-height: 1; }
+.row-menu button[aria-expanded="true"] { background: var(--bg3); }
+.row-menu.row-beside { z-index: 61; }
+
+/* The channels gathered by what they belong to: a branch for each project that has any (views/spaces.tsx). */
+.space-row .space-name { color: var(--dim); font-weight: 600; }
+.belongs { display: grid; gap: 2px; max-height: 44vh; margin: 0; padding: 6px 8px; overflow-y: auto; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); }
+.belongs legend { padding: 0 4px; color: var(--dim); font-size: calc(12px * var(--size)); }
+.belongs-choice { display: flex; flex-direction: row; align-items: center; gap: 8px; min-width: 0; padding: 4px 2px; }
+.belongs-choice input { flex: none; width: auto; margin: 0; }
+.belongs-choice .faint { flex: none; font-size: calc(11px * var(--size)); }
+
+/* What somebody keeps to hand at the top of the Resources panel (views/lately.tsx): what they pinned and what they
+   lately opened, each a line with the thing's mark, what its tab is called and, where two read alike, whose it is.
+   A line begins where the lines under Factory begin; its name gives way before what says whose it is does. */
+.nav-row.lately-line .nav-item, .nav-row.lately-line .nav-item:hover, .nav-row.lately-line .nav-item[aria-current="true"] { padding-left: var(--mark-in, 8px); }
+.lately-whose { flex: 0 1 auto; min-width: 28px; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--faint); font-size: calc(11.5px * var(--size)); }

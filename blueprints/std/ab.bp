@@ -1,0 +1,243 @@
+# A project's cards worked several ways at once and judged: its A/B
+# tests. A test is a row of `contests` (A/B tests), about a card, whose A/B
+# Testing tab is that row's form: which contenders work it, each a role of
+# the fleet, an agent as `@` its name or a way of a comparison; who judges
+# them and how; what becomes of the work that did not win. Each contender
+# works the card in a place of its own, the judges are shown what each did,
+# the winner's work becomes the card's and goes on to review as any card's
+# does, and what the judges said is counted under each contender's way.
+#
+# What this does is lay a test into its card's list where it is worked: a
+# row of `segments`, held to the card, at order 10, naming `std/contest`,
+# while the test is to be done. What a test does is `std/contest` and what
+# it calls; what each contender did is a row of `entries` (A/B attempts),
+# which the test writes and nobody by hand. A test is set up by a person,
+# so `contests` is written by hand.
+blueprint: std/ab
+version: 5
+description: "Have a project's cards worked several ways at once and judged, as each card's A/B test says: the tables a test is set up and kept in, and a test laid into what is done with its card."
+permissions: [board, records, agents, projects, blueprints]
+one_at_a_time: true
+
+params:
+  project: { type: string, description: "The project it works in." }
+
+  stage:
+    type: string
+    default: work
+    description: "The stage whose list a test is laid into: the one that works the cards, by what its row of `stages` is called."
+
+steps:
+  contests:
+    description: The table a test is set up in, a row a test, about a card.
+    do: collection.ensure
+    with:
+      name: contests
+      title: A/B tests
+      description: Each A/B test of a card, a row each, set up by whoever tries the card several ways.
+      project: "${params.project}"
+      # Whoever sets a test up chooses what the fleet's agents are given,
+      # run as whoever applied the fleet: as a row of `segments` does.
+      takes: agents:write
+      steers: agents
+      beside: board
+      about: card
+      fields:
+        card: { type: record, of: board, required: true, calls: 1 }
+        # Each a role of the fleet, an agent as `@` its name, or a way of
+        # the comparison it is counted under. Two or more.
+        contenders: { type: list }
+        # The comparison it is counted under; one of its own if empty.
+        compared: { type: text }
+        judging: { type: text, suggests: [std/judge, std/judge-scores] }
+        judges: { type: text }
+        seats: { type: number }
+        needed: { type: number }
+        council: { type: choice, of: [votes, talks] }
+        # How many stretches a council that talks may take before nothing is decided.
+        stretches: { type: number }
+        told: { type: text }
+        then: { type: choice, of: [person, highest, most] }
+        scale: { type: number }
+        # How a judge knows the entries: by letters (the usual) or by their ways.
+        known_by: { type: choice, of: [letters, ways] }
+        losers: { type: choice, of: [branch, discard] }
+        alone: { type: choice, of: [person, take] }
+        undecided: { type: choice, of: [person, left] }
+        # A shadow test's incumbent, as a contender is written: its work is the card's whatever is judged.
+        shadow: { type: text }
+        # A shadow test's other contenders: judged beside the incumbent (the usual), or only counted.
+        challengers: { type: choice, of: [judged, counted] }
+        # What the test is doing and came to, which it writes itself.
+        state: { type: choice, of: [waiting, working, judging, asking, came, left], quiet: true }
+        winner: { type: text, quiet: true }
+        # The winner's agent, whom the card's rounds go to from then on.
+        agent: { type: text, quiet: true }
+        why: { type: text, quiet: true }
+      # Called what a card's tab of its tests is called.
+      views:
+        "A/B testing": { kind: table }
+      history:
+        record.created: "{actor} set it up"
+        record.updated: "{actor} changed its {changed}"
+        record.removed: "{actor} took it away"
+
+  entries:
+    description: What each contender of a test did, a row each, which the test writes.
+    do: collection.ensure
+    with:
+      name: entries
+      title: A/B attempts
+      description: What each contender of an A/B test did with its card, a row each, which the test writes.
+      project: "${params.project}"
+      # Not beside the board: a table that sits beside another is one whose rows set what something
+      # does, and these only say what each contender did, which the test writes and nobody by hand.
+      takes: agents:write
+      by_hand: false
+      fields:
+        title: { type: text, required: true }
+        contest: { type: record, of: contests }
+        # Called by its card and its contender; its title is what the test finds it by.
+        card: { type: text, quiet: true, calls: 1 }
+        way: { type: text, quiet: true, calls: 2 }
+        letter: { type: text, quiet: true }
+        key: { type: text, quiet: true }
+        agent: { type: text, quiet: true }
+        state: { type: choice, of: [working, kept, unkept, failed, judged], quiet: true }
+        said: { type: text, quiet: true }
+        changed: { type: text, quiet: true }
+        patch: { type: text, quiet: true, hidden: true }
+        verdict: { type: choice, of: [won, lost, undecided], quiet: true }
+        scores: { type: list, quiet: true }
+        # Its program could see the other contenders' work: it had no wall.
+        not_held_apart: { type: flag, quiet: true }
+        # The incumbent of a shadow test, whose work is the card's.
+        incumbent: { type: flag, quiet: true }
+        # Its branch, which is kept where its work did not win and the test says so.
+        branch: { type: text, quiet: true }
+      views:
+        entries: { kind: table }
+
+on:
+  # A test set up, changed or taken away: laid into its card's list while
+  # it is to be done, and taken out of it once it is not.
+  changed:
+    event: record.*
+    for: { project: "${params.project}", collection: contests }
+    steps:
+      test:
+        description: The test as it is now; nothing where it was taken away.
+        when: ${ event.topic != "record.removed" }
+        do: record.get
+        with: { id: "${event.data.id}" }
+
+      laid:
+        description: What is laid for it already, by what the row of `segments` is called.
+        do: rows.read
+        with:
+          project: "${params.project}"
+          collection: segments
+          saying: { title: "ab-${event.data.id}" }
+
+      lay:
+        description: Laid into the card's list, where the work is, while it is to be done.
+        needs: [test, laid]
+        when: ${ steps.test.ok && !(steps.test.out.data.state in ["came", "left"]) }
+        do: rows.start
+        with:
+          project: "${params.project}"
+          collection: segments
+          rows:
+            - title: "ab-${event.data.id}"
+              stage: "${params.stage}"
+              order: 10
+              does: std/contest
+              item: "${steps.test.out.data.card}"
+
+      lift:
+        description: Taken out of it once it has come to nothing, or was taken away.
+        needs: [test, laid]
+        when: ${ steps.test.skipped || steps.test.out.data.state == "left" }
+        for_each: ${steps.laid.out.those}
+        allow_failure: true
+        do: record.remove
+        with: { id: "${item}" }
+
+      own:
+        description: The comparison of its own a test taken away was counted under, where it had one.
+        needs: [test]
+        when: ${steps.test.skipped}
+        do: contest.own
+        with: { tests: ["${event.data.id}"] }
+
+      ended:
+        description: A test taken away no longer counts what comes of its card there.
+        needs: [own]
+        for_each: ${ steps.own.out.own ?? [] }
+        allow_failure: true
+        do: compare.end
+        with: { name: "${item}" }
+
+  # A card whose review passed was accepted: what was counted of it under
+  # a comparison of a test's own is all there is to count, and it ends.
+  accepted:
+    event: card.approved
+    for: { project: "${params.project}" }
+    steps:
+      tests:
+        description: The card's tests that came to a winner.
+        do: rows.read
+        with:
+          project: "${params.project}"
+          collection: contests
+          saying: { card: "${event.data.card}", state: came }
+
+      own:
+        description: The comparisons of their own they are counted under; one counted under a shared comparison has none.
+        needs: [tests]
+        do: contest.own
+        with: { tests: "${steps.tests.out.those}" }
+
+      ended:
+        description: Each ended, having counted the card's review passing.
+        needs: [own]
+        for_each: ${steps.own.out.own}
+        allow_failure: true
+        do: compare.end
+        with: { name: "${item}" }
+
+  # A test that came to a winner asks for its card's rounds to go to the
+  # winner's agent from now, and waits for the fleet to have taken that:
+  # the row of the card's list that did the test does the card's work, by
+  # that agent, in the same place. What is handed is what the test's row
+  # says, whoever said the event.
+  handed:
+    event: contest.handed
+    for: { project: "${params.project}" }
+    steps:
+      test:
+        description: The test as it is now.
+        do: record.get
+        with: { id: "${event.data.test}" }
+
+      laid:
+        description: Its row of the card's list.
+        do: rows.read
+        with:
+          project: "${params.project}"
+          collection: segments
+          saying: { title: "ab-${event.data.test}" }
+
+      hand:
+        description: The card's work done by the winner's agent, in the test's place of its list.
+        needs: [test, laid]
+        when: ${ steps.test.out.data.state == "came" && (steps.test.out.data.agent ?? '') != '' }
+        for_each: ${steps.laid.out.those}
+        do: record.update
+        with:
+          id: "${item}"
+          fields: { does: std/work, with: ["agent=${steps.test.out.data.agent}"] }
+
+outputs:
+  contests: ${steps.contests.out.name}
+  entries: ${steps.entries.out.name}

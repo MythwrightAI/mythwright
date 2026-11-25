@@ -1,0 +1,21 @@
+/* A package that is installed and is not the one of its name that came with
+   this version: said in its line of the side panel and on its own page, with
+   the way to take the one that came for whoever may, and the question asked
+   before it is taken. */
+
+/* In the side panel: a third line, in a colour that is read as something to look at and not as something wrong. */
+.ext-open .ext-behind { max-width: 100%; font-size: calc(12px * var(--size)); color: var(--info); }
+/* The button stands whole in the line; the words before it are what gives way. */
+.ext-row .ext-update { flex: none; }
+
+/* On its page: what is said, with the button at its right, under it where there is no room beside. */
+.ext-came { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; padding: 12px 14px; border-color: var(--info); background: var(--info-soft); }
+.ext-came-says { flex: 1 1 280px; min-width: 0; display: grid; gap: 6px; }
+.ext-came-says p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.ext-came-says p + p { color: var(--dim); font-size: calc(13px * var(--size)); }
+.ext-came > button { flex: none; }
+
+/* The question. */
+.ext-asked h2 { margin: 0; overflow-wrap: anywhere; }
+.ext-asked p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.ext-asked p + p { color: var(--dim); font-size: calc(13px * var(--size)); }

@@ -1,0 +1,113 @@
+/* A sandbox test, as a view of a blueprint's page: what is done to it,
+   what happened, and at its foot what this was. The three keep to their
+   own room at any width: side by side where the view is wide, one under
+   the other where it is not, by the view's own width and not the
+   window's, and the foot stays in view while the rest scrolls. Each
+   thing asked is laid out as what is asked beside a text is
+   (`comparing.css`): its label, its box under that, what it means under
+   the box, and told its width. */
+.sandbox { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; height: 100%; container-type: inline-size; }
+.sandbox-body { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); min-height: 0; }
+.sandbox-acts, .sandbox-happened { min-width: 0; min-height: 0; overflow: auto; padding: 12px 16px 20px; }
+.sandbox-acts { border-right: 1px solid var(--line); background: var(--bg1); }
+.sandbox h2 { margin: 0 0 10px; font-size: calc(12px * var(--size)); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+.sandbox h3 { margin: 0; font-size: calc(13px * var(--size)); font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--text); }
+.sandbox h4 { margin: 0 0 4px; font-size: calc(12.5px * var(--size)); font-weight: 600; overflow-wrap: anywhere; }
+
+.sandbox-acts-list { display: grid; gap: 14px; min-width: 0; }
+.sandbox-form { display: grid; gap: 10px; min-width: 0; padding-top: 12px; border-top: 1px solid var(--line); align-content: start; }
+.sandbox-acts-list > .sandbox-form:first-child { padding-top: 0; border-top: 0; }
+.sandbox-form .comparing-field > textarea { resize: vertical; font-family: var(--mono, monospace); font-size: calc(12px * var(--size)); }
+.sandbox-told { margin: 0; }
+.sandbox-go { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; min-width: 0; }
+/* What is pressed here is no wider than the part it is in: where its words do not fit (large text, a narrow part)
+   they go on to another line inside it. */
+.sandbox-go > button { max-width: 100%; height: auto; min-height: calc(28px * var(--tall)); white-space: normal; text-align: left; }
+.sandbox-busy { font-size: calc(12px * var(--size)); color: var(--info); overflow-wrap: anywhere; }
+.sandbox-add { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; align-items: center; }
+.sandbox-add > input { flex: 1 1 110px; min-width: 0; }
+.sandbox-first, .sandbox-done { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; min-width: 0; }
+.sandbox-first li, .sandbox-done li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; font-size: calc(12.5px * var(--size)); }
+.sandbox-first li > code, .sandbox-done li > span { min-width: 0; overflow-wrap: anywhere; }
+.sandbox-first li > button, .sandbox-done li > button { flex: none; width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); padding: 0; }
+.sandbox-done { counter-reset: act; }
+.sandbox-done li > span::before { counter-increment: act; content: counter(act) ". "; color: var(--faint); }
+.sandbox-waits { padding: 12px; border: 1px solid var(--accent); border-radius: calc(8px * var(--round)); background: var(--accent-soft); }
+.sandbox-asked { margin: 0; font-size: calc(12.5px * var(--size)); line-height: 1.45; overflow-wrap: anywhere; }
+.sandbox-handed { margin: 0; display: grid; gap: 4px; min-width: 0; font-size: calc(12.5px * var(--size)); }
+.sandbox-handed > div { display: grid; grid-template-columns: minmax(60px, 30%) minmax(0, 1fr); gap: 8px; }
+.sandbox-handed dt { color: var(--dim); overflow-wrap: anywhere; }
+.sandbox-handed dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.sandbox-choice { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; align-items: start; font-size: calc(12.5px * var(--size)); }
+.sandbox-choice > span { overflow-wrap: anywhere; }
+
+.sandbox-came { display: grid; gap: 16px; min-width: 0; align-content: start; }
+.sandbox-part { display: grid; gap: 8px; min-width: 0; }
+.sandbox-note { margin: 0 0 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); font-size: calc(12.5px * var(--size)); line-height: 1.45; overflow-wrap: anywhere; }
+.sandbox-note.bad { border-color: var(--bad); }
+.sandbox-note p { margin: 0 0 6px; }
+.sandbox-note ul { margin: 0 0 8px; padding-left: 18px; }
+.sandbox-outcome { margin: 0; padding: 8px 10px; border-radius: calc(8px * var(--round)); border-left: 4px solid var(--line-strong); background: var(--bg1); font-size: calc(13.5px * var(--size)); line-height: 1.45; overflow-wrap: anywhere; }
+.sandbox-outcome.good { border-left-color: var(--ok); }
+.sandbox-outcome.bad { border-left-color: var(--bad); }
+.sandbox-outcome.waits { border-left-color: var(--accent); }
+.sandbox-differs { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; }
+
+/* The text's graph, lit. A tile's corner says how its step came out in a
+   mark as well as a colour, and the list under it says what each means. */
+.sandbox-graph { position: relative; height: 300px; min-width: 0; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); overflow: hidden; background: var(--bg0); }
+.sandbox-graph > * { position: absolute; inset: 0; }
+.gbadge circle { fill: var(--bg0); stroke: var(--line-strong); stroke-width: 1.5; }
+.gbadge text { font-size: calc(10.5px * var(--size)); font-weight: 700; fill: var(--text); }
+.gnode.status-ok .gbadge circle { stroke: var(--ok); }
+.gnode.status-failed .gbadge circle { stroke: var(--bad); fill: var(--bad-soft); }
+.gnode.status-stood rect.stripe { fill: var(--accent); }
+.gnode.status-stood rect.box { stroke: var(--accent); stroke-dasharray: 8 3; }
+.gnode.status-stood .gbadge circle { stroke: var(--accent); fill: var(--accent-soft); }
+.gnode.status-let rect.stripe { fill: var(--bad); }
+.gnode.status-let rect.box { stroke: var(--bad); stroke-dasharray: 2 3; }
+.gnode.status-let .gbadge circle { stroke: var(--bad); stroke-dasharray: 2 2; }
+.sandbox-legend { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: calc(12px * var(--size)); color: var(--dim); }
+.sandbox-mark { display: inline-grid; place-items: center; width: calc(18px * var(--tall)); height: calc(18px * var(--tall)); border-radius: 50%; border: 1.5px solid var(--line-strong); font-size: calc(10.5px * var(--size)); font-weight: 700; color: var(--text); }
+.sandbox-mark.lit-ok { border-color: var(--ok); }
+.sandbox-mark.lit-stood { border-color: var(--accent); background: var(--accent-soft); }
+.sandbox-mark.lit-let { border-color: var(--bad); border-style: dotted; }
+.sandbox-mark.lit-failed { border-color: var(--bad); background: var(--bad-soft); }
+.sandbox-mark.lit-skipped { border-style: dashed; }
+.sandbox-mark.lit-running { border-color: var(--info); }
+
+/* The timeline: each run under what it is a run of, each step a line of
+   three (how it came out, what it says of itself, what it gave). */
+.sandbox-run { display: grid; gap: 2px; min-width: 0; padding: 8px 0; border-top: 1px solid var(--line); }
+.sandbox-run:first-of-type { border-top: 0; padding-top: 0; }
+.sandbox-line { margin: 0; padding: 2px 0 2px 12px; font-size: calc(12px * var(--size)); color: var(--dim); overflow-wrap: anywhere; }
+.sandbox-step { display: grid; grid-template-columns: 118px minmax(0, 5fr) minmax(0, 4fr); gap: 4px 10px; align-items: start; min-width: 0; padding: 5px 6px; border-radius: calc(6px * var(--round)); font-size: calc(12.5px * var(--size)); }
+.sandbox-step.picked { background: var(--accent-soft); }
+.sandbox-step > * { min-width: 0; }
+.sandbox-what code { overflow-wrap: anywhere; }
+.sandbox-gave { color: var(--dim); overflow-wrap: anywhere; }
+.sandbox-whole { grid-column: 1 / -1; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sandbox-stood-in { display: block; overflow-wrap: anywhere; }
+.badge.stood { background: var(--accent-soft); color: var(--accent); }
+.badge.let { background: var(--bad-soft); color: var(--bad); }
+.badge.skipped { background: var(--bg2); color: var(--dim); }
+.sandbox-table { min-width: 0; font-size: calc(12.5px * var(--size)); }
+.sandbox-table summary { cursor: pointer; }
+.sandbox-table ul, .sandbox-talk { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; min-width: 0; }
+.sandbox-table li, .sandbox-talk li { overflow-wrap: anywhere; font-size: calc(12.5px * var(--size)); }
+.sandbox-table p { margin: 4px 0 0; }
+
+/* What this was: always in view at the foot, in the daemon's own words. */
+.sandbox-foot { min-width: 0; max-height: 34vh; overflow: auto; padding: 8px 16px 10px; border-top: 1px solid var(--line-strong); background: var(--bg1); font-size: calc(12px * var(--size)); line-height: 1.45; }
+.sandbox-foot p { margin: 0; overflow-wrap: anywhere; }
+.sandbox-said { color: var(--text); }
+.sandbox-stood-said { margin-top: 4px !important; color: var(--dim); }
+.sandbox-stood { display: inline-block; margin-left: 8px; padding: 0 6px; border-radius: calc(8px * var(--round)); background: var(--bg2); white-space: nowrap; }
+
+/* Where the view is narrow its two parts are one under the other and scroll together, over the foot. */
+@container (max-width: 760px) {
+  .sandbox-body { grid-template-columns: minmax(0, 1fr); grid-auto-rows: max-content; overflow: auto; }
+  .sandbox-acts, .sandbox-happened { overflow: visible; }
+  .sandbox-acts { border-right: 0; border-bottom: 1px solid var(--line); }
+  .sandbox-step { grid-template-columns: minmax(0, 1fr); }
+}

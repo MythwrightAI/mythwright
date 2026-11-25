@@ -1,0 +1,10 @@
+# Text is kept with a line ending of one kind on every system. Eighty files
+# are built into the program as they stand (`include_str!`), and texts are
+# held against each other byte for byte: checked out with another system's
+# line endings, the program would be another program and the tests would
+# fail on every blueprint.
+* text=auto eol=lf
+
+# Pictures are never text, whatever their bytes look like.
+*.png binary
+*.rgba binary

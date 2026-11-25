@@ -1,0 +1,40 @@
+# The table of how long each card took (`std/timed`), declared from the
+# board's columns as they are: a time for each column but the last. Asked
+# as it is applied and again whenever the board's columns change, so that
+# a column added has its time kept from then on; declaring it again over
+# the rows there are keeps what they hold.
+blueprint: std/timed-table
+version: 2
+description: "Declare a project's table of how long each card took, a time for each of its board's columns but the last."
+durable: false
+permissions: [projects, board, records]
+
+params:
+  project: { type: string, description: "The project it works in." }
+
+steps:
+  board:
+    description: The board's columns, left to right, with no card read.
+    do: board.list
+    with: { project: "${params.project}", ids: [] }
+
+  shape:
+    description: What is kept of each card, a time for each column but the last.
+    do: timed.fields
+    with: { columns: "${steps.board.out.columns}" }
+
+  table:
+    description: How long each card took, listed with the project's tables.
+    do: collection.ensure
+    with:
+      name: timed
+      project: "${params.project}"
+      fields: "${steps.shape.out.fields}"
+      # Its rows are written by the blueprint that keeps it, and nobody else.
+      by_hand: false
+      views:
+        timed: { kind: table }
+
+outputs:
+  columns: ${steps.board.out.columns}
+  last: ${steps.shape.out.last}

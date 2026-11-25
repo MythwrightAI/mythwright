@@ -1,0 +1,84 @@
+# One turn of a discussion in a channel's thread, and the turns after it:
+# the agent whose turn it is is shown the thread and says what it thinks
+# there, ending with `reply`, `agree` or `needs`; what comes after it is
+# asked (`discussion.next`), and where that is another turn, this is
+# called again with it. Otherwise how the stretch ended is what this
+# gives back.
+#
+# The language has no going round and needs none: each turn is one more
+# of this, called by the one before, and the channel's `turns` (twenty at
+# most) is what bounds how deep that goes.
+blueprint: std/discussion-turn
+version: 2
+description: "Take one turn of a discussion, and the turns after it, until the stretch ends."
+# It keeps nothing as it goes: a daemon stopped anywhere has the stretch
+# that is kept above it call the turns again from the first, and each
+# agent is given the turn it was given then, by which turn it is.
+durable: false
+permissions: [channels, agents, blueprints]
+
+params:
+  channel: { type: string, description: "The channel's id." }
+  root: { type: string, description: "The message its thread hangs from." }
+  stretch: { type: int, description: "Which stretch of the discussion this is." }
+
+  settings:
+    type: object
+    description: "What the channel offers, as `discussion.offer` keeps it."
+
+  slot: { type: string, description: "Whose turn it is." }
+  nth: { type: int, description: "Which turn of the stretch it is." }
+  asked: { type: string, description: "What the agent is asked." }
+  then: { type: object, description: "The stretch as it stands for this turn." }
+
+steps:
+  turn:
+    description: The agent whose turn it is says what it thinks in the thread, and how its turn ends.
+    do: agent.task
+    with:
+      slot: "${params.slot}"
+      channel: "${params.channel}"
+      thread: "thread:${params.root}"
+      prompt: "${params.asked}"
+      options: [reply, agree, needs]
+      asking: "${params.root}:${params.stretch}:${params.nth}"
+
+  counted:
+    description: Written down, whose turn it was and how it ended.
+    do: discussion.turned
+    with:
+      root: "${params.root}"
+      stretch: ${params.stretch}
+      nth: ${params.nth}
+      slot: "${params.slot}"
+      word: "${ steps.turn.out.decision ?? '' }"
+
+  next:
+    description: What comes after it, another turn or the end of the stretch.
+    do: discussion.next
+    with:
+      settings: ${params.settings}
+      stretch: ${params.then}
+      slot: "${params.slot}"
+      decision: "${ steps.turn.out.decision ?? '' }"
+
+  rest:
+    description: And where that is another turn, the turns from there.
+    when: ${ steps.next.out.came == "turn" }
+    call: std/discussion-turn
+    as: "turn-${params.root}-${params.stretch}-${steps.next.out.nth}"
+    with:
+      channel: "${params.channel}"
+      root: "${params.root}"
+      stretch: ${params.stretch}
+      settings: ${params.settings}
+      slot: "${steps.next.out.slot}"
+      nth: ${steps.next.out.nth}
+      asked: "${steps.next.out.asked}"
+      then: ${steps.next.out.then}
+
+outputs:
+  # How the stretch ended, after how many turns, and what the last turn said.
+  came: ${ steps.rest.out.came ?? steps.next.out.came }
+  turns: ${ steps.rest.out.turns ?? steps.next.out.turns }
+  words: ${ steps.rest.out.words ?? steps.turn.out.reply }

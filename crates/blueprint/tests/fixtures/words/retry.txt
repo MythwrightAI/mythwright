@@ -1,0 +1,121 @@
+The words of a retry, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== retry.backoff
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry:
+            max: 2
+            backoff: 10s
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    retry:
+      max: 2
+      backoff: 10s
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry:
+            max: 2
+            backoff: soon
+--- refused 7:22
+`backoff`: `soon` is not a duration; write it like `30s` or `1h30m`
+
+=== retry.factor
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry:
+            max: 2
+            factor: 2
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    retry:
+      max: 2
+      factor: 2
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry:
+            max: 2
+            factor: lots
+--- refused 7:21
+`factor` must be a number, 1 or more
+
+=== retry.max
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry:
+            max: 2
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    retry:
+      max: 2
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry:
+            max: lots
+--- refused 6:18
+`max` must be a whole number
+
+=== retry.max_backoff
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry:
+            max: 2
+            backoff: 1s
+            max_backoff: 1m
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    retry:
+      max: 2
+      backoff: 1s
+      max_backoff: 1m
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry:
+            max: 2
+            backoff: 1s
+            max_backoff: soon
+--- refused 8:26
+`max_backoff`: `soon` is not a duration; write it like `30s` or `1h30m`

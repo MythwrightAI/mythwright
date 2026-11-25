@@ -1,0 +1,572 @@
+# One round of a lane: the card is given to the agent, what the agent
+# changed is kept as a commit on the lane's branch, the branch is sent to
+# the remote when that was asked for, the work is reported, and the card
+# goes to review.
+#
+# Or the agent asks. One that cannot tell what is wanted, or why the card
+# came back to it, is not to guess and hand the card on: it changes
+# nothing and says what it needs to know. This says so of the card
+# (`card.asked`) and does no more: nothing is committed, sent or moved, and
+# the card stays in doing. What a question on a card is belongs to the
+# board's cards (`std/cards`): the question is put there, and whoever
+# then answers on the card has its stage begin the next round
+# (`std/working`).
+#
+# Where the fleet works a limited number of cards at once, a round first
+# takes its place in the fleet's pool (`std/pool`) and waits for it if it
+# has to; the card is taken, moved to doing, only when its turn has come,
+# and says meanwhile that it waits and what for. A round is what holds the
+# place: when it ends, however it ends, the place is free.
+#
+# A card that waits on other cards (its `after`) is not begun until each
+# of them is done: the round asks the card, which answers when nothing it
+# waits on is left (`std/cards`), and only then asks for its turn. A card
+# that waits on something holds no place while it does.
+#
+# A stage that works has this done when a card's turn has come, and
+# again each time someone sends the card back from review (`std/working`).
+# It is a blueprint of its own so that it is said once. To change what a
+# round is for one project, copy this file to
+# `blueprints/std/lane-round.bp` there.
+blueprint: std/lane-round
+version: 5
+description: "One round of a lane's card: the agent works, the work is kept and sent, and the card goes to review."
+# A round keeps nothing as it goes. An agent's turn cannot be taken up half
+# way, so a round that the daemon was stopped in the middle of is not
+# picked up where it was: it is over, its place in the pool is free, and
+# the stage's run for the card (`go` in `std/working`), which is kept,
+# begins the round again.
+durable: false
+permissions: [board, channels, agents, shell, projects, secrets]
+
+params:
+  project: { type: string }
+  item: { type: string, description: "The card's id." }
+  channel: { type: string, default: "", description: "Where to report; nowhere if empty." }
+
+  agent:
+    type: string
+    default: ""
+    description: "Which agent. If empty: the one this card's conversation was held with, or for its first round whichever has nothing in hand."
+
+  role:
+    type: string
+    default: ""
+    description: "With no `agent` named: the role the card is worked by, so that whichever takes it is one of those."
+
+  after_restart:
+    type: string
+    default: again
+    enum: [again, leave]
+    description: "What becomes of what an agent had in hand here when the daemon is stopped and started again: `again`, it goes on (an agent whose program outlives the daemon is taken up where it is; another is asked again); `leave`, it is left where it is for a person, and the channel says why."
+
+  restarts:
+    type: int
+    default: 3
+    description: "How many times at most the daemon may be started again in the middle of the same piece of work before it is left for a person, whatever `after_restart` says."
+
+  picks:
+    type: string
+    default: first
+    enum: [first, turn, least, rank]
+    description: "For a card's first round, with no agent named: which of the role's agents takes it, of those with as little in hand as each other. `first`, the one brought up first; `turn`, each in turn; `least`, the one given the least so far; `rank`, the one ranked highest (`std/role`)."
+
+  push:
+    type: bool
+    default: false
+    description: "Send the lane's branch to the repository's remote when the agent has finished."
+
+  remote:
+    type: string
+    default: origin
+    description: "The remote the branch is sent to, and asked with `fetch`, by the name the repository knows it by."
+
+  key:
+    type: string
+    default: ""
+    description: "A secret the factory keeps (`mw secret set <name>`) that the remote is asked and sent to with: a key of the service's own, such as a bot's, which says what may be done there. Left empty, the remote is reached as whoever runs the daemon. The key is given only to the remote's own address, which has to be one reached over https."
+
+  fetch:
+    type: bool
+    default: false
+    description: "Ask the remote first when the card's place is made. A branch the remote already has for the card (`lane/<card>`) is pulled down and taken up where it is; a branch that is new is cut from the remote's `base` when that has everything the project's folder has, and more. Nothing is asked of a remote unless this is said."
+
+  base:
+    type: string
+    default: ""
+    description: "With `fetch`: the branch on the remote that new work is cut from; the one the project's folder has checked out, if empty."
+
+  worktree:
+    type: bool
+    default: true
+    description: "Work in a git worktree of the card's own, on a branch of its own, when the project is a repository. It is made when the card's turn has come, from the project as it is then."
+
+  dir:
+    type: string
+    default: ""
+    description: "A place the card already has, from the top of the project, said by a lane that made it itself: one opened before a round made the card's place. With it, that place is used and none is made."
+
+  from:
+    type: string
+    default: ready
+    description: "The column the card is taken from when its turn comes."
+
+  to:
+    type: string
+    default: review
+    description: "The column the card goes to when its agent has finished."
+
+  back:
+    type: bool
+    default: false
+    description: "The card was sent back from review, and this is not its first round."
+
+  note:
+    type: string
+    default: ""
+    description: "What was said when it was sent back, if anything was; or, for a card that was not, what was said as it was put where it is worked."
+
+  answer:
+    type: bool
+    default: false
+    description: "What was said is the answer to what the agent asked on the card."
+
+  unkept:
+    type: bool
+    default: false
+    description: "The card is given again because what its agent changed could not be committed; `note` is what git said."
+
+  tries:
+    type: int
+    default: 0
+    description: "How many times the card has been given again for that."
+
+  most:
+    type: int
+    default: 2
+    description: "How many times a card is given again because its work could not be committed, before it is left where it is for a person."
+
+  pool:
+    type: string
+    default: ""
+    description: "The pool this round takes a place in before it begins (`std/pool`), where a limited number of cards are worked at once. With none it begins at once."
+
+  place:
+    type: string
+    default: ""
+    description: "The pool in which a place was already taken for the card, by its id, by whatever looks after the cards of its column (`std/working`). The round then asks for no turn of its own, and gives that place back as soon as its agent has finished."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which round of the card this is, in a word of whatever asks for it that it says again for this round and for no other (`std/working` says the event that gave the card its turn). A round begun again where the daemon was stopped then finds the turn it asked its agent for before, still in hand or ended with its answer, and the agent is not asked twice. Left empty, only a turn that was still in hand is found."
+
+  heard:
+    type: int
+    default: -1
+    description: "Which of the card's moves this round is told of, by the move's count, as the card's row keeps it (`moved`): what whoever asks for the round read there. The round holds the row against it, as it begins and before it hands the card on, and hands on only a card that is still as it has it. Not said (less than 0), it goes by where the card is."
+
+steps:
+  planned:
+    description: The card as it is when its round is asked for, for whether it waits on other cards.
+    do: board.get
+    with: { id: "${params.item}" }
+
+  due:
+    description: A card that waits on others is not begun until each of them is done. Asked of the card as the wait begins to listen; the card answers when nothing it waits on is left, and says meanwhile what it waits for.
+    when: ${ (steps.planned.out.more.after ?? []) && params.place == "" }
+    do: wait
+    with:
+      event: after.clear
+      where: event.data.card == params.item
+      say: { topic: after.asked, card: "${params.item}", project: "${params.project}" }
+
+  place:
+    description: Its turn. Asked for as the wait begins to listen, so the answer cannot come too soon to be heard; what it is about is the card, which is told if it has to wait.
+    when: ${ params.pool != "" }
+    do: wait
+    with:
+      event: pool.granted
+      where: event.data.to == instance.id
+      say: { topic: pool.asked, pool: "${params.pool}", about: "${params.item}" }
+
+  taken:
+    description: Said of a card that had to wait, for its own blueprint to take what it waited for off it.
+    when: ${ steps.place.out.event.data.waited ?? false }
+    do: emit
+    with: { topic: card.taken, card: "${params.item}", project: "${params.project}" }
+
+  card:
+    needs: [place]
+    do: board.get
+    with: { id: "${params.item}" }
+
+  left:
+    description: A card that was taken out of the way while it waited its turn is not worked. Put in ready again it is taken up again.
+    when: ${ !(steps.card.out.status in [params.from, "doing"]) }
+    do: end
+    with:
+      reason: "${params.item} was moved to ${steps.card.out.status} before its turn came, and was not taken"
+
+  still:
+    description: Whether the card is still as this round has it, by what its row says of its moves. A round is begun again where the daemon stopped in the middle of it, and may have handed its card on already; and somebody may have moved the card since the round was told of it. In doing, it is this round's where its last move is the one the round was told of, or the round's own taking of it.
+    needs: [left]
+    do: work.held
+    with:
+      status: "${steps.card.out.status}"
+      from: "${params.from}"
+      doing: doing
+      moved: ${ steps.card.out.moved ?? [] }
+      heard: ${params.heard}
+
+  since:
+    description: A card somebody has moved since this round was told of it is no longer the round's. Nothing is worked, said or handed on, and the round ends; what moved the card is heard as any move is, and the card is taken up from there.
+    when: ${ steps.still.out.came == "gone" }
+    do: end
+    with:
+      reason: "${params.item} was moved by somebody after its round was told of it, and the round hands nothing on"
+
+  claim:
+    description: The card is taken when its round begins, and not while it waits its turn.
+    needs: [since]
+    when: ${ steps.still.out.came == "take" }
+    do: board.move
+    with: { id: "${params.item}", to: doing }
+
+  # A place of its own to work in, made now that its turn has come and not
+  # before: a worktree on a branch of its own, cut from the project as it
+  # is now, so that a card which waited on others begins from what they
+  # left, and one that waits has none. What is asked of git for it is one
+  # action, and nothing here is: only the conductor makes and removes a
+  # lane's worktree, and it asks git with none of the repository's hooks,
+  # which run what is in the worktree, which an agent wrote.
+  made:
+    description: "The card's place this round: the one it has, the one its lane handed on, or one made now. With `fetch` the remote is asked first what it has. Where there is no repository with history to branch from, the card is worked in the project itself."
+    needs: [claim]
+    allow_failure: true
+    do: place.make
+    # The key the remote is asked with, where one was said. It is handed to
+    # what speaks to the remote and to nothing else, and is given there to
+    # the remote's own address, which has to be one reached over https.
+    env: { FACTORY_REMOTE_KEY: { secret: "${params.key}" } }
+    with:
+      item: "${params.item}"
+      worktree: ${params.worktree}
+      dir: "${params.dir}"
+      fetch: ${params.fetch}
+      remote: "${params.remote}"
+      base: "${params.base}"
+
+  unplaced:
+    description: "A repository in which the card's place could not be made. The card is not worked in the project's own folder instead: the round fails, and says what git said."
+    when: ${steps.made.failed}
+    do: fail
+    with:
+      message: "${params.item} was not worked: ${ steps.made.error ?? 'its place could not be made' }. It stays in doing. Put that right and move the card to ready again"
+
+  unasked:
+    description: Said where the work is reported, when the remote could not be asked.
+    when: ${ params.channel != "" && steps.made.ok && steps.made.out.unasked != "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: ${params.remote} could not be asked what it has (${steps.made.out.unasked}); the card is begun from what is here"
+
+  asks:
+    description: What its agent is asked, which is `prompts/lane-round.md`. Its blanks are why the card is given to it, and what was said, where anything was; the card, and how it was planned, where it was; where it is to work; and where what it says is posted.
+    needs: [unplaced]
+    do: text.put
+    with:
+      parts:
+        - from: lane-round.md
+          with:
+            why:
+              - { if: "${ !params.back && params.note != '' }", from: lane-round/new-said.md }
+              - { if: "${ !params.back && params.note == '' }", from: lane-round/new.md }
+              - { if: "${ params.back && params.unkept }", from: lane-round/unkept.md }
+              - if: "${ params.back && !params.unkept && params.answer }"
+                from: lane-round/answered.md
+              - if: "${ params.back && !params.unkept && !params.answer }"
+                say:
+                  - { if: "${ params.note != '' }", from: lane-round/back-said.md }
+                  - { if: "${ params.note == '' }", from: lane-round/back.md }
+            note: "${params.note}"
+            item: "${params.item}"
+            title: "${steps.card.out.title}"
+            body: "${steps.card.out.body}"
+            planned:
+              - { if: "${steps.card.out.more.plan}", from: lane-round/planned.md }
+            plan: "${ steps.card.out.more.plan ?? '' }"
+            where:
+              - if: "${steps.made.out.dir}"
+                from: lane-round/in-worktree.md
+                with: { dir: "${steps.made.out.dir}" }
+              - { if: "${ steps.made.out.dir == '' }", from: lane-round/in-project.md }
+            posted:
+              - if: "${params.channel}"
+                say:
+                  - " "
+                  - from: lane-round/posted.md
+                    with: { channel: "${params.channel}", item: "${params.item}" }
+        - "\n"
+
+  work:
+    needs: [asks]
+    do: agent.task
+    with:
+      # Whoever the lane was told, or else whoever the card names as the
+      # one it is given to, where that is an agent: a person who gives a
+      # card to one of the fleet has said who works it.
+      slot: "${params.agent}"
+      given: "${ steps.card.out.assignee ?? '' }"
+      role: "${params.role}"
+      pick: "${params.picks}"
+      after_restart: "${params.after_restart}"
+      restarts: ${params.restarts}
+      asking: "${params.asking}"
+      # What the rule that says who work goes to is told of this work (`std/dispatch`).
+      about:
+        card: "${params.item}"
+        title: "${steps.card.out.title}"
+        labels: ${ steps.card.out.labels ?? [] }
+      if_available: true
+      # Every round of a card is one conversation, in one place.
+      thread: "lane:${params.item}"
+      cwd: "${steps.made.out.dir}"
+      # What it did is said where the work is reported by the agent that
+      # did it, in its own name, and not by this blueprint on its behalf.
+      channel: "${params.channel}"
+      # How the round may end: the work done, or a question instead of it.
+      # An agent that chooses neither is taken to have done the work.
+      options: [done, ask]
+      prompt: "${steps.asks.out.text}"
+
+  free:
+    description: Its place is given back as soon as the agent has finished, so the next card's turn does not wait on this one's work being kept and sent. A round that ends before this has its place freed by ending.
+    needs: [work]
+    when: ${ params.pool != "" && params.place == "" }
+    do: emit
+    with: { topic: pool.released, pool: "${params.pool}", as: "" }
+
+  given_back:
+    description: A place that was taken for the card by its id, by whatever looks after its column, is given back by it, as soon as the agent has finished.
+    when: ${ params.place != "" }
+    do: emit
+    with: { topic: pool.released, pool: "${params.place}", as: "${params.item}" }
+
+  worked:
+    description: Said of the card, so that its history names the agent that did the work and not only the blueprint that moved it.
+    when: ${ steps.work.out.available && steps.work.out.decision != "ask" }
+    do: emit
+    with:
+      topic: card.worked
+      card: "${params.item}"
+      project: "${params.project}"
+      agent: "${steps.work.out.slot}"
+
+  went_on:
+    description: Said of the card where the daemon was stopped while its agent had it, so that its history says the work went on from there and was not begun by anyone.
+    when: ${ steps.work.out.available && (steps.work.out.again ?? 0) > 0 }
+    do: emit
+    with:
+      topic: card.went_on
+      card: "${params.item}"
+      project: "${params.project}"
+      agent: "${steps.work.out.slot}"
+      times: ${steps.work.out.again}
+
+  keep:
+    description: What the agent changed is kept as a commit on the lane's branch, if it left any of it uncommitted. The commit is the agent's; whoever git is configured as committed it.
+    when: ${ steps.work.out.available && steps.work.out.decision != "ask" }
+    allow_failure: true
+    do: place.keep
+    with:
+      item: "${params.item}"
+      dir: "${steps.made.out.dir}"
+      by: "${steps.work.out.slot}"
+      message: "${params.item}: ${steps.card.out.title}"
+      # A commit that cannot be made is answered, with what git said and
+      # whether it is the agent's to put right, and the card does not go on.
+      unkept_ok: true
+
+  publish:
+    description: The lane's branch is sent to the remote, when that was asked for. With a key it is sent as the key, and never as whoever runs the daemon.
+    # Not when the work could not be kept: the branch would be sent without it.
+    # Nor for a round that ended in a question, of which nothing is kept.
+    when: ${ params.push && steps.keep.ok && (steps.keep.out.unkept ?? "") == "" }
+    allow_failure: true
+    do: place.send
+    # The key is in the environment of this step alone, and of what in it speaks to the remote.
+    env: { FACTORY_REMOTE_KEY: { secret: "${params.key}" } }
+    with:
+      item: "${params.item}"
+      dir: "${steps.made.out.dir}"
+      remote: "${params.remote}"
+
+  pushed:
+    description: Said of the card when its branch has reached the remote, for whatever proposes the branch for merging there to hear. The application knows no hosting service; a package written for one does.
+    when: ${steps.publish.ok}
+    do: emit
+    with:
+      topic: card.pushed
+      card: "${params.item}"
+      project: "${params.project}"
+      branch: "lane/${params.item}"
+      remote: "${params.remote}"
+      title: "${steps.card.out.title}"
+
+  nobody:
+    description: Said where the work would have been reported, when there was no agent to give the card to.
+    when: ${ params.channel != "" && !steps.work.out.available && (steps.work.out.named ?? "") == "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: no agent is available to take this card; it stays in doing"
+
+  not_up:
+    description: Said there, when the agent its lane names is not one that is up.
+    when: ${ params.channel != "" && (steps.work.out.named ?? "") != "" && params.agent != "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: ${steps.work.out.named}, whom its lane names, is not an agent that is up; it stays in doing"
+
+  given_nobody:
+    description: Said there, when whoever the card is given to is not an agent that is up.
+    when: ${ params.channel != "" && (steps.work.out.named ?? "") != "" && params.agent == "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: ${steps.work.out.named}, whom the card is given to, is not an agent that is up; it stays in doing"
+
+  unkept:
+    description: Said of the card, for its history, when what was changed could not be committed.
+    when: ${ steps.keep.failed || (steps.keep.out.unkept ?? "") != "" }
+    do: emit
+    with:
+      topic: card.unkept
+      card: "${params.item}"
+      project: "${params.project}"
+      why: "${ steps.keep.error ?? steps.keep.out.unkept ?? 'the commit failed' }"
+
+  next:
+    description: What becomes of work that could not be kept. Where that is the agent's to put right and it has not been given the card again too often, it is given it again, by whatever asked for this round; otherwise the card is left where it is for a person.
+    when: ${ steps.keep.failed || (steps.keep.out.unkept ?? "") != "" }
+    do: place.unkept
+    with:
+      unkept: "${ steps.keep.out.unkept ?? '' }"
+      named: ${ steps.keep.out.named ?? true }
+      tries: ${params.tries}
+      most: ${params.most}
+      by: "${steps.work.out.slot}"
+
+  uncommitted:
+    description: Said where the work was reported, when it could not be kept, with what becomes of it.
+    when: ${ params.channel != "" && steps.next.ok }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: what was changed could not be committed, so it has not gone on and nothing was sent anywhere; it is still in .lanes/${params.item}: ${ steps.keep.error ?? steps.keep.out.unkept ?? 'the commit failed' }. ${steps.next.out.says}"
+      # All that git said, for whoever opens the message.
+      detail: "${ steps.keep.out.said ?? steps.keep.error ?? '' }"
+
+  sent:
+    description: Said there, when its branch reached the remote.
+    when: ${ params.channel != "" && steps.publish.ok && params.key == "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: its branch lane/${params.item} was sent to ${params.remote}"
+
+  sent_as:
+    description: Said there, when it reached the remote as a key.
+    when: ${ params.channel != "" && steps.publish.ok && params.key != "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: its branch lane/${params.item} was sent to ${params.remote} with the key ${params.key}"
+
+  unsent:
+    description: Said there, when it did not, and why.
+    when: ${ params.channel != "" && steps.publish.failed }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: its branch was not sent to ${params.remote}: ${ steps.publish.error ?? 'the push failed' }"
+
+  now:
+    description: The card as it is when its work is to be handed on, where the work is kept. Work that could not be committed does not go on.
+    when: ${ steps.keep.ok && (steps.keep.out.unkept ?? "") == "" }
+    allow_failure: true
+    do: board.get
+    with: { id: "${params.item}" }
+
+  mine:
+    description: Whether it is still as this round has it. One that somebody moved while it was worked is theirs to say where it goes.
+    when: ${steps.now.ok}
+    do: work.held
+    with:
+      status: "${steps.now.out.status}"
+      from: "${params.from}"
+      doing: doing
+      moved: ${ steps.now.out.moved ?? [] }
+      heard: ${params.heard}
+
+  review:
+    description: Handed on, where it is still this round's to hand on.
+    when: ${ steps.mine.out.came == "mine" }
+    do: board.move
+    with: { id: "${params.item}", to: "${params.to}" }
+
+  # A round that ends with its card neither handed on nor to be given to
+  # its agent again leaves it in doing, and the card says so: that its
+  # agent asked, or that it is left for a person and why. Nothing is at
+  # work on it, and without that it would be taken for one that was sent
+  # back with nobody told (`std/owed`).
+  leaves:
+    description: The card says that it is left, where there was nobody to give it to.
+    when: ${ !steps.work.out.available }
+    allow_failure: true
+    do: board.update
+    with:
+      id: "${params.item}"
+      fields: { again: ["left", "there was nobody to give it to"] }
+
+  waits:
+    description: The card says that its agent asked, where its round ended in a question.
+    when: ${ steps.work.out.available && steps.work.out.decision == "ask" }
+    allow_failure: true
+    do: board.update
+    with:
+      id: "${params.item}"
+      fields: { again: ["asked", ""] }
+
+  unkept_left:
+    description: The card says that it is left, where its work could not be kept and it is not given to its agent again.
+    when: ${ steps.next.out.came in ["left", "unnamed"] }
+    allow_failure: true
+    do: board.update
+    with:
+      id: "${params.item}"
+      fields: { again: ["left", "what was changed could not be committed"] }
+
+# A round that fails leaves its card where it is for a person, and the
+# card says so, as one that ends without handing it on does (`leaves`).
+on_fail:
+  - do: board.update
+    with:
+      id: "${params.item}"
+      fields: { again: ["left", "${ run.error ?? 'its round failed' }"] }
+
+outputs:
+  available: ${steps.work.out.available}
+  asked: ${ steps.work.out.available && steps.work.out.decision == "ask" }
+  # Who asked and what, for whatever asked for this round to say of the
+  # card: a round keeps nothing, and one begun again where the daemon
+  # stopped before it was over would say the question a second time.
+  asker: "${ steps.work.out.slot ?? '' }"
+  question: "${ steps.work.out.reply ?? '' }"
+  # All that git said, where what was changed could not be committed, for
+  # its agent to be told; and whether the card is to be given to it again.
+  why: "${ steps.keep.out.said ?? steps.keep.error ?? '' }"
+  again: ${ steps.next.out.again ?? false }

@@ -1,0 +1,446 @@
+# A fleet brought to what its two tables say.
+#
+# Who is in a project's fleet is its `agents`, and what they do with a
+# card its `stages` (`std/fleet`, which keeps both and calls this each
+# time either is changed). This reads them as they are and makes it so:
+#
+# - each row of `agents` is so many agents of one role, told and allowed
+#   the same and run by the same thing (`std/role`). A row with a count
+#   is a role with that many in it; a row for one agent with a program
+#   and a model of its own is the same thing with a count of one, and a
+#   role may be made of several rows. A row whose count is lowered, or
+#   that is taken away, has its agents leave when they have finished
+#   what they have in hand;
+# - each row of `stages` is a stage: a column, the role whose agents
+#   have the cards there, and what they do with them, each kind a text
+#   of its own (`std/working`, `std/reviewing`, and `std/planning` for a
+#   plan or a blueprint the row names). A stage is handed its row, with
+#   how many agents its role has, and has a pool that lets as many cards
+#   go at once as there are agents for. A stage whose row is taken away
+#   is stopped, and what it had under way with it.
+#
+# Then it says so (`fleet.arranged`), for whatever else is to follow a
+# fleet being changed.
+#
+# Called again with nothing changed it does nothing, and with one row
+# changed only what that row is: a role that is as it was is not brought
+# up again, and a stage takes what is new where it is.
+blueprint: std/arrangement
+version: 17
+description: "Bring a project's fleet to what its tables say: the agents of each row of `agents`, and a stage for each row of `stages`."
+permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
+
+params:
+  project: { type: string, description: "The project it works in." }
+
+  channel:
+    type: string
+    default: ""
+    description: "Where the fleet reports, and where those agents listen whose row says they do."
+
+  asked:
+    type: string
+    default: ""
+    description: "What asked for this: the change it follows. Said so that being called again is being asked again."
+
+  review: { type: string, default: std/review, description: "The blueprint that reviews one card." }
+
+  proposal:
+    type: string
+    default: std/proposal
+    description: "The blueprint that plans one card."
+
+  push: { type: bool, default: false, description: "The fleet's `push`." }
+  fetch: { type: bool, default: false, description: "The fleet's `fetch`." }
+  base: { type: string, default: "", description: "The fleet's `base`." }
+  remote: { type: string, default: origin, description: "The fleet's `remote`." }
+  key: { type: string, default: "", description: "The fleet's `key`." }
+
+  plan_told:
+    type: string
+    description: "What an agent that plans is told beside what its row says: how a plan is written so that its tickets become cards (`std/plan`)."
+    default: |
+      When you are asked for the plan of a change, write it as a document in the project, `docs/plans/<a-few-words>.md`: what is to change and why, how, and what could go wrong. End it with its tickets, as a block of exactly this form:
+
+      ```tickets
+      [
+        { "title": "Lay the floor", "body": "What is wanted, and how one would know it is done." },
+        { "title": "Put the shelves up", "body": "...", "after": [1] }
+      ]
+      ```
+
+      Each ticket becomes a card on the board: they are added for you when the document is written, and you add none yourself. `after` lists the tickets, by their place in the list counted from 1, that have to be done before this one is begun. Tickets that wait on nothing of each other are worked side by side, each from the project as it is when its turn comes: name only what truly has to come first, and keep a ticket to what one agent can do in one sitting.
+
+      When the document is written, say in the channel where it is and what its tickets are, in a few lines.
+
+state:
+  # The rows it has brought up, by their ids, so that called again it
+  # knows which have been taken away.
+  groups: []
+  stages: []
+
+steps:
+  agents:
+    description: Who is in the fleet, as the project's `agents` says now. Each row is given with what it leaves unsaid filled in, and a row called what an earlier row is called is marked, since their agents would be the same agents.
+    do: rows.read
+    with:
+      project: "${params.project}"
+      collection: agents
+      had: ${state.groups}
+      once: title
+      adding: count
+      fill:
+        role: { slug_of: title }
+        count: 1
+        rank: 0
+        permission: edit
+        wall: on
+        git: read
+        outlives: off
+        web: off
+        prompt: ""
+      # What each row is given once it is filled and marked. A row called
+      # what an earlier row is called brings up nobody and is known by its
+      # id; one that listens is told where; one that plans is told how a
+      # plan is written.
+      giving:
+        known: { by: again, "true": { like: id }, otherwise: { like: title } }
+        brings: { by: again, "true": 0, otherwise: { like: count } }
+        hears: { by: listens, "true": "${params.channel}", otherwise: "" }
+        also: { by: plans, "true": "${params.plan_told}", otherwise: "" }
+      # The roles of those who are asked for a plan.
+      gathering:
+        planning: { of: role, saying: { plans: true } }
+
+  actions:
+    description: What is pressed on a card in a column, as the project's `actions` says now. Every stage is handed the rows, and holds a card of its column where one of them says so.
+    do: rows.read
+    with: { project: "${params.project}", collection: actions }
+
+  stages:
+    description: What is done with a card, as the project's `stages` says now, each row with what it leaves unsaid filled in and with how many agents its role has. A stage whose column an earlier stage has is marked.
+    do: rows.read
+    with:
+      project: "${params.project}"
+      collection: stages
+      had: ${state.stages}
+      once: column
+      fill:
+        column: { like: title }
+        role: { slug_of: title }
+        does: review
+        picks: first
+        seats: 0
+        needed: 0
+        pass: ""
+        fail: doing
+        merge: false
+        next: first
+        # What the fleet says of every stage, which a row may say for itself: how a card is reviewed and how it is planned. And where its branch comes from and goes.
+        review: "${params.review}"
+        proposal: "${params.proposal}"
+        push: ${params.push}
+        fetch: ${params.fetch}
+        base: "${params.base}"
+        remote: "${params.remote}"
+        key: "${params.key}"
+        # A plan goes round more often than a piece of work.
+        rounds: { by: does, plan: 8, otherwise: 2 }
+        most: { by: does, work: 6, otherwise: 5 }
+        in_flight: finish
+        by_hand: leave
+        reports: trouble
+        after_restart: again
+        restarts: 3
+        refused_means: note
+        moved_away: stop
+        # How a card is finished, and how long a turn may take: nothing said, and no bound.
+        finish: []
+        later: []
+        lasts: ""
+        # What is pressed on a card, of every column.
+        actions: ${steps.actions.out.rows}
+      counting:
+        agents: { of: "${steps.agents.out.rows}", by: role, sum: count, unless: again }
+      # What each stage is given once its role's agents are counted. As
+      # many cards go at once as the role has agents for: a card that is
+      # worked takes one agent, and anything else takes as many as sit
+      # together on a card, which is all the role has where the row says
+      # no number. Fewer, where the row says so.
+      giving:
+        at_once:
+          least:
+            - { like: at_once }
+            - { share: { like: agents }, each: { by: does, work: 1, otherwise: { like: seats } } }
+        # Every one of the role looks, where the row says no number.
+        seats: { like: seats, else: { like: agents } }
+        # The text that has the column, by what is done there, and what its instance is called; and the other two, which are stopped should the row have said one of them before.
+        runs: { by: does, work: std/working, review: std/reviewing, otherwise: std/planning }
+        called: { by: does, work: working, review: reviewing, otherwise: planning }
+        not: { by: does, work: reviewing, otherwise: working }
+        nor: { by: does, review: planning, work: planning, otherwise: reviewing }
+        # A review that ships is told what becomes of what its agents had in hand at a restart; one of a project's own is given what it always was.
+        restarting: { by: review, std/review: true, otherwise: false }
+        # What is begun for a card where one is planned, or where the row names a blueprint.
+        begins: { by: does, plan: { like: proposal }, otherwise: { like: does } }
+      # The columns a card passed by a person is merged from, by whichever
+      # stage says so.
+      gathering:
+        merged_by_hand: { of: column, saying: { by_hand: merge } }
+        # The roles of those who work cards.
+        working: { of: role, saying: { does: work } }
+      # The stages whose role no row of agents has.
+      saying: { agents_rows: 0 }
+
+  roles:
+    description: Each row is so many agents of one role, called after their project and their row, since an agent's name is its own in the whole factory. A row called what an earlier row is called brings up nobody, and is known by its id.
+    for_each: ${steps.agents.out.rows}
+    call: std/role
+    as: "role-${item.id}"
+    with:
+      role: "${item.role}"
+      name: "${params.project}-${item.known}"
+      count: ${item.brings}
+      rank: ${item.rank}
+      adapter: "${item.adapter}"
+      model: "${item.model}"
+      permission: "${item.permission}"
+      holds: ${item.holds}
+      wall: "${item.wall}"
+      reads: ${item.reads}
+      changes: ${item.changes}
+      git: "${item.git}"
+      secrets: ${item.secrets}
+      outlives: "${item.outlives}"
+      web: "${item.web}"
+      channel: "${item.hears}"
+      # Every one is in the channel where the fleet reports, since what it
+      # did is said there in its own name; only those that listen are
+      # asked there by what names nobody.
+      reports: "${params.channel}"
+      instructions: |
+        ${item.told}
+
+        ${item.also}
+      prompt: "${item.prompt}"
+
+  same:
+    description: "Said where the fleet reports, of each row that is called what an earlier one is: their agents would be the same agents."
+    when: ${ params.channel != "" }
+    for_each: ${steps.agents.out.again}
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "Two rows of the fleet's agents are called ${item.title}. The later one (${item.id}) brings up nobody until it is called something else: an agent is known by what its row is called."
+
+  gone:
+    description: The agents of a row that was taken away leave when they have finished what they have in hand.
+    for_each: ${steps.agents.out.gone}
+    call: std/role
+    as: "role-${item}"
+    allow_failure: true
+    with: { role: gone, count: 0 }
+
+  segments:
+    description: What more is done with a card where it is, as the project's `segments` says now. Every stage is handed the rows, and takes those that name it.
+    do: rows.read
+    with:
+      project: "${params.project}"
+      collection: segments
+
+  pools:
+    description: "Each stage lets as many cards go at once as its role has agents for, or fewer where its row says, in the order its row says. A card that is worked takes one agent. Anything else takes as many as sit together on a card: so many where the row says, and otherwise all the role has."
+    needs: [roles]
+    for_each: ${steps.stages.out.rows}
+    spawn: std/pool
+    as: "pool-${item.id}"
+    with:
+      name: "${params.project}/${item.column}"
+      project: "${params.project}"
+      limit: ${item.at_once}
+      order: "${item.next}"
+
+  other:
+    description: A row that said another kind of thing is done there had another text, which is stopped.
+    for_each: ${steps.stages.out.rows}
+    do: stop
+    allow_failure: true
+    with: { instance: "${item.not}-${item.id}", missing_ok: true }
+
+  another:
+    for_each: ${steps.stages.out.rows}
+    do: stop
+    allow_failure: true
+    with: { instance: "${item.nor}-${item.id}", missing_ok: true }
+
+  staged:
+    description: Each row is a stage, of the text for what is done there, handed its row with how many agents its role now has.
+    needs: [roles, segments, other, another]
+    for_each: ${steps.stages.out.rows}
+    spawn: "${item.runs}"
+    as: "${item.called}-${item.id}"
+    with:
+      project: "${params.project}"
+      channel: "${params.channel}"
+      row: ${item}
+      pool: "${params.project}/${item.column}"
+      segments: ${ steps.segments.out.rows ?? [] }
+      # The columns a card passed by a person is merged from, by whichever
+      # stage says so: a stage that worked such a card tidies its place
+      # when that one has done, and not beside it.
+      merged_by_hand: ${steps.stages.out.gathered.merged_by_hand}
+
+  unstaffed:
+    description: "Said there too, of each stage whose role no row of agents has: nobody will ever look at a card there, which is not the same as nobody for now."
+    when: ${ params.channel != "" }
+    for_each: ${steps.stages.out.chosen}
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "The stage ${item.title} is for the role ${item.role}, and no row of the fleet's agents has that role: a card there waits for a person. Give a row of agents the role, or say the stage's role."
+
+  doubled:
+    description: "And of each stage whose column an earlier stage says it has: both would take every card that arrives there."
+    when: ${ params.channel != "" }
+    for_each: ${steps.stages.out.again}
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "Two stages of the fleet have the column ${item.column}: ${item.first.title} and ${item.title}. Each does what it does with every card that arrives there; give one of them another column."
+
+  dropped:
+    description: A stage whose row was taken away is stopped, and what it had under way with it, whichever kind it was.
+    for_each: ${steps.stages.out.gone}
+    do: stop
+    allow_failure: true
+    with: { instance: "working-${item}", missing_ok: true }
+
+  dropped_too:
+    for_each: ${steps.stages.out.gone}
+    do: stop
+    allow_failure: true
+    with: { instance: "reviewing-${item}", missing_ok: true }
+
+  dropped_also:
+    for_each: ${steps.stages.out.gone}
+    do: stop
+    allow_failure: true
+    with: { instance: "planning-${item}", missing_ok: true }
+
+  drained:
+    description: And its pool with it.
+    for_each: ${steps.stages.out.gone}
+    do: stop
+    allow_failure: true
+    with: { instance: "pool-${item}" }
+
+  taken_away:
+    description: Said where the fleet reports, since stopping a stage stops work.
+    when: ${ params.channel != "" && steps.stages.out.went == 1 }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "A stage of the fleet was taken away, and was stopped with what was under way there. A card that was being worked or reviewed there stays in its column."
+
+  several_taken_away:
+    description: The same, of more than one.
+    when: ${ params.channel != "" && steps.stages.out.went > 1 }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${steps.stages.out.went} stages of the fleet were taken away, and were stopped with what was under way there. A card that was being worked or reviewed there stays in its column."
+
+  said:
+    description: Said for whatever else is to follow a fleet being changed, and for the stages themselves.
+    needs:
+      - staged
+      - pools
+      - dropped
+      - dropped_too
+      - dropped_also
+      - drained
+      - gone
+      - same
+      - unstaffed
+      - doubled
+    do: emit
+    with:
+      topic: fleet.arranged
+      project: "${params.project}"
+      agents: ${steps.agents.out.sum}
+      stages: ${steps.stages.out.count}
+      asked: "${params.asked}"
+
+  kept:
+    do: set
+    with: { groups: "${steps.agents.out.ids}", stages: "${steps.stages.out.ids}" }
+
+on:
+  # A pool was told to start nothing new for now, or gives places again
+  # or another number of them: said where the fleet reports, of the
+  # column whose cards take their turns there.
+  held:
+    event: pool.paused
+    scope: own
+    when: ${ params.channel != "" }
+    steps:
+      stages:
+        do: rows.read
+        with:
+          project: "${params.project}"
+          collection: stages
+          fill: { column: { like: title }, does: review }
+          gathering:
+            columns: { of: column, saying: { column: { said: true } } }
+            looked: { of: column, saying: { does: review } }
+
+      says:
+        do: column.paced
+        with:
+          topic: "${event.topic}"
+          said: ${event.data}
+          under: "${params.project}"
+          columns: ${steps.stages.out.gathered.columns}
+          looked: ${steps.stages.out.gathered.looked}
+
+      said:
+        when: ${ steps.says.out.says != "" }
+        do: channel.post
+        with: { channel: "${params.channel}", body: "${steps.says.out.says}" }
+
+  going:
+    event: pool.open
+    scope: own
+    when: ${ params.channel != "" }
+    steps:
+      stages:
+        do: rows.read
+        with:
+          project: "${params.project}"
+          collection: stages
+          fill: { column: { like: title }, does: review }
+          gathering:
+            columns: { of: column, saying: { column: { said: true } } }
+            looked: { of: column, saying: { does: review } }
+
+      says:
+        do: column.paced
+        with:
+          topic: "${event.topic}"
+          said: ${event.data}
+          under: "${params.project}"
+          columns: ${steps.stages.out.gathered.columns}
+          looked: ${steps.stages.out.gathered.looked}
+
+      said:
+        when: ${ steps.says.out.says != "" }
+        do: channel.post
+        with: { channel: "${params.channel}", body: "${steps.says.out.says}" }
+
+outputs:
+  agents: ${steps.agents.out.sum}
+  stages: ${steps.stages.out.count}
+  # For whatever says who is in the fleet: the roles that are asked for a
+  # plan, and those that work cards.
+  planning: ${steps.agents.out.gathered.planning}
+  working: ${steps.stages.out.gathered.working}

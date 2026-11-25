@@ -1,0 +1,61 @@
+{
+ "about": "Topics as wikis, pages in a tree, case by case: what the tree is read as (kernel::topics::Tree, and readTree in ui/src/wikis.ts), each page's path from its wiki down to it, a parent that names no page and each page of a ring read as a wiki; the pages a page holds, in the order they stand; where a page lands when it is moved (landing in both): under a page or at the top, before a page or at the end of that level, said as each page whose position is to be another, the page moved first, or that it stays where it is, or refused by a word (gone, itself, elsewhere, beside); and where a page lands between two (between in both), nothing where there is no room and the level is numbered again. Each line is a page: its id, the page its row says it is under, where it stands and the workspace its place is of.",
+ "pages": [
+  {"id": "h", "parent": null, "position": 1, "space": "w"},
+  {"id": "g", "parent": "h", "position": 2, "space": "w"},
+  {"id": "d", "parent": "h", "position": 3, "space": "w"},
+  {"id": "s", "parent": "d", "position": 4, "space": "w"},
+  {"id": "r", "parent": "d", "position": 5, "space": "w"},
+  {"id": "p", "parent": null, "position": 6, "space": "w"},
+  {"id": "o", "parent": null, "position": 7, "space": "other"},
+  {"id": "x", "parent": "o", "position": 8, "space": "other"}
+ ],
+ "read": [
+  [null, {"h": ["h"], "g": ["h", "g"], "d": ["h", "d"], "s": ["h", "d", "s"], "r": ["h", "d", "r"], "p": ["p"], "o": ["o"], "x": ["o", "x"]}],
+  [[{"id": "a", "parent": "gone", "position": 1, "space": "w"}, {"id": "b", "parent": "", "position": 2, "space": "w"}], {"a": ["a"], "b": ["b"]}],
+  [[{"id": "a", "parent": "b", "position": 1, "space": "w"}, {"id": "b", "parent": "a", "position": 2, "space": "w"}, {"id": "c", "parent": "a", "position": 3, "space": "w"}], {"a": ["a"], "b": ["b"], "c": ["a", "c"]}],
+  [[{"id": "a", "parent": "a", "position": 1, "space": "w"}], {"a": ["a"]}],
+  [[{"id": "a", "parent": "b", "position": 1, "space": "w"}, {"id": "b", "parent": "c", "position": 2, "space": "w"}, {"id": "c", "parent": "b", "position": 3, "space": "w"}], {"a": ["b", "a"], "b": ["b"], "c": ["c"]}]
+ ],
+ "held": [
+  ["h", ["h", "g", "d", "s", "r"]],
+  ["d", ["d", "s", "r"]],
+  ["r", ["r"]],
+  [null, ["h", "p", "o"]]
+ ],
+ "moved": [
+  [null, {"page": "g", "under": "h", "before": "d"}, {"stays": true}],
+  [null, {"page": "r", "under": "d", "before": null}, {"stays": true}],
+  [null, {"page": "g", "under": "h", "before": "g"}, {"stays": true}],
+  [null, {"page": "h", "under": null, "before": "p"}, {"stays": true}],
+  [null, {"page": "g", "under": "h", "before": null}, {"positions": [["g", 4]]}],
+  [null, {"page": "d", "under": "h", "before": "g"}, {"positions": [["d", 1]]}],
+  [null, {"page": "r", "under": "d", "before": "s"}, {"positions": [["r", 3]]}],
+  [null, {"page": "s", "under": null, "before": null}, {"positions": [["s", 8]]}],
+  [null, {"page": "s", "under": null, "before": "p"}, {"positions": [["s", 3.5]]}],
+  [null, {"page": "g", "under": "p", "before": null}, {"positions": [["g", 1]]}],
+  [null, {"page": "p", "under": "d", "before": "r"}, {"positions": [["p", 4.5]]}],
+  [null, {"page": "o", "under": null, "before": "h"}, {"positions": [["o", 0]]}],
+  [null, {"page": "h", "under": "s", "before": null}, {"refused": "itself"}],
+  [null, {"page": "h", "under": "h", "before": null}, {"refused": "itself"}],
+  [null, {"page": "d", "under": "s", "before": null}, {"refused": "itself"}],
+  [null, {"page": "p", "under": "x", "before": null}, {"refused": "elsewhere"}],
+  [null, {"page": "x", "under": "h", "before": null}, {"refused": "elsewhere"}],
+  [null, {"page": "g", "under": "h", "before": "s"}, {"refused": "beside"}],
+  [null, {"page": "g", "under": "p", "before": "g"}, {"refused": "beside"}],
+  [null, {"page": "g", "under": null, "before": "d"}, {"refused": "beside"}],
+  [null, {"page": "g", "under": "nothing", "before": null}, {"refused": "gone"}],
+  [null, {"page": "nothing", "under": null, "before": null}, {"refused": "gone"}],
+  [[{"id": "a", "parent": null, "position": 1, "space": "w"}, {"id": "b", "parent": null, "position": 1.0000000000000002, "space": "w"}, {"id": "c", "parent": null, "position": 5, "space": "w"}], {"page": "c", "under": null, "before": "b"}, {"positions": [["c", 2], ["b", 3]]}],
+  [[{"id": "a", "parent": "b", "position": 1, "space": "w"}, {"id": "b", "parent": "a", "position": 2, "space": "w"}], {"page": "a", "under": "b", "before": null}, {"positions": [["a", 1]]}]
+ ],
+ "between": [
+  [null, null, 1],
+  [1, null, 2],
+  [null, 1, 0],
+  [1, 2, 1.5],
+  [1, 1, null],
+  [1, 1.0000000000000002, null],
+  [2, 1, null]
+ ]
+}

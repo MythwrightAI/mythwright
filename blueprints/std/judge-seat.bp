@@ -1,0 +1,61 @@
+# One judge of a card's A/B test: an agent asked to look at the entries
+# and pick one by its letter, or score each, as what it is asked says.
+# It is never one of the agents that worked an entry (`not`), and a
+# council's judges are each another agent where there are enough.
+#
+# It keeps nothing as it goes: started again, its agent is given the
+# turn it had (`asking`).
+blueprint: std/judge-seat
+version: 2
+description: "Ask one judge of a card's A/B test to pick an entry, or to score each, and say what it said."
+durable: false
+permissions: [agents]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  seat: { type: string, description: "Which judge this is: `seat-1` and on." }
+
+  judge_slot:
+    type: string
+    default: ""
+    description: "The agent who judges, where one is named."
+
+  judge_role: { type: string, default: "", description: "Else the role whose agents judge." }
+
+  not:
+    type: list
+    default: []
+    description: "Agents that may not judge: those that worked an entry."
+
+  letters:
+    type: list
+    default: []
+    description: "The letters it picks among; none where it scores each."
+
+  prompt: { type: string, description: "What it is asked." }
+
+  asking:
+    type: string
+    default: ""
+    description: "Which asking this is: asked again after a restart, its agent is given the turn it had."
+
+steps:
+  turn:
+    description: The judge looks, and picks or scores.
+    do: agent.task
+    with:
+      slot: "${params.judge_slot}"
+      role: "${params.judge_role}"
+      thread: "judge:${params.item}:${params.seat}"
+      apart: "judge:${params.item}:"
+      not: ${params.not}
+      options: ${params.letters}
+      prompt: "${params.prompt}"
+      asking: "${params.seat}-${params.asking}"
+
+outputs:
+  by: "${steps.turn.out.slot}"
+  pick: "${ steps.turn.out.decision ?? '' }"
+  words: "${steps.turn.out.reply}"
+  text: "${steps.turn.out.reply}"

@@ -1,0 +1,29 @@
+# The environments a project starts with: named sets of variables and
+# secrets of its own, such as `dev` and `prod`, that what the project
+# deploys runs under (`docs/environments.md`).
+#
+# Each is made with no variables, and one the project has already is left
+# as it is, so applying this again is the same as applying it once. What
+# is said of each, its variables, its secrets and who approves what runs
+# under it, is set afterwards on the project's Environments page or with
+# `mw project environment`.
+#
+# Once a project has an environment, whatever is applied for it says
+# which one it runs under: what a project starts with (its board, its
+# fleet) is applied under none.
+blueprint: std/environments
+version: 1
+description: Make a project's environments ready, each with no variables yet.
+permissions: [projects, shell, secrets]
+
+params:
+  names:
+    type: list
+    default: [dev, prod]
+    description: "The environments the project is to have, each a name such as `staging`."
+
+steps:
+  made:
+    description: Make each environment the project has not got yet.
+    do: environment.ensure
+    with: { names: "${params.names}" }

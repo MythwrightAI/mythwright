@@ -1,0 +1,15 @@
+{
+  "says": "A branch that already has an open pull request is left with the one it has: the program is asked, and nothing is opened.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"given": {"pushed.bp": "blueprint: pushed\nsteps:\n  say: { do: emit, with: { topic: card.pushed, card: shop-1, project: shop, branch: \"lane/shop-1\", remote: origin, title: \"Add a cart\" } }\n"}},
+    {"given": {"pulls/lane-shop-1": "7"}},
+    {"apply": "pull-requests", "project": "shop"},
+    {"run": ["apply", "{here}/pushed.bp", "--force"], "sets_off": "pushed"},
+    {"ran": ["auth status", "pr list --head=lane/shop-1 --state=open --json=number,url --limit=1"]},
+    {"holds": {"pulls": {"lane-shop-1": "7"}}}
+  ]
+}

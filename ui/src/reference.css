@@ -1,0 +1,95 @@
+/* The Reference: everything a blueprint can say, as a page.
+ *
+ * A column of entries no wider than a line is read at. The box that finds
+ * stays at the top while the page scrolls. An entry is its name in the
+ * mono face, what kind of thing it is beside it, and its sentence under
+ * them; what is inside it is set in from it, with a line down its left.
+ * Every colour is the theme's. */
+
+.reference { min-width: 0; }
+.ref-top { position: sticky; top: 0; z-index: 2; background: var(--bg0); border-bottom: 1px solid var(--line); }
+.ref-find { flex: 1 1 220px; min-width: 0; max-width: 420px; }
+.ref-body { max-width: 880px; padding-top: 12px; }
+
+.ref-part { margin-bottom: 18px; }
+button.ref-part-head { display: flex; align-items: center; gap: 8px; width: 100%; height: auto; padding: 6px 4px; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
+.ref-part-head h2 { margin: 0; font-size: calc(14px * var(--size)); font-weight: 650; }
+.ref-part-head .count { color: var(--faint); font-size: calc(12px * var(--size)); }
+.ref-none { margin: 4px 0 0 24px; color: var(--faint); font-size: calc(12px * var(--size)); }
+
+.ref-entry { padding: 5px 0 6px; min-width: 0; scroll-margin-top: 80px; }
+.ref-entries > .ref-entry { padding-left: 4px; border-top: 1px solid var(--line); }
+/* Room is kept at a line's right for the mark that copies its address, which stands there whatever the line holds. */
+.ref-line { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; min-height: calc(22px * var(--tall)); padding-right: 28px; }
+.ref-head { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; max-width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; }
+/* As tall as what it says, wherever a button is given a height of its own. */
+button.ref-head { cursor: pointer; height: auto; }
+.ref-head .twist { align-self: center; flex: none; position: relative; top: 1px; }
+.ref-name { font: 600 calc(12.5px * var(--size)) var(--mono); color: var(--info); overflow-wrap: anywhere; }
+.ref-entry[data-kind="action"] > .ref-line .ref-name,
+.ref-entry[data-kind="event"] > .ref-line .ref-name,
+.ref-entry[data-kind="shape"] > .ref-line .ref-name { color: var(--text); }
+.ref-is { font: calc(11px * var(--size)) var(--mono); color: var(--faint); margin-right: 6px; }
+.ref-mark { font-size: calc(11px * var(--size)); color: var(--dim); }
+.ref-mark[data-mark="needed"] { color: var(--accent); }
+.ref-mark code, .ref-says code, .ref-list code { font: calc(11.5px * var(--size)) var(--mono); color: var(--accent); }
+.ref-says { margin: 0; font-size: calc(12.5px * var(--size)); line-height: 1.5; color: var(--text); overflow-wrap: anywhere; }
+.ref-entries > .ref-entry > .ref-says { margin-left: 21px; }
+/* One with nothing to unfold has no box to press, and begins where the names of the others do. */
+.ref-entries > .ref-entry > .ref-line > span.ref-head { padding-left: 21px; }
+
+.ref-line > .ref-address { position: absolute; top: 0; right: 0; width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); padding: 0; color: var(--faint); opacity: 0.55; }
+.ref-line > .ref-address:hover, .ref-line > .ref-address:focus-visible { opacity: 1; color: var(--text); }
+.ref-line > .ref-address svg { width: 13px; height: 13px; }
+
+.ref-inside { margin: 6px 0 2px 21px; min-width: 0; }
+.ref-under { margin-top: 4px; padding-left: 12px; border-left: 1px solid var(--line-strong); }
+.ref-under > .ref-entry + .ref-entry { border-top: 1px dotted var(--line); }
+.ref-list { margin: 6px 0; }
+.ref-list h4 { margin: 0 0 3px; font-size: calc(10.5px * var(--size)); font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.ref-list dl { margin: 0; display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 2px 12px; font-size: calc(12px * var(--size)); }
+.ref-list dl > div { display: contents; }
+.ref-list dt { font: calc(11.5px * var(--size)) var(--mono); color: var(--info); overflow-wrap: anywhere; }
+.ref-list dd { margin: 0; color: var(--dim); overflow-wrap: anywhere; }
+
+/* The entry the page was opened at. Its bar stands a little way before its words, which stay where they were: the room is padding the entry is moved back by. */
+.ref-lit { margin-left: -8px; padding-left: 8px; background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+.ref-entries > .ref-entry.ref-lit { margin-left: -4px; padding-left: 8px; }
+
+/* The quiet link on a card about a word in a blueprint's text, which opens the Reference at it. */
+.bp-note .bp-note-ref { display: inline-block; height: auto; margin-top: 7px; padding: 0; border: 0; background: none; font: calc(11px * var(--size)) var(--sans); color: var(--faint); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.bp-note .bp-note-ref:hover, .bp-note .bp-note-ref:focus-visible { color: var(--text); }
+
+/* Under a finger the mark that copies an address is large enough to land on. */
+@media (pointer: coarse) {
+  .ref-line { min-height: calc(34px * var(--tall)); padding-right: 40px; }
+  .ref-line > .ref-address { width: calc(34px * var(--tall)); height: calc(34px * var(--tall)); }
+  .ref-line > .ref-address svg { width: calc(16px * var(--tall)); height: calc(16px * var(--tall)); }
+}
+
+/* An entry's example: a blueprint's text as the editor colours it, in a box that scrolls sideways in
+ * itself where a line is longer than the column, with the mark that copies it at its top right. */
+.ref-example { margin: 6px 0 4px; min-width: 0; }
+.ref-example h4, .ref-used h4 { margin: 0 0 3px; font-size: calc(10.5px * var(--size)); font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.ref-code-box { position: relative; min-width: 0; }
+.ref-code { margin: 0; padding: 8px 34px 10px 10px; overflow-x: auto; font: calc(12px * var(--size))/1.5 var(--mono); color: var(--text); background: var(--bg1); border: 1px solid var(--line); border-radius: calc(6px * var(--round)); white-space: pre; }
+.ref-code-box > .ref-copy { position: absolute; top: 20px; right: 4px; width: calc(24px * var(--tall)); height: calc(24px * var(--tall)); padding: 0; color: var(--faint); }
+.ref-code-box > .ref-copy:hover, .ref-code-box > .ref-copy:focus-visible { color: var(--text); }
+.ref-code-box > .ref-copy svg { width: 13px; height: 13px; }
+.ref-used { margin-top: 8px; }
+.ref-used ul { margin: 0; padding: 0; list-style: none; }
+button.ref-used-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; width: 100%; height: auto; min-height: calc(24px * var(--tall)); padding: 2px 4px; border: 0; border-radius: calc(4px * var(--round)); background: none; color: var(--dim); font-size: calc(12px * var(--size)); text-align: left; cursor: pointer; }
+button.ref-used-line:hover, button.ref-used-line:focus-visible { background: var(--bg1); color: var(--text); }
+.ref-used-line code { font: calc(11.5px * var(--size)) var(--mono); color: var(--info); overflow-wrap: anywhere; }
+.ref-more { margin: 2px 0 0 4px; font-size: calc(11.5px * var(--size)); color: var(--faint); }
+/* The quiet word on a line inside another that shows its example. */
+button.ref-shows { height: auto; padding: 0 4px; border: 0; background: none; font-size: calc(11px * var(--size)); color: var(--faint); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+button.ref-shows:hover, button.ref-shows:focus-visible { color: var(--text); }
+
+/* An example on the card about a word in a blueprint's text, read where the card is. */
+.bp-note .bp-note-example { margin: 7px 0 0; padding: 6px 8px 10px; max-height: 160px; overflow: auto; font: calc(11.5px * var(--size))/1.45 var(--mono); color: var(--text); background: var(--bg1); border: 1px solid var(--line); border-radius: calc(5px * var(--round)); white-space: pre; }
+
+@media (pointer: coarse) {
+  .ref-code-box > .ref-copy { width: calc(34px * var(--tall)); height: calc(34px * var(--tall)); top: 16px; }
+  button.ref-used-line { min-height: calc(34px * var(--tall)); }
+}

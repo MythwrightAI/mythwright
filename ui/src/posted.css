@@ -1,0 +1,14 @@
+/* What is attached that is a file of a project posted as that file (`views/attached.tsx`): a chip as a file's is, its name over
+   where it is and how big, both giving way inside it; one that went, or is not the reader's to read, fainter and pressed to
+   nothing. A copy, with what adds it to a project beside it; and the dialog that asks where. */
+.attached-copy { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; flex-wrap: wrap; }
+.attached-posted { max-width: min(360px, 100%); height: auto; min-height: calc(30px * var(--tall)); padding-top: 3px; padding-bottom: 3px; text-align: left; cursor: pointer; }
+span.attached-posted { cursor: default; }
+.attached-posted-words { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; line-height: 1.25; }
+.attached-posted-words .faint { font-size: calc(11.5px * var(--size)); }
+.attached-posted.gone .attached-posted-words > :first-child, .attached-posted.kept .attached-posted-words > :first-child { color: var(--dim); font-style: italic; }
+.attached-add { height: auto; padding: 0; font-size: calc(12px * var(--size)); white-space: nowrap; }
+.attached-placing select, .attached-placing input { width: 100%; min-width: 0; }
+.attached-placing-says { margin: 0; font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+.attached-placing-wrong { margin: 0; color: var(--bad); font-size: calc(12.5px * var(--size)); }
+.channel-doc-picture { display: block; max-width: 100%; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); }

@@ -1,0 +1,3 @@
+# Wide enough that a diagnostic message fits on one line.
+max_width = 110
+use_small_heuristics = "Max"

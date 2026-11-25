@@ -1,0 +1,30 @@
+[package]
+name = "setup"
+description = "What a project and an agent are set up with as somebody asks: what a new project starts with, an agent added by hand, and an example put into a project, each the blueprints that ship applied or written as whoever asked."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# Its tests are the API suite's (`usual.rs`, `byhand.rs`, `examples.rs`
+# and those beside them), which add projects and agents and put examples
+# through the routes that ask this.
+test = false
+doctest = false
+
+[dependencies]
+brand = { workspace = true }
+blueprint = { workspace = true }
+kernel = { workspace = true }
+journal = { workspace = true }
+deciding = { workspace = true }
+conductor = { workspace = true }
+studio = { workspace = true }
+agents = { workspace = true }
+folders = { workspace = true }
+serde_json = { workspace = true }

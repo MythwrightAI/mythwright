@@ -1,0 +1,20 @@
+{
+ "about": "Links between topics, case by case: which pages a text links to (kernel::topics::links_in, and the page spans prose.ts reads, through pageLinkOf in ui/src/pagelinks.ts), each once in the order first written, a link to a reply apart from one to its page. A link is [words](topic:<id>) or [words](topic:<id>#<reply>); nothing in code or a block of code is one, nor a picture's marks, nor a link with no words or an address that is not a page's; but the blocks an article draws as boxes (written ```infobox, ```series or ```note, with nothing after on the line) are read as words. Each case is a text and the links in it, each its page and its reply or null.",
+ "cases": [
+  ["Plain words, and [a site](https://example.org).", []],
+  ["See [Chytrid fungus](topic:@-topics-49), and [it again](topic:@-topics-49).", [["@-topics-49", null]]],
+  ["[what Ada said](topic:@-topics-49#817039) and [the page](topic:@-topics-49)", [["@-topics-49", 817039], ["@-topics-49", null]]],
+  ["`[not](topic:@-topics-1)` and [yes](topic:@-topics-2)", [["@-topics-2", null]]],
+  ["```\n[not](topic:@-topics-1)\n```\n[yes](topic:@-topics-3)", [["@-topics-3", null]]],
+  ["![a picture](topic:@-topics-4)", []],
+  ["[](topic:@-topics-5)", []],
+  ["[bad](topic:@-topics-6#x) [spaced](topic:@-topics-7 more) [odd](topic:a/b)", []],
+  ["# A heading [h](topic:@-topics-8)\n\n- an item [i](topic:@-topics-9)\n\n> quoted [q](topic:@-topics-10)", [["@-topics-8", null], ["@-topics-9", null], ["@-topics-10", null]]],
+  ["| Page | Studies |\n|:--|--:|\n| [Breath](topic:@-topics-11) | 12 |\n| `[not](topic:@-topics-1)` | [r](topic:@-topics-12#4) |", [["@-topics-11", null], ["@-topics-12", 4]]],
+  ["**[bold](topic:@-topics-11)**", [["@-topics-11", null]]],
+  ["A fact[^1] and [another page](topic:@-topics-12).\n\n[^1]: Ada, *Notes*, 1843.", [["@-topics-12", null]]],
+  ["[a [b](topic:@-topics-13)", [["@-topics-13", null]]],
+  ["```infobox\ntitle: Frog\nOrder: [Anura](topic:@-topics-14)\n```\n\n```series\ntitle: Amphibians\n## Kinds\n[Toads](topic:@-topics-15)\n```\n\n```note\nFor frogs in stories, see [Frogs in culture](topic:@-topics-16).\n```\n\n```text\n[not](topic:@-topics-17)\n```", [["@-topics-14", null], ["@-topics-15", null], ["@-topics-16", null]]],
+  ["```infobox  \n[not a box](topic:@-topics-18)\n```\n```Series\n[Toads](topic:@-topics-19) and `[not](topic:@-topics-20)`\n```", [["@-topics-19", null]]]
+ ]
+}

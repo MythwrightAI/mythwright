@@ -1,0 +1,74 @@
+/* Changing a table's columns (`views/shaping.tsx`): what a column is
+   called, written in place at the head of its menu; the list of what a
+   choice offers, which is carried; what filling a column takes; the
+   question a column is taken away behind; the form a column is added
+   by; and the `+` after a table's last head. Each is drawn inside the
+   panel a column's menu is (`heads.css`): one panel with no frame, and
+   nothing in it has a frame of its own. Colours are the theme's. */
+
+/* What the column is called: a box with no edge, on the page's ground,
+   marked by a line inside it while the caret is there. */
+.headmenu-column { flex-wrap: wrap; }
+.headmenu input.headmenu-name { flex: 1 1 0; box-sizing: border-box; min-width: 0; width: auto; height: calc(28px * var(--tall)); padding: 0 8px; border: 0; border-radius: calc(6px * var(--round)); background: var(--bg0); color: var(--text); font: inherit; font-weight: 600; box-shadow: none; }
+.headmenu input.headmenu-name:focus { border: 0; box-shadow: inset 0 0 0 1px var(--dim); }
+.headmenu input.headmenu-name[aria-invalid="true"] { box-shadow: inset 0 0 0 1px var(--bad); }
+.headmenu-refused { flex: 1 1 100%; padding: 0 4px; font-size: calc(12px * var(--size)); line-height: 1.4; color: var(--bad); overflow-wrap: anywhere; }
+/* Taking a column away is set apart, and said in the colour of what cannot be put back. */
+.headmenu-danger, .headmenu-danger svg { color: var(--bad); }
+.headmenu-ask { padding: 4px 8px; font-size: calc(12.5px * var(--size)); line-height: 1.45; overflow-wrap: anywhere; }
+.headmenu-called { padding-top: 0; }
+button.headmenu-whose { padding: 2px 8px; }
+button.headmenu-whose .grow { flex: 1 1 0; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+
+/* What a choice offers: a row for each, as where a cell's choice is
+   made, with its grip, its tag, and what calls it something else and
+   takes it away at its end. */
+.options-edit { display: grid; gap: 1px; min-width: 0; }
+.options-edit [role="list"] { display: grid; gap: 1px; max-height: min(260px, calc(100dvh - 220px)); overflow-y: auto; }
+.options-edit .select-option { height: auto; min-height: calc(29px * var(--tall)); padding: 0 4px; gap: 4px; cursor: default; }
+.options-edit .select-option:hover { background: var(--bg3); }
+.options-grip { flex: none; width: 20px; height: calc(24px * var(--tall)); padding: 0; border: 0; background: transparent; }
+.options-grip:disabled { opacity: 0.35; cursor: default; }
+.options-grip:focus-visible { outline: 1px solid var(--dim); border-radius: calc(4px * var(--round)); }
+.options-tag { display: flex; min-width: 0; }
+.options-act { flex: none; display: inline-flex; align-items: center; justify-content: center; width: calc(24px * var(--tall)); height: calc(24px * var(--tall)); padding: 0; border: 0; border-radius: calc(6px * var(--round)); background: transparent; color: var(--faint); }
+.options-act:hover, .options-act:focus-visible { background: var(--bg2); color: var(--text); outline: none; }
+.options-act:disabled { opacity: 0.35; }
+.headmenu input.options-word, .headmenu input.options-add { box-sizing: border-box; min-width: 0; height: calc(26px * var(--tall)); padding: 0 8px; border: 0; border-radius: calc(6px * var(--round)); background: var(--bg0); color: var(--text); font: inherit; box-shadow: none; }
+.headmenu input.options-add { width: 100%; margin-top: 3px; }
+.headmenu input.options-word:focus, .headmenu input.options-add:focus { border: 0; box-shadow: inset 0 0 0 1px var(--dim); }
+
+/* What filling a column takes: a line each, ticked where whoever looks holds it. */
+.takes { display: grid; gap: 1px; }
+.takes-line { display: flex; align-items: flex-start; gap: 9px; padding: 4px 8px; font-size: calc(12.5px * var(--size)); line-height: 1.4; overflow-wrap: anywhere; }
+.takes-line > svg { flex: none; margin-top: 2px; }
+.takes-held > svg { color: var(--ok); }
+.takes-lacking > svg { color: var(--bad); }
+
+/* The form a column is added by, and what a kind needs said. */
+.colform { width: min(280px, calc(100vw - 16px)); }
+.colform > input.headmenu-name { flex: none; width: 100%; }
+/* The kinds are all in sight: the panel itself is what scrolls, where a window is too short for it. */
+.colform .headmenu-list, .headmenu .headmenu-list[role="radiogroup"] { max-height: none; overflow: visible; }
+.colform-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 6px 4px 2px; }
+.colform-foot .faint { min-width: 0; font-size: calc(12px * var(--size)); }
+.colform-of { display: flex; align-items: center; gap: 8px; padding: 4px 8px; }
+.colform-of select { flex: 1; min-width: 0; height: calc(28px * var(--tall)); border: 0; background: var(--bg0); box-shadow: none; }
+
+/* The place a column is added from: a narrow column after the last, with
+   nothing in its cells. */
+.grid th.grid-adds, .grid td.grid-adds { min-width: 40px; width: 40px; max-width: 40px; }
+.grid.banded .grid-bands td.grid-adds { position: sticky; top: 0; z-index: 3; height: calc(24px * var(--tall)); border-bottom: 0; background: var(--bg0); }
+.grid-add { display: block; width: 100%; height: calc(33px * var(--tall)); padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--faint); font-size: calc(17px * var(--size)); line-height: 1; }
+.grid-add:hover, .grid-add[aria-expanded="true"] { background: var(--bg2); color: var(--text); }
+.grid-add:focus-visible { outline: 2px solid var(--dim); outline-offset: -2px; }
+
+/* Under a finger each is a larger thing to press. */
+@media (max-width: 760px), (pointer: coarse) {
+  .headmenu input.headmenu-name { height: calc(36px * var(--tall)); }
+  .options-edit .select-option { min-height: calc(40px * var(--tall)); }
+  .options-grip { width: 30px; height: calc(36px * var(--tall)); }
+  .options-act { width: calc(36px * var(--tall)); height: calc(36px * var(--tall)); }
+  .headmenu input.options-word, .headmenu input.options-add { height: calc(36px * var(--tall)); }
+  .grid-add { height: calc(39px * var(--tall)); }
+}

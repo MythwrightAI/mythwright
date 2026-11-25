@@ -1,0 +1,56 @@
+# The cards in a column are looked at, and each is said to be due what
+# its stage does with a card, of whichever kind (`std/working`).
+#
+# A stage has this done when it is first there with somebody in its role,
+# when a role that had nobody has somebody, and, where cards are worked,
+# when its pool says that it is listening. The cards that were in the
+# column before anybody was there for them are then taken up as a card
+# that arrives is: said to be due, as an event the stage hears.
+#
+# It keeps nothing as it goes. Done twice, each card is said to be due
+# twice, and what a stage does with a card that is due is the card's row's
+# to say: one that has what it was due is given nothing more.
+blueprint: std/due
+version: 2
+description: "Say of each card in a column that it is due what its stage does with one."
+durable: false
+permissions: [board]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  column: { type: string, description: "The column whose cards they are." }
+
+  reviews:
+    type: bool
+    default: false
+    description: "Cards are reviewed there: each is due a review (`review.due`), and otherwise what its stage does (`stage.due`)."
+
+steps:
+  waiting:
+    do: board.list
+    allow_failure: true
+    with: { project: "${params.project}", status: "${params.column}" }
+
+  each:
+    description: Each is due what the stage does.
+    when: ${ steps.waiting.ok && !params.reviews }
+    for_each: ${steps.waiting.out.ids}
+    do: emit
+    with:
+      topic: stage.due
+      card: "${item}"
+      project: "${params.project}"
+      stage: "${params.column}"
+      note: ""
+
+  looked_at:
+    description: And where cards are reviewed, a review.
+    when: ${ steps.waiting.ok && params.reviews }
+    for_each: ${steps.waiting.out.ids}
+    do: emit
+    with:
+      topic: review.due
+      card: "${item}"
+      project: "${params.project}"
+      stage: "${params.column}"
+      note: ""

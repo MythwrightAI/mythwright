@@ -1,0 +1,106 @@
+# Which sign-in an agent is handed for a piece of work.
+#
+# The factory can hold sign-ins for its agents' programs (`mw help signin`):
+# subscriptions and keys. An agent that is told to draw one is handed one
+# for each piece of work, and gives it back when the work ends. Which one
+# is decided here, and nowhere else: this file is the rule. To share them
+# out differently, copy it to a project's `blueprints/std/signin.bp` and
+# edit it; the agents of that project are then handed sign-ins by the copy.
+# Nothing here needs a rebuild.
+#
+# It is asked before every piece of work, and again each time a sign-in is
+# given back or is good again while an agent waits for one. It is not run
+# as other blueprints are: it has no steps and can do nothing. It is given
+# `params`, and what it gives out under `outputs` is the answer.
+#
+# What it is given, about the agent whose work is about to start:
+#
+#   params.slot          the agent
+#   params.package       the extension package it runs on
+#   params.turn          the piece of work
+#   params.conversation  the sign-in under which the conversation this work
+#                        would carry on was held, if there is one. A
+#                        conversation is carried on only under that sign-in
+#   params.now           now, in milliseconds since 1970
+#   params.signins       every sign-in the agent may draw, each with:
+#       name         what it is called
+#       kind         key, token or folder
+#       choice       which of the agent's choices it comes under: 0 for the
+#                    first thing its `signins` names, 1 for the second
+#       at_once      how many may hold it at once
+#       held         how many do
+#       free         whether it can be taken now: held by fewer than may,
+#                    and not set aside
+#       last_used    when it was last handed out, in milliseconds since
+#                    1970; 0 if never
+#       aside_until  set aside until then, having reached its limit; null
+#                    if it is not
+#   params.in_turn       those of them that are free, in the order the rule
+#                        that ships takes them: the earliest choice first,
+#                        and of one choice whichever was handed out longest
+#                        ago
+#
+# What it gives out:
+#
+#   take   the name of the sign-in to hand over: one of those that are
+#          free. Anything else fails the work, saying so
+#   wait   with nothing to take: true to wait until a sign-in is given back
+#          or one that was set aside is good again, and be asked again
+#   says   with nothing to take and no waiting: the sentence the work
+#          fails with
+#
+# What is not decided here, and cannot be changed from here: that a sign-in
+# is held by no more than it says, that it is given back when the work
+# ends, that one whose provider says it has reached its limit is set aside
+# and the work begins again, and that a value is never shown.
+#
+# The rule as it ships: of the first of the agent's choices that has a
+# sign-in free, the one that was handed out longest ago; and with none
+# free, wait. So with `signins: [subscription, key]` the subscriptions are
+# used in turn, and a key only while every subscription is held or set
+# aside.
+#
+# Another rule, for an agent that should stay with the sign-in its
+# conversation is under whenever that one is free:
+#
+#   take: ${ where(where(params.signins, "free", true), "name", params.conversation)[0].name
+#            ?? sort(sort(where(params.signins, "free", true), "last_used"), "choice")[0].name }
+#
+# And one that fails the work at once when nothing is free:
+#
+#   wait: false
+#   says: "every sign-in ${params.slot} may draw is in use"
+blueprint: std/signin
+version: 2
+description: The rule for which sign-in an agent is handed for a piece of work. Asked, not run.
+permissions: []
+
+params:
+  slot: { type: string, default: "", description: "The agent whose work is about to start." }
+  package: { type: string, default: "", description: "The extension package it runs on." }
+  turn: { type: string, default: "", description: "The piece of work." }
+
+  conversation:
+    type: any
+    default: null
+    description: "The sign-in the conversation this work would carry on was held under, if there is one."
+
+  now: { type: int, default: 0, description: "Now, in milliseconds since 1970." }
+
+  signins:
+    type: list
+    default: []
+    description: "Every sign-in the agent may draw: name, kind, choice, at_once, held, free, last_used, aside_until."
+
+  in_turn:
+    type: list
+    default: []
+    description: "Those of them that are free, in turn: the earliest choice first, and of one choice whichever was handed out longest ago."
+
+outputs:
+  # The first of those that are free, as they are handed here in turn: the
+  # one used longest ago of the earliest choice that has anything free.
+  # With none free there is no first, and nothing is taken.
+  take: ${ params.in_turn[0].name }
+  wait: true
+  says: ""

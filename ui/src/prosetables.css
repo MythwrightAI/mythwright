@@ -1,0 +1,43 @@
+/* What is drawn wider than its column scrolls sideways in its own box (`views/wider.tsx`), and a shade at an edge says
+   there is more past it. The shade is the page's words' colour faded out, so it shows on any theme, light or dark. */
+.wider { position: relative; min-width: 0; max-width: 100%; }
+.wider::before, .wider::after {
+  content: ""; position: absolute; top: 0; bottom: 0; z-index: 1; width: 18px; pointer-events: none;
+  opacity: 0; transition: opacity 120ms ease;
+}
+.wider::before { left: 0; background: linear-gradient(to right, color-mix(in srgb, var(--text) 22%, transparent), transparent); }
+.wider::after { right: 0; background: linear-gradient(to left, color-mix(in srgb, var(--text) 22%, transparent), transparent); }
+.wider[data-more-left]::before, .wider[data-more-right]::after { opacity: 1; }
+
+/* A table (`views/prosetable.tsx`), ruled as a paper's are: a rule over it, one under its headings and one under its
+   last row, thin rules between rows, none between columns. */
+.prose-table-frame { margin: calc(8px * var(--density)) 0; }
+.prose-table-frame + * { margin-top: 6px; }
+* + .prose-table-frame { margin-top: calc(10px * var(--density)); }
+.prose-table-box { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.prose-table { width: auto; border-collapse: collapse; font-size: 0.94em; line-height: 1.4; white-space: normal; border-top: 1.5px solid var(--dim); border-bottom: 1.5px solid var(--dim); }
+.prose-table th, .prose-table td { padding: calc(5px * var(--density)) 12px; border-bottom: 0; text-align: left; vertical-align: top; overflow-wrap: normal; }
+.prose-table th:first-child, .prose-table td:first-child { padding-left: 2px; }
+.prose-table th:last-child, .prose-table td:last-child { padding-right: 2px; }
+.prose-table th { position: static; background: none; color: var(--text); font-size: inherit; font-weight: 650; letter-spacing: normal; text-transform: none; border-bottom: 1px solid var(--dim); vertical-align: bottom; }
+.prose-table tbody tr + tr td { border-top: 1px solid var(--line); }
+.prose-table .align-center { text-align: center; }
+.prose-table .align-right { text-align: right; font-variant-numeric: tabular-nums; }
+.prose-table td code { white-space: nowrap; }
+
+/* A diagram's box marks its edges as a table's does; one that scrolls says it can be pressed to be opened whole. */
+.diagram-frame { margin: 0; }
+.diagram-box { cursor: zoom-in; }
+/* A diagram opened whole, over the page: as large as it was drawn, scrolled both ways where the window is smaller. */
+.modal.wide.diagram-whole { display: flex; flex-direction: column; width: min(1400px, 96vw); max-height: calc(100vh - 12vh - 24px); }
+.diagram-whole-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--line); }
+.diagram-whole-name { flex: 1; min-width: 0; margin: 0; font-size: calc(14px * var(--size)); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.diagram-whole-box { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 16px; background: var(--bg0); }
+.diagram-whole-box svg { display: block; max-width: none; margin: 0 auto; }
+@media (max-width: 760px) {
+  .modal.wide.diagram-whole { width: 100%; }
+  .diagram-whole-close { min-height: calc(40px * var(--tall)); }
+}
+
+/* In the block editor a table is its text (`write/markdown.ts`), each row a line of its own, never wrapped. */
+.ProseMirror pre.writer-table { white-space: pre; overflow-x: auto; overflow-wrap: normal; }

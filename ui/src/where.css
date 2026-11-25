@@ -1,0 +1,32 @@
+/* Where the page is: the profile of the factory it is in, and the list
+ * of the others (`views/where.tsx`).
+ *
+ * It is said in the theme's accent, so that it is seen without being
+ * looked for, and as words. Every profile is drawn alike, whatever
+ * it is called: the colours are the theme's and no name has one of its
+ * own. How it is drawn on a narrow screen is in `phone.css`; on a wide
+ * one it is said in the browser tab's title and in Settings, and at the
+ * head of no side panel. */
+
+.where { font-weight: 700; letter-spacing: 0.03em; }
+.where-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Across the top, where there is no side panel beside the page: only on a narrow screen. */
+.where-band { display: none; background: var(--accent); color: var(--accent-ink); }
+
+/* Beside a name, or in the list: a word in a pill. */
+.where-chip { display: inline-flex; align-items: center; max-width: 180px; height: calc(20px * var(--tall)); padding: 0 8px; border-radius: calc(10px * var(--round)); font-size: calc(11px * var(--size)); background: var(--accent); color: var(--accent-ink); }
+
+/* In Settings: the factories on this device. */
+.where-about { margin: 0; }
+.where-about strong { color: var(--text); }
+.where-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.where-place {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 10px;
+  border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg0); color: var(--text); text-decoration: none;
+}
+a.where-place:hover { border-color: var(--accent); background: var(--bg2); }
+a.where-place:focus-visible { border-color: var(--dim); background: var(--bg2); }
+.where-place.here { border-color: var(--line-strong); }
+.where-says { min-width: 0; overflow-wrap: anywhere; font-size: calc(12.5px * var(--size)); }
+.where-go { color: var(--accent); font-size: calc(12.5px * var(--size)); white-space: nowrap; }

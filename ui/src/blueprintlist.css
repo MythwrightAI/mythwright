@@ -1,0 +1,7 @@
+/* The factory's blueprints in the side panel (views/blueprintlist.tsx): how many parts one has, said faintly at the
+   end of its line. */
+/* The name is what gives way in a line, and never what is said after it: the count stays whole and inside the row. */
+.nav-item .nav-hint { flex: none; margin-left: auto; padding-left: 6px; font-size: calc(11px * var(--size)); color: var(--faint); white-space: nowrap; }
+.nav-item > .truncate { min-width: 0; }
+/* An arrow that does nothing while a list is held open by what was typed. */
+.nav-twist[aria-disabled="true"], .nav-item[aria-disabled="true"] { cursor: default; }

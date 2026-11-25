@@ -1,0 +1,24 @@
+# The versions of the blueprints that ship here: each version of each, and
+# what its text comes to, layout and comments aside. A number is one
+# meaning. Written by a test, never by hand. After changing what a text
+# that ships means:
+#   WRITE_VERSIONS=1 cargo test -p api the_versions
+# gives the text its next number, in the text, and writes its line here.
+# Commit both. A line is never changed, and is taken out by hand only for
+# a version nobody was ever given.
+#
+# The files they link (prompts/, what an agent is told) have their lines
+# here too. Such a file says no number: its version is the last of its
+# lines, and the same command writes the next when its words change. A
+# prompt that changes is not another version of the blueprint that links it.
+
+github/issues 1 2a4dbaa1c820b009
+github/issues 2 32e999068c4d34cc
+
+github/issues-timer 1 dc07c5a620c94c31
+
+github/pull-requests 1 537fc8f6274464e7
+github/pull-requests 2 74d072c9577f87c0
+github/pull-requests 3 9b462ddc2bb4cea2
+
+github/work 1 488e1754dbf970c2

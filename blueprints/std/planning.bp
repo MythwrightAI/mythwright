@@ -1,0 +1,403 @@
+# A column where something is begun for each card that comes: where
+# cards are planned (`does: plan` in a row of the project's `stages`), and
+# where the row names a blueprint of the project's own or a package's
+# (`std/fleet`, `std/arrangement`).
+#
+# What is begun has the card for as long as it is in the column: to be
+# planned, a card is put to an agent of the row's role, which asks what
+# it needs to know or says how the card would be done (`std/proposal`);
+# any other word is the name of a blueprint, which is started for the
+# card and handed `project`, `item`, `channel`, `role`, `picks`, `from`,
+# `to`, `pool` and `note`. What the project's `segments` lays before it
+# is gone through first, and what it lays after it once what was begun
+# says what it came to and leaves the handing on to its stage
+# (`stage.came` with `hands`): the card is then moved on from here.
+#
+# The row can be changed while cards are there: the fleet hears that, and
+# this takes what the row now says where it is.
+blueprint: std/planning
+version: 6
+description: "What a fleet does with the cards of a column where something is begun for each: an agent of a role says how it would be done, or a blueprint the row names is started for it."
+permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
+one_at_a_time: true
+
+params:
+  project: { type: string, description: "The project it works in." }
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+  pool: { type: string, default: "", description: "The pool its cards take turns in (`std/pool`)." }
+  segments: { type: list, default: [], description: "The rows of the project's `segments`." }
+  merged_by_hand: { type: list, default: [], description: "Columns whose stage merges by hand." }
+
+  row:
+    type: object
+    description: "The stage's row of the project's `stages`, as the fleet read it, with what the fleet says of every stage beside it: `column`, `does`, `role`, `agents` (how many the role has), `pass`, `rounds`, `picks`, `after_restart`, `restarts`, and `begins`, the blueprint that is begun for a card."
+
+state:
+  # Whether the cards that were in its column when its role came to have
+  # agents are still to be looked at.
+  catch_up: false
+  # The cards something was begun for from here, each with which coming
+  # of it that was (`card`, and `at`, the count of its moves then), until
+  # the card leaves the column or the board.
+  had: []
+
+steps:
+  begun:
+    description: A stage that begins with agents has the cards already in its column to take up, once it is listening (`first`).
+    do: set
+    with: { catch_up: "${ params.row.agents > 0 }" }
+
+# Taken where it is when its row changes, and never begun again.
+on_update:
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.agents == 0 }
+    with: { catch_up: true }
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.column != params.row.column }
+    with: { catch_up: true }
+  # What is pressed on a card here changed: a card it no longer holds is due.
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.actions != params.row.actions }
+    with: { catch_up: true }
+
+on:
+  # Each time the stage is as its row now says, its row is looked at.
+  looked:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && params.channel != "" }
+    steps:
+      wrong:
+        description: This stage's row is checked, and what in it would leave a card stuck is said where the fleet reports (`std/looked`). It is said for as long as it is so.
+        call: std/looked
+        as: looked
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          channel: "${params.channel}"
+          row: ${params.row}
+          segments: ${params.segments}
+          usual: [{ order: 10, does: "${params.row.begins}" }]
+
+  # A card arrived in this stage's column. It is due what the stage does,
+  # and that is said as an event of the stage's own, so that a card added
+  # here, the cards that were here before anyone was there for them, and a
+  # review that is to begin again, all ask the same way.
+  arrived:
+    event: board.item.moved
+    for: { project: "${params.project}", to: "${params.row.column}" }
+    do: emit
+    with:
+      topic: stage.due
+      card: "${event.data.id}"
+      project: "${params.project}"
+      stage: "${params.row.column}"
+      note: "${ event.data.note ?? '' }"
+
+  # So is a card that is added there, as the cards of a plan may be:
+  # nobody moved it.
+  added:
+    event: board.item.created
+    for: { project: "${params.project}", status: "${params.row.column}" }
+    do: emit
+    with:
+      topic: stage.due
+      card: "${event.data.id}"
+      project: "${params.project}"
+      stage: "${params.row.column}"
+      note: ""
+
+  # And one whose last of what held it here was pressed.
+  pressed:
+    event: board.item.pressed
+    for: { project: "${params.project}", status: "${params.row.column}" }
+    when: ${event.data.released}
+    do: emit
+    with:
+      topic: stage.due
+      card: "${event.data.id}"
+      project: "${params.project}"
+      stage: "${params.row.column}"
+      note: ""
+
+  # When the stage is first listening with somebody in its role, and each
+  # time it becomes so again with somebody where there was nobody.
+  first:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && state.catch_up }
+    steps:
+      taken:
+        description: Marked as looked at, so that the column is looked at once each time there is reason to.
+        do: set
+        with: { catch_up: false }
+
+      look:
+        description: The cards that were in the column before anyone was there for them are looked at, and each is due what the stage does (`std/due`).
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
+
+  # And when the fleet has been arranged again, where that is said later.
+  staffed:
+    event: fleet.arranged
+    for: { project: "${params.project}" }
+    when: ${state.catch_up}
+    steps:
+      taken:
+        do: set
+        with: { catch_up: false }
+
+      look:
+        description: The column is looked at as when the stage is first there (`std/due`).
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
+
+  # A card here is due what the stage does with one. With nobody in the
+  # role it is left where it is, to be taken up when there is somebody.
+  # It is taken up in its card's turn, beside another card's: what is laid
+  # before what is started (`segments`) may wait, and holds no other card.
+  begun:
+    event: stage.due
+    for: { project: "${params.project}", stage: "${params.row.column}" }
+    when: ${ params.row.agents != 0 }
+    turn: "${event.data.card}"
+    steps:
+      card:
+        description: "The card as it now is: it may have been moved on since it was said to be due, or taken away."
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.card}" }
+
+      owed:
+        description: "What the card is owed where it is not worked, by its row and what this stage keeps: something is started for it; or nothing, something having been started for this coming of it already, or the card not being in the column. A card is said to be due by whatever heard that it came, and that may be for a move from before: a stage whose row is given another column is handed the moves there were to that column before it had it, of cards that have gone on. And one coming may be said twice: the stage's look at its column and the saying of the card's move may both find it. Which coming this is, is the count of the card's moves, which its row says. With it, what goes with what is started: what it is called, how often at most it goes round where the row says none, and whether the project's `segments` lays anything before it for this card."
+        do: work.owed
+        with:
+          item: "${event.data.card}"
+          found: ${steps.card.ok}
+          status: "${ steps.card.out.status ?? '' }"
+          here: "${params.row.column}"
+          moved: ${ steps.card.out.moved ?? [] }
+          kept: ${ state.had ?? [] }
+          name: "${params.row.does}"
+          said: ${params.row.rounds}
+          most: 8
+          rows: ${params.segments}
+          of: { stage: "${params.row.title}" }
+          usual: [{ order: 10, does: "${params.row.begins}", spawned: true }]
+          labels: ${ steps.card.out.labels ?? [] }
+          part_of: "${ steps.card.out.more.part_of ?? '' }"
+          own: { role: "${params.row.role}", picks: "${params.row.picks}" }
+          # What this column offers to be pressed on it, and what was: a card something holds has nothing started.
+          actions: ${ params.row.actions ?? [] }
+          pressed: ${ steps.card.out.pressed ?? [] }
+
+      hold:
+        description: A card that waits for something this column offers to be pressed says so, on itself and to whoever is told what waits for a person, once for each time it comes here. When the last of it is pressed it is due again (`pressed`).
+        when: ${ steps.owed.out.came == "held" }
+        do: board.hold
+        with: { id: "${event.data.card}" }
+
+      taken_up:
+        description: Kept before anything is started, so that the card said to be due again for this coming finds it.
+        when: ${ steps.owed.out.came == "begin" }
+        do: keep
+        with:
+          in: had
+          by: card
+          what: { card: "${event.data.card}", at: "${steps.owed.out.at}" }
+
+      listed:
+        description: "Where the project's `segments` lays something before what is started here, the list is gone through for the card first: each thing called in order, until there is what is usual to start or the list has ended (`std/segments`). It keeps nothing, and is called again where the daemon was stopped in the middle of it. One that cannot be gone through has not failed this: that it could not is said on, and the card is left for a person."
+        when: ${steps.owed.out.lists}
+        allow_failure: true
+        call: std/segments
+        as: "list-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          here: "${params.row.column}"
+          rows: ${params.segments}
+          of: { stage: "${params.row.title}" }
+          usual: [{ order: 10, does: "${params.row.begins}", spawned: true }]
+          own: ${params.row}
+          journey:
+            title: "${ steps.card.out.title ?? '' }"
+            note: "${ event.data.note ?? '' }"
+            asking: "${event.seq}"
+            from: "${params.row.column}"
+            to: "${params.row.pass}"
+
+      came:
+        description: "What the things done first came to, said of the card: what is usual here is started, or the word they ended with. Where they ended by themselves, with nothing to start, the card goes on or is left, which is this stage's to do (`hands`) and is done where what was started for a card says it has done (`after`)."
+        when: ${ steps.listed.failed || (steps.listed.out.came ?? "") != "" }
+        do: emit
+        with:
+          topic: stage.came
+          card: "${event.data.card}"
+          project: "${params.project}"
+          stage: "${params.row.column}"
+          row: "${ steps.listed.out.row ?? '' }"
+          order: ${ steps.listed.out.order ?? 0 }
+          segment: "${ steps.listed.out.title ?? '' }"
+          came: "${ steps.listed.out.came ?? 'left' }"
+          says: "${ steps.listed.out.says ?? steps.listed.error ?? '' }"
+          hands: ${ steps.listed.failed || (steps.listed.out.ends ?? false) }
+
+      proposal:
+        description: To be planned, it is put to an agent of the role, which has the card for as long as it is here. Where the project's `segments` lays something after the plan, the card is not handed on by whoever planned it (`hands`), and is handed on from here once that is done (`after`).
+        when: ${ (steps.listed.out.begins ?? steps.owed.out.begins) && params.row.begins == "std/proposal" }
+        spawn: std/proposal
+        as: "proposal-${event.data.card}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          channel: "${params.channel}"
+          role: "${ steps.listed.out.with.role ?? steps.owed.out.with.role }"
+          picks: "${ steps.listed.out.with.picks ?? steps.owed.out.with.picks }"
+          after_restart: "${params.row.after_restart}"
+          restarts: ${params.row.restarts}
+          from: "${params.row.column}"
+          to: "${params.row.pass}"
+          rounds: ${steps.owed.out.most}
+          note: "${ event.data.note ?? '' }"
+          hands: ${ steps.listed.out.usual ?? steps.owed.out.usual }
+
+      proposal_own:
+        description: "The same, where the project says a blueprint of its own for it (`proposal`): given what it was always given, and what becomes of its work at a restart is its own to say."
+        when: ${ (steps.listed.out.begins ?? steps.owed.out.begins) && params.row.does == "plan" && params.row.begins != "std/proposal" }
+        spawn: "${params.row.begins}"
+        as: "proposal-${event.data.card}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          channel: "${params.channel}"
+          role: "${ steps.listed.out.with.role ?? steps.owed.out.with.role }"
+          picks: "${ steps.listed.out.with.picks ?? steps.owed.out.with.picks }"
+          from: "${params.row.column}"
+          to: "${params.row.pass}"
+          rounds: ${steps.owed.out.most}
+          note: "${ event.data.note ?? '' }"
+
+      other:
+        description: Anything else a stage is said to do is a blueprint of that name, the project's own or one a package brought. It is started for the card, and has it for as long as it is here.
+        when: ${ (steps.listed.out.begins ?? steps.owed.out.begins) && params.row.does != "plan" && params.row.begins != "std/proposal" }
+        spawn: "${params.row.begins}"
+        as: "${steps.owed.out.called}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          channel: "${params.channel}"
+          role: "${ steps.listed.out.with.role ?? steps.owed.out.with.role }"
+          picks: "${ steps.listed.out.with.picks ?? steps.owed.out.with.picks }"
+          from: "${params.row.column}"
+          to: "${params.row.pass}"
+          pool: "${params.pool}"
+          note: "${ event.data.note ?? '' }"
+
+  # What was started for a card here says what it came to and leaves the
+  # handing on to this stage (`stage.came`, with the card, `hands`, and
+  # what is said as the card goes on): whoever planned a card that the
+  # project's `segments` lays something after, or a blueprint of the
+  # row's naming that hands nothing on itself. What is laid after it is
+  # gone through, each thing called in order, and the card then goes on
+  # or is left for a person. The same is said by this stage itself where
+  # the things done before anything was started ended by themselves:
+  # then nothing more is gone through.
+  after:
+    event: stage.came
+    scope: own
+    for: { project: "${params.project}", stage: "${params.row.column}" }
+    when: ${ (event.data.hands ?? false) }
+    turn: "${event.data.card}"
+    steps:
+      card:
+        description: "The card as it is when this begins, which is kept: how its row says it came to be here is what tells this coming of it from another."
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.card}" }
+
+      listed:
+        description: "What the project's `segments` lays after what is started here is gone through for the card, from where that is in the list (`std/segments`)."
+        when: ${ event.data.segment == null }
+        allow_failure: true
+        call: std/segments
+        as: "after-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          here: "${params.row.column}"
+          rows: ${params.segments}
+          of: { stage: "${params.row.title}" }
+          usual: [{ order: 10, does: "${params.row.begins}", spawned: true }]
+          begin: false
+          order: 10
+          says: "${ event.data.says ?? '' }"
+          own: ${params.row}
+          journey:
+            title: "${ steps.card.out.title ?? '' }"
+            asking: "${event.seq}"
+            from: "${params.row.column}"
+            to: "${params.row.pass}"
+
+      on:
+        description: "The card is handed on, where it is still here as it was when this began, or is left for a person; nothing, it having been moved meanwhile or there being nowhere for it to go on to. Done by something that keeps nothing (`std/onward`), which looks at the card as it then is: begun again where the daemon stopped as the card was handed on, it hands nothing on a second time."
+        call: std/onward
+        as: "onward-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          here: "${params.row.column}"
+          pass: "${params.row.pass}"
+          came: "${ steps.listed.out.came ?? event.data.came ?? 'on' }"
+          says: "${ steps.listed.out.says ?? '' }"
+          said: "${ event.data.says ?? '' }"
+          failed: ${steps.listed.failed}
+          why: "${ steps.listed.error ?? '' }"
+          had: ${ steps.card.out.moved ?? [] }
+
+      left:
+        description: Left for a person, and why is said where the stage reports. Not being able to say it stops nothing.
+        when: ${ steps.on.out.came == "left" && params.channel != "" }
+        allow_failure: true
+        do: channel.post
+        with: { channel: "${params.channel}", body: "${steps.on.out.says}" }
+
+      gone:
+        description: And said as an event of the card's, with why.
+        when: ${ steps.on.out.came == "left" }
+        do: emit
+        with:
+          topic: card.left
+          card: "${event.data.card}"
+          project: "${params.project}"
+          why: "${steps.on.out.says}"
+
+  # A card left the column of a stage that starts something for each card
+  # that comes. Its row is looked at, since this may be heard after the
+  # card has come back and something was started for that coming.
+  went:
+    event: board.item.moved
+    for: { project: "${params.project}", from: "${params.row.column}" }
+    turn: "${event.data.id}"
+    steps:
+      card:
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.id}" }
+
+      gone:
+        description: What was kept of the card's coming is kept no longer. Where the card has come back by now, it is left as it is.
+        when: ${ steps.card.out.status != params.row.column }
+        do: drop
+        with: { from: had, by: card, is: "${event.data.id}" }
+
+  # And so with a card taken off the board.
+  taken_off:
+    event: board.item.removed
+    for: { project: "${params.project}" }
+    do: drop
+    with: { from: had, by: card, is: "${event.data.id}" }

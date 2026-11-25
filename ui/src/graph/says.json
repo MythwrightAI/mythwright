@@ -1,0 +1,18 @@
+[
+  ["", ""],
+  ["   ", ""],
+  ["Look before leaping", "Look before leaping"],
+  ["Said once.", "Said once."],
+  ["The table starts with these, once. Each is added unless a row is called what it is called already.", "The table starts with these, once."],
+  ["Version 1.2 of the plan is read. Then it is filed.", "Version 1.2 of the plan is read."],
+  ["Ask `std/cards` what it keeps. Then say so.", "Ask `std/cards` what it keeps."],
+  ["A file like notes.md is read whole", "A file like notes.md is read whole"],
+  ["  Spread\n  over   lines. And more", "Spread over lines."],
+  ["Is it there? If so, go on.", "Is it there?"],
+  ["Stop! Nothing more.", "Stop!"],
+  ["One thing; another, and a third: all one sentence. The second.", "One thing; another, and a third: all one sentence."],
+  ["Wait… then go on. Done", "Wait… then go on."],
+  ["One. Two", "One."],
+  ["It ends in three dots...", "It ends in three dots..."],
+  ["What is kept (see below). The rest", "What is kept (see below)."]
+]

@@ -1,0 +1,75 @@
+[package]
+name = "api"
+description = "The daemon: everything assembled into one node, behind one HTTP API and one event stream."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# All tests live in tests/suite. Compiling the library a second time in test
+# mode was the single largest rustc invocation on the previous codebase.
+test = false
+doctest = false
+
+[dependencies]
+brand = { workspace = true }
+blueprint = { workspace = true }
+kernel = { workspace = true }
+reader = { workspace = true }
+journal = { workspace = true }
+runs = { workspace = true }
+people = { workspace = true }
+conductor = { workspace = true }
+blocks = { workspace = true }
+comparisons = { workspace = true }
+hosting = { workspace = true }
+studio = { workspace = true }
+talk = { workspace = true }
+served = { workspace = true }
+told = { workspace = true }
+outline = { workspace = true }
+topics = { workspace = true }
+trash = { workspace = true }
+places = { workspace = true }
+agents = { workspace = true }
+sandbox = { workspace = true }
+gateway = { workspace = true }
+folders = { workspace = true }
+setup = { workspace = true }
+manual = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+futures-util = { workspace = true }
+rusqlite = { workspace = true }
+
+[dev-dependencies]
+reqwest = { workspace = true }
+# A caller's signature, worked out as the service would (`outside.rs`).
+hmac = { workspace = true }
+sha2 = { workspace = true }
+base64 = { workspace = true }
+runs = { workspace = true }
+people = { workspace = true }
+yaml-rust2 = { workspace = true }
+
+# The stand-in for a program that the tests start: `hosting`'s, the one
+# source file, as a program of this crate, so that cargo builds it with
+# this suite and tells the suite where it is. Nothing in `src/` starts
+# it, and nothing that packages or installs copies it.
+[[bin]]
+name = "api-standin"
+path = "../hosting/standin/main.rs"
+test = false
+doctest = false
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

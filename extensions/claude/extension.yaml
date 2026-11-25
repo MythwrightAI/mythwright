@@ -1,0 +1,156 @@
+# Claude Code as an agent.
+#
+# Nothing in the application knows this program. Everything about it is in
+# this file: how a turn is started, how what it prints is read, and how it is
+# asked which models it offers.
+extension: claude
+title: Claude Code
+description: Agents that run on the Claude Code command line, signed in as whoever runs the daemon or with a sign-in the factory holds.
+
+agent:
+  program: claude
+
+  # How one turn is started. `turn` is what the slot asks for.
+  args:
+    - ["--print", "--output-format", "stream-json", "--verbose"]
+    - ["--append-system-prompt", "${ turn.system }"]
+    - when: ${ turn.permission == "read" }
+      args: ["--permission-mode", "plan"]
+    - when: ${ turn.permission == "edit" }
+      args: ["--permission-mode", "acceptEdits"]
+    - when: ${ turn.permission == "full" }
+      args: ["--permission-mode", "bypassPermissions"]
+    # The factory's own command is not held for an approval. Run this way
+    # the program has nobody to ask, so a command it would ask about is
+    # refused, and an agent could not so much as look at its board. What an
+    # agent may do with that command is what its slot's key holds, which
+    # the factory itself checks. The rule is for that one command and
+    # nothing wider, under its name and under its whole path, since a rule
+    # is matched against the command as it is written. Held to `full` it
+    # asks about nothing, and needs no rule.
+    #
+    # An agent whose slot says it may use the web is not asked about
+    # searching it or fetching a page either: the program's two tools for
+    # that, each by its name alone, which is every use of it. The rules are
+    # one argument, so each way they can be together is said once.
+    - when: ${ turn.permission != "full" && turn.cli_path != null && turn.web != true }
+      args:
+        - "--allowedTools"
+        - "Bash(${ turn.cli } *),Bash(${ turn.cli_path } *)"
+    - when: ${ turn.permission != "full" && turn.cli_path != null && turn.web == true }
+      args:
+        - "--allowedTools"
+        - "Bash(${ turn.cli } *),Bash(${ turn.cli_path } *),WebSearch,WebFetch"
+    - when: ${ turn.permission != "full" && turn.cli_path == null && turn.web == true }
+      args:
+        - "--allowedTools"
+        - "WebSearch,WebFetch"
+    - when: ${ turn.model != null }
+      args: ["--model", "${ turn.model }"]
+    - when: ${ turn.session != null }
+      args: ["--resume", "${ turn.session }"]
+
+  # What it is asked goes in on standard input.
+  input: ${ turn.prompt }
+
+  # What it prints: one JSON value a line, each called `event` here.
+  output:
+    - when: ${ event.session_id != null }
+      session: ${ event.session_id }
+    # It says which model it is using as it starts.
+    - when: ${ event.type == "system" && event.model != null }
+      model: ${ event.model }
+    # Text as it is written, and the name of each tool as it is reached for.
+    - when: ${ event.type == "assistant" }
+      each: ${ event.message.content }
+      show: ${ item.text }
+    - when: ${ event.type == "assistant" }
+      each: ${ event.message.content }
+      show: '${ item.type == "tool_use" ? "[" + item.name + "]" : null }'
+    - when: ${ event.type == "result" }
+      reply: ${ event.result ?? "" }
+      cost_usd: ${ event.total_cost_usd }
+      input_tokens: ${ (event.usage.input_tokens ?? 0) + (event.usage.cache_read_input_tokens ?? 0) + (event.usage.cache_creation_input_tokens ?? 0) }
+      output_tokens: ${ event.usage.output_tokens }
+      failed: ${ event.is_error == true }
+      error: ${ event.result ?? event.subtype }
+    # What it was refused as it went, each by the name of the tool: what
+    # its result says it asked leave for and was not given. Written from
+    # the program's documentation and not tried against the program.
+    - when: ${ event.type == "result" }
+      each: ${ event.permission_denials }
+      refused: ${ item.tool_name }
+
+  # How it is handed a sign-in the factory holds, for an agent that is told
+  # to draw one. Written from the program's documentation and NOT tried
+  # against the program: see the README beside this file before relying
+  # on it.
+  signin:
+    # A key for the API.
+    key: ANTHROPIC_API_KEY
+    # The long-lived token of a subscription, as `claude setup-token` prints.
+    token: CLAUDE_CODE_OAUTH_TOKEN
+    # The folder it keeps its sign-in in, and renews it in, when it is not
+    # the usual one under the user's home.
+    folder: CLAUDE_CONFIG_DIR
+    # With a key or a token it is given a folder of the slot's own in place
+    # of the usual one, so that the sign-in kept there is not used instead.
+    home: CLAUDE_CONFIG_DIR
+    # Other ways it would be told who to sign in as, or where.
+    without: [ANTHROPIC_AUTH_TOKEN, CLAUDE_CODE_USE_BEDROCK, CLAUDE_CODE_USE_VERTEX]
+    # `limit` is left out: what it prints at a subscription's limit, and
+    # how it says when the limit lifts, is not known here for certain.
+
+  # What its program must be shown behind a wall, besides what any is. It
+  # is one file, so nothing is beside it. In the home of whoever runs it,
+  # it keeps its sign-in and its conversations in `.claude` and what it was
+  # set up with in `.claude.json`. Written from where the program keeps
+  # them on Linux. Behind a wall it has been started and has answered which
+  # models it offers (2026-11-14); it has not been given a piece of work
+  # there in the home it now has.
+  #
+  # Of what it keeps, its sign-in is one file, `.claude/.credentials.json`,
+  # and how it signs in may also be said in `.claude/settings.json`: an
+  # agent that signs in as whoever runs the daemon is shown those two,
+  # where they are, in each home of its own (its ordinary one, and each
+  # kept channel's), and the rest of what the program keeps is that home's
+  # own: its conversations and what it makes of them, and `.claude.json`,
+  # which the program makes for itself in a home where there is none. One
+  # that draws a sign-in the factory holds is shown none of it. Written
+  # from the names of what the program keeps on Linux (2026-11-19); it has
+  # not been tried with the program in a home laid out so. A file that is
+  # shown is written where it is, and cannot have another file put in its
+  # place from behind the wall: if the program renews its sign-in that way,
+  # it will fail to renew it from any of an agent's homes, and its turns
+  # fail as those of a program that is not signed in, until whoever runs
+  # the daemon renews it by running the program themselves. An agent handed
+  # a key or a token the factory holds (`signin`, above) keeps no sign-in in
+  # a file, and is not so.
+  #
+  # What it reads as its own standing instructions, in every project it is
+  # run in, is `.claude/CLAUDE.md` in its home: the memory file of the
+  # user, as its documentation calls it. The factory writes what an agent
+  # is and how it stands there before each turn, in the agent's own home,
+  # and hands the program what it was asked with one line more. With a key
+  # or a token handed, the program reads `CLAUDE_CONFIG_DIR` in place of
+  # `.claude`, and the agent is told everything ahead of what it is asked,
+  # as before. Written from the program's documentation (2026-11-22); it
+  # has not been tried with the program.
+  wall:
+    keeps: [".claude", ".claude.json"]
+    signin: [".claude/.credentials.json", ".claude/settings.json"]
+    instructions: ".claude/CLAUDE.md"
+
+  # The same list its own model picker shows, for the account it is signed
+  # in with. Asking sends it no prompt.
+  models:
+    ask:
+      args: ["--print", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--no-session-persistence"]
+      send:
+        - { type: control_request, request_id: models, request: { subtype: initialize } }
+      answer: ${ line.type == "control_response" }
+      list: ${ line.response.response.models }
+      id: ${ model.value }
+      label: ${ model.displayName }
+      note: ${ model.description }
+      default: ${ model.value == "default" }

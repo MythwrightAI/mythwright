@@ -1,0 +1,134 @@
+# One contender of a card's A/B test, at work: its place made, cut from
+# what the card had so far; the card worked there by the contender's
+# agent, the work started under the contender's way of the test's
+# comparison (which says which agent or role does it, or which text);
+# what it changed kept as a commit on its place's branch; and what it did
+# written on its row of `entries`, with whether it could see the other
+# contenders' work, which is never left out.
+#
+# It keeps nothing as it goes: started again, it finds its place there,
+# its agent's turn by its asking, and what was committed committed.
+blueprint: std/entry
+version: 3
+description: "Have one contender of a card's A/B test work the card in a place of its own, and say on its row what it did."
+durable: false
+permissions: [board, records, agents, shell, projects, blueprints, channels]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  way: { type: string, description: "The contender's way of the test's comparison." }
+  key: { type: string, description: "What its place is called: `.lanes/<key>`, on `lane/<key>`." }
+  name: { type: string, description: "What its row of `entries` is called." }
+  # Not `compared`: a start that says `compared` and `way` is one the comparison chooses for, and this
+  # one is the contender's own; the work it calls is what the comparison counts.
+  counted: { type: string, description: "The comparison the test is counted under." }
+
+  hidden:
+    type: list
+    default: []
+    description: "The other contenders' places, which it is not shown."
+
+  patch:
+    type: int
+    default: 4096
+    description: "How many bytes of what it changed a judge is shown."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which asking of its agent this is: asked again after a restart, its agent is given the turn it had."
+
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+
+  finishing:
+    type: object
+    default: {}
+    description: "What its work is handed of how it is finished (`finish`, `later`, `lasts`), only what is said."
+
+steps:
+  row:
+    description: Its row of `entries`, by what it is called.
+    do: rows.read
+    with:
+      project: "${params.project}"
+      collection: entries
+      saying: { title: "${params.name}" }
+
+  made:
+    description: Its place, cut from what the card had so far.
+    do: place.make
+    with: { item: "${params.key}", from: "${params.item}" }
+
+  apart:
+    description: A project that is no repository has no place for each contender to work in apart, and its test is not done there, rather than have them work over one another in its folder.
+    when: ${ steps.made.out.came == "none" }
+    do: fail
+    with:
+      message: "a card's A/B test is done in a project that is a repository, each contender on a branch of its own; this project is none, so none of its contenders worked the card"
+
+  work:
+    description: The card worked there, under the contender's way of the comparison, which hands it its agent or role.
+    needs: [row, made, apart]
+    call: std/work
+    as: "work-${params.way}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      channel: "${params.channel}"
+      dir: "${steps.made.out.dir}"
+      thread: contend
+      way: "${params.way}"
+      compared: "${params.counted}"
+      entry: "${ steps.row.out.those[0] }"
+      hidden: ${params.hidden}
+      asking: "${params.asking}"
+      ...: ${params.finishing}
+
+  kept:
+    description: What its agent changed, kept as a commit on its place's branch, as its agent's.
+    needs: [work]
+    do: place.keep
+    with:
+      item: "${params.key}"
+      dir: "${steps.made.out.dir}"
+      by: "${ steps.work.out.by ?? '' }"
+      message: "${params.item}: ${params.way}"
+      unkept_ok: true
+
+  changed:
+    description: What it changed beside what the card had, and as much of its patch as a judge is shown.
+    needs: [kept]
+    do: place.changed
+    with: { item: "${params.key}", against: "${params.item}", patch: "${params.patch}" }
+
+  said:
+    description: What it did, on its row; and that it was not held apart, where it was not.
+    needs: [changed]
+    do: record.update
+    with:
+      id: "${ steps.row.out.those[0] }"
+      fields:
+        agent: "${ steps.work.out.by ?? '' }"
+        said: "${ steps.work.out.reply ?? '' }"
+        changed: "${ steps.changed.out.changed ?? '' }"
+        patch: "${ steps.changed.out.patch ?? '' }"
+        not_held_apart: ${ steps.work.out.unhidden ?? false }
+        branch: "lane/${params.key}"
+        state: kept
+
+  unkept:
+    description: Or that its work could not be kept, or its agent did not do it.
+    needs: [said]
+    when: ${ steps.work.out.came != "on" || (steps.kept.out.unkept ?? '') != "" }
+    do: record.update
+    with: { id: "${ steps.row.out.those[0] }", fields: { state: unkept } }
+
+on_fail:
+  - do: record.update
+    with: { id: "${ steps.row.out.those[0] }", fields: { state: failed } }
+
+outputs:
+  came: "${ steps.work.out.came ?? 'nothing' }"
+  agent: "${ steps.work.out.by ?? '' }"
+  unhidden: ${ steps.work.out.unhidden ?? false }

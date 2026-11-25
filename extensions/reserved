@@ -1,0 +1,10 @@
+# Names that are an extension package's business even before there is a
+# package for them. Nothing outside this folder, and outside the notes, may
+# spell them: the `providers` gate reads this file.
+#
+# These are hosting services for source code. The application keeps history
+# in whatever is added to it for that, and knows none of them; one of them
+# is reached through a package written for it, the way an agent is.
+github
+gitlab
+bitbucket

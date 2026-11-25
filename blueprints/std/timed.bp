@@ -1,0 +1,121 @@
+# How long each card took: a table of the project's with a row for each
+# card that reaches the board's last column, read from the card's own
+# history (its moves and when each was), never kept as it goes.
+#
+# A row says when the card was added and when it came to the last column,
+# the time between, how long it was in each column on the way, how many
+# times it was sent back and came to the last column, and who worked it.
+# What a history comes to is a block's (`timed.read`), so a card moved
+# back and forth, one done twice and one whose history says nothing of
+# where it was are each a case of that, and nothing is worked out here.
+#
+# The cards that were done before this was there are filled in once, as
+# it is applied; a card done after is written as its history says it
+# came to the last column (moved there, or added there), and again each
+# time it comes there: what is heard is the line written in its history,
+# so that the history read has it. A card's row is kept under the card's own number (`record.keep`),
+# so it is found by its id alone, and a card done costs the same however
+# many were done before it. The table is declared again whenever the
+# board's columns change (`std/timed-table`), so a column added has its
+# time kept from then on; its rows are written by this and nobody else
+# (`by_hand: false`). It counts and never scores.
+blueprint: std/timed
+version: 2
+description: "Keep how long each card took, a row for each that reaches the board's last column: from being added, in each column, how often it was sent back and who worked it."
+permissions: [projects, board, records, blueprints]
+
+params:
+  project: { type: string, description: "The project it works in." }
+
+  working:
+    type: string
+    default: doing
+    description: "The column cards are worked in: whoever moves a card there by hand is said to have worked it, beside the agents that say they did."
+
+state:
+  columns: []  # the board's columns, left to right, as it was applied
+  last: ""  # the last of them, where a card is done
+
+steps:
+  table:
+    description: The table, declared from the board's columns as they are.
+    call: std/timed-table
+    with: { project: "${params.project}" }
+
+  kept:
+    description: The board's columns, for what is heard to go by.
+    do: set
+    with: { columns: "${steps.table.out.columns}", last: "${steps.table.out.last}" }
+
+  done:
+    description: The cards in the last column already, to be filled in once.
+    do: board.list
+    with: { project: "${params.project}", status: "${steps.table.out.last}" }
+
+  each:
+    description: Each of those, from its history.
+    for_each: ${steps.done.out.ids}
+    call: std/timed-card
+    as: "timed-${item}"
+    with:
+      project: "${params.project}"
+      id: "${item}"
+      columns: "${steps.table.out.columns}"
+      working: "${params.working}"
+
+on:
+  # A line written in a card's history that it was moved or added: read
+  # once the line is there, so that what its history comes to has it. A
+  # card that came to the last column has its row kept, each time it comes
+  # there; one that came anywhere else is passed by.
+  came:
+    event: collection.history
+    for: { project: "${params.project}" }
+    when: ${ event.data.name == "board" && event.data.topic in ["board.item.moved", "board.item.created"] }
+    turn: "${event.data.record}"
+    steps:
+      timed:
+        description: What its history comes to.
+        do: timed.read
+        with:
+          id: "${event.data.record}"
+          columns: "${state.columns}"
+          working: "${params.working}"
+
+      kept:
+        description: "Its row, kept under the card's own number, and found again by its id alone, however many cards are done."
+        when: ${ steps.timed.out.came == 'done' }
+        do: record.keep
+        with:
+          project: "${params.project}"
+          collection: timed
+          number: ${steps.timed.out.number}
+          fields: "${steps.timed.out.row}"
+
+  # The board's columns set from its page, or its blueprint applied again
+  # with others: the table is declared again on them.
+  columns:
+    event: board.columns
+    for: { project: "${params.project}" }
+    steps:
+      table:
+        call: std/timed-table
+        as: timed-table
+        with: { project: "${params.project}" }
+
+      kept:
+        do: set
+        with: { columns: "${steps.table.out.columns}", last: "${steps.table.out.last}" }
+
+  declared:
+    event: collection.ensured
+    for: { project: "${params.project}", name: board }
+    steps:
+      table:
+        call: std/timed-table
+        as: timed-table
+        with: { project: "${params.project}" }
+
+      kept:
+        do: set
+        with: { columns: "${steps.table.out.columns}", last: "${steps.table.out.last}" }

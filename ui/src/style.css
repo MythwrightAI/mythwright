@@ -1,0 +1,997 @@
+/* The client's look.
+ *
+ * Dense, calm and legible: this is a tool people leave open all day. One
+ * accent marks what is live or actionable; status has its own four colours
+ * and is never carried by colour alone.
+ *
+ * Nothing here names a colour: the colours are a theme's, and are in
+ * `themes.css`. A table and its layouts are in `table.css`; a document as a
+ * page is in `page.css`. */
+
+* { box-sizing: border-box; }
+html, body, #app { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg0);
+  color: var(--text);
+  font: calc(13px * var(--size))/1.45 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: calc(20px * var(--size)); font-weight: 650; letter-spacing: -0.01em; }
+h2 { font-size: calc(15px * var(--size)); font-weight: 650; }
+h3 { font-size: calc(11px * var(--size)); font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, .mono { font-family: var(--mono); font-size: calc(12px * var(--size)); }
+pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+::selection { background: var(--accent-soft); }
+/* What has the keyboard is marked by an edge in a neutral of the theme, never in its accent: the accent is for
+   what is chosen or pressed, and a ring of it round whatever was last touched read as something being wrong. */
+:focus-visible { outline: 2px solid var(--dim); outline-offset: 1px; }
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+
+/* ---- controls ---------------------------------------------------------- */
+
+button, input, textarea, select { font: inherit; color: inherit; }
+button {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: calc(28px * var(--tall)); padding: 0 10px;
+  border: 1px solid var(--line-strong); border-radius: calc(6px * var(--round));
+  background: var(--bg2); cursor: pointer; white-space: nowrap;
+}
+button:hover { background: var(--bg3); }
+button:disabled { opacity: 0.5; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+button.primary:hover { filter: brightness(1.08); }
+button.ghost { border-color: transparent; background: transparent; color: var(--dim); }
+button.ghost:hover { background: var(--bg3); color: var(--text); }
+button.danger:hover { border-color: var(--bad); color: var(--bad); }
+button.icon { width: calc(28px * var(--tall)); padding: 0; justify-content: center; }
+
+input, textarea, select {
+  width: 100%; padding: calc(6px * var(--density)) 9px;
+  border: 1px solid var(--line-strong); border-radius: calc(6px * var(--round));
+  background: var(--bg0);
+}
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--dim); box-shadow: none; }
+textarea { resize: vertical; min-height: 64px; }
+label { display: grid; gap: 4px; font-size: calc(12px * var(--size)); color: var(--dim); }
+
+/* Pills that do not fit the room they are given go on to another line, and are never cut off: a blueprint's views at a phone's width. */
+.pills { display: inline-flex; flex-wrap: wrap; max-width: 100%; padding: 2px; gap: 2px; border-radius: calc(8px * var(--round)); background: var(--bg2); border: 1px solid var(--line); }
+/* Gone on to another line, a head's views each take a share of what is left of theirs, so that both lines end together. */
+.view-head > .pills button { flex: 1 0 auto; }
+.pills button { height: calc(24px * var(--tall)); border: 0; background: transparent; color: var(--dim); border-radius: calc(6px * var(--round)); }
+.pills button:hover { color: var(--text); }
+.pills button[aria-pressed="true"], .pills button[aria-checked="true"] { background: var(--bg0); color: var(--text); box-shadow: 0 0 0 1px var(--line-strong); }
+/* A field of a form whose value is chosen from pills: laid out as a label is. */
+.field-of-pills { display: grid; gap: 4px; justify-items: start; font-size: calc(12px * var(--size)); color: var(--dim); }
+/* Choosing from options shown as tags: the field with what is chosen, and
+   under it, while it has the caret, the options. */
+.select { position: relative; width: 100%; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg0); }
+.select.open { border-color: var(--accent); border-radius: calc(8px * var(--round)) calc(8px * var(--round)) 0 0; }
+.select-field { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: calc(34px * var(--tall)); padding: 5px 8px; cursor: text; }
+.select-field input { flex: 1; min-width: 60px; height: calc(22px * var(--tall)); padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; font-size: calc(13px * var(--size)); }
+.select-field input:focus { border: 0; box-shadow: none; }
+.select-menu { position: absolute; z-index: 6; top: 100%; left: -1px; right: -1px; padding: 6px 4px 4px; background: var(--bg0); border: 1px solid var(--accent); border-top-color: var(--line); border-radius: 0 0 calc(8px * var(--round)) calc(8px * var(--round)); box-shadow: var(--shadow); }
+.select-hint { padding: 2px 8px 6px; font-size: calc(11.5px * var(--size)); font-weight: 600; color: var(--faint); }
+.select-menu [role="listbox"] { max-height: 232px; overflow: auto; }
+.select-option { display: flex; align-items: center; gap: 8px; height: calc(29px * var(--tall)); padding: 0 8px; border-radius: calc(6px * var(--round)); cursor: pointer; color: var(--text); }
+.select-option.marked { background: var(--bg2); }
+.select-option.dragged { background: var(--bg3); }
+.select-grip { width: 12px; color: var(--faint); font-size: calc(13px * var(--size)); line-height: 1; cursor: grab; touch-action: none; user-select: none; }
+.select-grip.still { opacity: 0.35; cursor: default; }
+.select-option.dragged .select-grip { cursor: grabbing; }
+.select-check { margin-left: auto; color: var(--dim); font-size: calc(12px * var(--size)); }
+.select-create { color: var(--dim); font-size: calc(12px * var(--size)); }
+.select-none { padding: 8px; color: var(--faint); font-size: calc(12px * var(--size)); }
+/* A tag: a word on a colour of its own, which is always the same for the same word. The colours are the theme's
+   own, so every theme has them, one somebody made too; the word is the theme's text on a tint light enough to
+   read it on (a test holds that, in each theme, dark and light), and the edge says the colour more strongly. */
+.tag { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; height: calc(21px * var(--tall)); padding: 0 7px; border-radius: calc(4px * var(--round)); font-size: calc(12.5px * var(--size)); line-height: calc(21px * var(--tall)); color: var(--text); background: color-mix(in srgb, var(--tag, var(--faint)) 18%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tag, var(--faint)) 46%, transparent); }
+.tag-x { width: 14px; height: 14px; padding: 0; justify-content: center; border: 0; border-radius: calc(3px * var(--round)); background: transparent; color: inherit; opacity: 0.6; font-size: calc(13px * var(--size)); line-height: 1; }
+.tag-x:hover { opacity: 1; background: color-mix(in srgb, var(--text) 14%, transparent); }
+.tag-0 { --tag: var(--faint); }
+.tag-1 { --tag: var(--accent); }
+.tag-2 { --tag: var(--card); }
+.tag-3 { --tag: var(--ok); }
+.tag-4 { --tag: var(--info); }
+.tag-5 { --tag: var(--bad); }
+.tag-6 { --tag: var(--agent); }
+.tag-7 { --tag: color-mix(in srgb, var(--info), var(--bad)); }
+.tag-8 { --tag: color-mix(in srgb, var(--ok), var(--card)); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: calc(20px * var(--tall)); padding: 0 7px; border-radius: calc(10px * var(--round));
+  font-size: calc(11px * var(--size)); font-weight: 600; background: var(--bg3); color: var(--dim);
+}
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.plain::before { display: none; }
+.badge.ok, .badge.healthy, .badge.active, .badge.done { background: var(--ok-soft); color: var(--ok); }
+.badge.failed, .badge.unhealthy, .badge.error { background: var(--bad-soft); color: var(--bad); }
+.badge.running, .badge.starting, .badge.queued { background: var(--info-soft); color: var(--info); }
+/* Where a blueprint's head says how its text checks: as wide whichever it says, so that nothing after it moves as the answer comes. */
+.check-slot { display: inline-flex; min-width: calc(76px * var(--size)); }
+.badge.running::before, .badge.starting::before { animation: pulse 1.2s ease-in-out infinite; }
+.badge.warning, .badge.cancelled { background: var(--accent-soft); color: var(--accent); }
+/* In the side panel it keeps to the end of its row and gives the name the room. */
+.badge.not-trusted { flex: none; white-space: nowrap; }
+.badge.not-trusted.brief { margin-left: auto; height: calc(16px * var(--tall)); padding: 0 5px; font-size: calc(10px * var(--size)); }
+.badge.idle { background: color-mix(in srgb, var(--card) 16%, transparent); color: var(--card); }
+@keyframes pulse { 50% { opacity: 0.25; } }
+
+.muted { color: var(--dim); }
+.faint { color: var(--faint); }
+.row { display: flex; align-items: center; gap: 8px; }
+.grow { flex: 1; min-width: 0; }
+.stack { display: grid; gap: calc(12px * var(--density)); }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A few faint words in a page's head that say where it is from: they give way, cut short where the line has no
+   room for them, before what is pressed there goes onto a line of its own (a blueprint's Apply did at
+   1280 wide with the side panel open). Where even a few of them have no room, they wrap as a whole. */
+.view-head > .head-note { flex: 1 1 0; min-width: min(12em, 100%); text-align: right; }
+.empty { display: grid; place-items: center; gap: 10px; padding: calc(48px * var(--density)) 24px; color: var(--faint); text-align: center; }
+.empty strong { color: var(--dim); font-size: calc(14px * var(--size)); }
+.error-text { color: var(--bad); }
+.kbd { font: calc(11px * var(--size)) var(--mono); padding: 1px 5px; border: 1px solid var(--line-strong); border-radius: calc(4px * var(--round)); color: var(--faint); }
+
+/* ---- shell ------------------------------------------------------------- */
+
+/* The shell is the colour of its own top row, so that the strip the window's
+ * bar sits over (in the desktop app) is one with the sidebar and the tabs. */
+.shell { position: relative; display: grid; grid-template-columns: 44px var(--side-width, 252px) 1fr; height: 100%; box-sizing: border-box; padding-top: var(--bar); background: var(--bg1); }
+/* The side panel's right edge, which is dragged: wider than the line it lies on, so that it can be caught. */
+.side-edge { position: absolute; z-index: 6; top: var(--bar); bottom: 0; left: calc(44px + var(--side-width, 252px) - 5px); width: 10px; cursor: col-resize; touch-action: none; }
+/* The line it lies on is not lit while it is pointed at or held: the pointer's shape says it is dragged, and a line lighting up down the whole page as the pointer crossed it was more than that needed. Where the keyboard has reached it, it is marked, quietly: there is no pointer to say so. */
+.side-edge::after, .panel-edge::after { content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 2px; background: transparent; transition: background 0.12s; }
+.side-edge:focus-visible::after, .panel-edge:focus-visible::after { background: var(--line-strong); }
+.side-edge:focus-visible, .panel-edge:focus-visible { outline: none; }
+/* While an edge is held the pointer keeps the shape of one over whatever it crosses, and nothing is selected on the way. */
+.edge-held, .edge-held * { cursor: col-resize !important; user-select: none !important; }
+.shell.side-closed { grid-template-columns: 44px 1fr; }
+/* What a factory that is not the one somebody would take it for says across the top of every page: a row of
+   its own over the rail, the side panel and the page, in the colour a warning is drawn in, that moves nothing under it. */
+.shell:has(> .across-line) { grid-template-rows: auto minmax(0, 1fr); }
+.across-line {
+  grid-column: 1 / -1; position: relative; z-index: 7; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px;
+  padding: calc(4px * var(--density)) 12px; background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--bg1); color: var(--text);
+  border-bottom: 1px solid var(--accent); font-size: calc(12.5px * var(--size)); text-align: center; min-width: 0;
+}
+.across-said { min-width: 0; overflow-wrap: anywhere; }
+.across-said::before { content: "▲ "; color: var(--accent); }
+.across-refused { color: var(--bad); }
+.across-line .across-quiet { height: auto; padding: 1px 8px; font-size: calc(12px * var(--size)); }
+/* The rail: which view the side panel shows. One strip, always there. */
+.rail { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 8px; min-height: 0; background: var(--bg1); border-right: 1px solid var(--line); }
+.rail-button { width: 36px; height: calc(34px * var(--tall)); padding: 0; display: grid; place-items: center; border: 0; border-radius: calc(7px * var(--round)); background: transparent; color: var(--faint); font-size: calc(15px * var(--size)); position: relative; }
+.rail-button:hover { color: var(--text); background: var(--bg2); }
+.rail-button[aria-pressed="true"] { color: var(--text); }
+/* The mark is a filled shape where the other signs are lines, so in their faint colour it reads dimmer than they do: it is a step clearer against the rail, in the light as in the dark. */
+.rail-about { color: var(--dim); }
+/* Its own tooltip, beside the button. The system's would sit under the
+ * pointer and be cut off by the edge of the window the rail is against. */
+.rail-button[data-tip]:hover::after, .rail-button[data-tip]:focus-visible::after {
+  content: attr(data-tip); position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
+  padding: 4px 8px; border-radius: calc(6px * var(--round)); border: 1px solid var(--line-strong); background: var(--bg3); color: var(--text);
+  font: calc(12px * var(--size))/1.4 var(--sans); white-space: nowrap; box-shadow: var(--shadow); z-index: 45; pointer-events: none;
+}
+/* What any control with a `title` says of itself (`tips.ts`): drawn by the
+ * client so that it is put inside the window, where the system's is cut off
+ * by the window's edge. Over everything, and never in the pointer's way. */
+.tip-said {
+  position: fixed; left: 0; top: 0; width: max-content; max-width: min(320px, calc(100vw - 16px));
+  padding: 4px 8px; border-radius: calc(6px * var(--round)); border: 1px solid var(--line-strong); background: var(--bg3); color: var(--text);
+  font: calc(12px * var(--size))/1.4 var(--sans); white-space: normal; overflow-wrap: anywhere; box-shadow: var(--shadow); z-index: 70; pointer-events: none;
+}
+/* Where the rest of what a tip says only the start of is (`data-tip-more`): a last line, faint. */
+.tip-said .tip-more { display: block; margin-top: 4px; color: var(--dim); }
+/* Something unread in a channel, when the channels are not what is showing. */
+.rail-button.waiting::before { content: ""; position: absolute; right: 6px; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.rail-button[aria-pressed="true"]::before { content: ""; position: absolute; right: auto; left: -4px; top: 7px; bottom: 7px; width: 2px; border-radius: calc(2px * var(--round)); background: var(--accent); }
+.sidebar { display: flex; flex-direction: column; min-height: 0; background: var(--bg1); border-right: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 9px; padding: 12px 14px 10px; font-weight: 700; font-size: calc(14px * var(--size)); }
+/* What the panel is called gives way only where the panel is dragged as narrow as it goes: what is pressed at its head stays inside it. */
+.sidebar .brand > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* What is pressed at a side panel's head is one group at its right, which keeps together (on a phone it goes under the title where the two do not fit, `phone.css`). */
+.brand-acts { flex: none; display: flex; align-items: center; gap: 9px; margin-left: auto; }
+/* A little closer to the title, and each a little narrower than a button elsewhere (`grouped.css`), so that the title
+   is whole at the panel's usual width beside five of them at the largest size of text (Channels was 5px short, and
+   Messaging 6px). */
+.sidebar .brand { gap: 6px; }
+/* Folding the side panel away is at its head, the last of what is pressed there. */
+.brand .side-fold { flex: none; width: 22px; height: calc(24px * var(--tall)); margin: -2px -6px -2px 0; color: var(--faint); }
+.brand .side-fold:hover { color: var(--text); }
+.brand-mark { width: calc(20px * var(--tall)); height: calc(20px * var(--tall)); border-radius: calc(6px * var(--round)); background: var(--accent); display: grid; place-items: center; color: var(--accent-ink); font-size: calc(12px * var(--size)); font-weight: 800; }
+/* The stream of events is lost: drawn only then, where the panel is headed. */
+.stream-lost { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--bad); animation: pulse 1s infinite; }
+/* Its room at the sides gives way, as the trees' steps do, where the panel is dragged narrow. */
+.nav { flex: 1; overflow-y: auto; padding: calc(4px * var(--density)) calc(var(--mark-in, 8px) / 2 + 2px) calc(12px * var(--density)); }
+.nav h3 { display: flex; align-items: center; padding: calc(14px * var(--density)) 8px calc(4px * var(--density)); }
+.nav h3 button { margin-left: auto; height: calc(20px * var(--tall)); width: calc(20px * var(--tall)); }
+/* Whose things a view of the factory shows. */
+select.narrow { width: auto; max-width: 220px; height: calc(28px * var(--tall)); padding: 0 8px; }
+.nav-item {
+  display: flex; align-items: center; gap: 7px; width: 100%; height: calc(27px * var(--tall)); padding: 0 var(--mark-in, 8px);
+  border: 0; border-radius: calc(6px * var(--round)); background: transparent; color: var(--dim); text-align: left; justify-content: flex-start;
+}
+.nav-item:hover { background: var(--bg2); color: var(--text); }
+/* A name that opens something, with an arrow beside it that folds what is
+   under it. The row is one thing to point at, and lights as one; within it
+   the arrow only stands out when it is the arrow that is pointed at. */
+.nav-row { display: flex; align-items: center; border-radius: calc(6px * var(--round)); }
+.nav-row:hover { background: var(--bg2); }
+.nav-row.current { background: var(--accent-soft); }
+.nav-row .nav-item, .nav-row .nav-item:hover, .nav-row .nav-item[aria-current="true"] { padding-left: 1px; background: transparent; }
+/* The name is what gives way in a row, and never the row: left as wide as what it holds, a long name with a mark
+   after it pushed the mark, and the row's menu, out past the panel's edge, where they were cut off. */
+.nav-row .nav-item { min-width: 0; }
+/* One further in than a project: its arrow where a folder's arrow is. Its name begins where the name of a line
+   beside it does, one with a mark in place of the arrow: a pixel less of the arrow's room, and not a pixel of the
+   name's laid over it, which held apart by the boxes was the arrow lying over the name. */
+.nav-row.inner .nav-twist { width: calc(var(--mark-in, 8px) + 21px); }
+.nav-row.inner .nav-item { padding-left: 0; color: var(--dim); }
+/* Its arrow stands where a line's mark does, `--mark-in` from the row's left, which is over the line its tree hangs from. */
+.nav-twist, .nav-twist:hover { flex: none; justify-content: flex-start; width: calc(var(--mark-in, 8px) * 1.25 + 16px); height: calc(27px * var(--tall)); padding: 0 0 0 var(--mark-in, 8px); border: 0; background: transparent; }
+.nav-twist:hover .twist { color: var(--text); }
+/* A box with a plus or a minus in it. Its ground is the panel's, so that the tree's lines stop at it. */
+.twist { position: relative; z-index: 1; display: inline-grid; place-items: center; width: 14px; height: 14px; flex: none; color: var(--faint); }
+.twist svg { width: 11px; height: 11px; fill: var(--bg1); stroke: currentColor; stroke-width: 1; stroke-linecap: square; }
+.nav-item:hover .twist { color: var(--text); }
+.nav-item[aria-current="true"] { background: var(--accent-soft); color: var(--text); }
+.nav-item .glyph { width: 14px; text-align: center; color: var(--faint); flex: none; }
+.nav-item[aria-current="true"] .glyph { color: var(--accent); }
+.nav-item .count { margin-left: auto; font-size: calc(11px * var(--size)); color: var(--faint); }
+/* The head of the dialog that adds a project: what it is, and under it in a faint line the workspace it is made in. */
+.ask-head { display: grid; gap: 2px; min-width: 0; }
+.ask-head h2 { margin: 0; }
+.ask-where { margin: 0; font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; }
+/* The tools panel: a second, smaller window at the right of a channel. Its classes say `context`, which it was called first. */
+.context, .doc-tools { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 0; min-width: 0; border-left: 1px solid var(--line); background: var(--bg0); }
+/* The left edge of a panel at the right of a channel, which is dragged: wider than the line it lies on, so that it can be caught. */
+.panel-edge { position: absolute; z-index: 5; left: -5px; top: 0; bottom: 0; width: 10px; cursor: col-resize; touch-action: none; }
+/* Its tabs are on the line of the channel's own buttons beside them: the head of the channel and the head of the panel read as one row.
+   They are a page's tabs (`.view-tab`, as the About page's and the Git page's are): words on the panel, the one showing in the text's
+   own colour with the accent's line under it, the others dimmer. Under the whole row is a thin line
+   (`.tabs-ruled`), and the tabs reach down to it, so that the accent's line under the one showing lies on it. */
+.context-tabs { display: flex; align-items: center; gap: 6px; padding: calc(14px * var(--density)) 10px 0; }
+/* At least as tall as the line of the channel's name beside it (a heading's 20px, on its 1.45), so that the two are level whatever
+   size text is; its tabs are as tall as it is, down to the line. */
+.context-tabs .view-tabs-list { gap: 2px; min-height: calc(29px * var(--size)); align-self: stretch; align-items: stretch; }
+/* More of them than the panel is wide are turned along with the wheel, each as wide as its name. */
+.context-tabs .view-tab { flex: none; height: auto; min-height: calc(30px * var(--tall)); }
+.context-drop { display: grid; place-items: center; width: calc(16px * var(--tall)); height: calc(16px * var(--tall)); margin-right: -4px; border-radius: calc(4px * var(--round)); color: var(--faint); font-weight: 400; }
+.context-drop:hover { background: var(--bg3); color: var(--text); }
+/* A tab's mark that takes it away is drawn on the tab showing and on one pointed at or reached by the keyboard, and is there unseen on
+   the rest, so that nothing moves as it comes; under a finger, which points at nothing, it is always drawn. */
+@media (hover: hover) {
+  .context-tabs .view-tab:not([aria-selected="true"]):not(:hover):not(:focus-visible) .context-drop { opacity: 0; }
+}
+/* A thread being read in it has the whole of it, to its edges. */
+.context-thread { min-height: 0; overflow: hidden; }
+.context-body[hidden] { display: none; }
+/* One column, as wide as the panel and no wider: what is in it is cut short or wraps, and never pushes past its edge. */
+.context-body { min-height: 0; overflow: auto; padding: calc(12px * var(--density)) 12px; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: calc(6px * var(--density)); }
+.context-body h3 { margin-top: 8px; }
+.context-row { display: flex; align-items: center; gap: 8px; min-height: calc(28px * var(--tall)); height: auto; padding: 3px 6px; border: 0; border-radius: calc(6px * var(--round)); background: transparent; color: var(--text); text-align: left; text-decoration: none; }
+.context-row:hover { background: var(--bg2); text-decoration: none; }
+.context-row .agent, .context-row.agent { color: var(--agent); }
+/* Somebody there is nothing to open about is not lit as something to press. */
+.context-row.nobody-to-open:hover { background: transparent; }
+/* A card's id where it is written, pressed to see the card: words among the words, in the accent. */
+.card-link { display: inline; height: auto; padding: 0; border: 0; border-radius: calc(3px * var(--round)); background: transparent; color: var(--accent); font: inherit; white-space: normal; cursor: pointer; }
+.card-link:hover { background: transparent; text-decoration: underline; }
+.card-link code { color: inherit; }
+/* A file of a project named in what somebody wrote (`views/pathlink.tsx`): a link on the words themselves, which may break where a path does. */
+.path-link { color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
+.path-link:hover { text-decoration: underline; }
+code .path-link, .code-block-text .path-link { color: inherit; text-decoration: underline; text-decoration-color: var(--accent); }
+/* An agent being read about in it. */
+.context-about { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.context-about h3 { margin-top: 6px; }
+.context-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; }
+.context-facts dt { color: var(--faint); }
+.context-facts dd { margin: 0; overflow-wrap: anywhere; }
+.context-turn { display: grid; gap: 4px; padding: 8px 10px; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+.context-turn-words { font-size: calc(12.5px * var(--size)); color: var(--dim); white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.who-anchor[role="button"] { cursor: pointer; }
+/* A record's history: a line an event, oldest first, down a rule. */
+/* A card in review: what is wrong with it, said to whoever worked on it. */
+.send-back { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg2); }
+.send-back textarea { resize: vertical; }
+.journey { display: grid; gap: 6px; margin-top: 4px; }
+.journey ol { list-style: none; margin: 0; padding: 0 0 0 12px; border-left: 1px solid var(--line-strong); display: grid; gap: 7px; }
+.journey li { position: relative; display: grid; gap: 1px; }
+.journey li::before { content: ""; position: absolute; left: -16px; top: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--bg0); border: 1px solid var(--faint); }
+.journey li:last-child::before { border-color: var(--accent); background: var(--accent); }
+.journey-when { font-size: calc(11px * var(--size)); }
+.journey-said { overflow-wrap: anywhere; }
+/* Its words by their paragraphs (`paragraphsOf`): the first beside whoever did it, each after it a line of its own. */
+.journey-para { white-space: pre-wrap; }
+.journey-para + .journey-para { display: block; margin-top: 6px; }
+/* Something said on the card, among what happened to it: whose words, and the words, set apart as words. */
+.journey li.journey-spoken { padding: 6px 9px; border: 1px solid var(--line); border-radius: calc(7px * var(--round)); background: var(--bg2); }
+.journey li.journey-spoken.asks { border-color: var(--accent); }
+.journey li.journey-spoken::before { left: -16px; }
+.journey-who { color: var(--text); font-weight: 600; }
+.journey-words { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* What a card's column offers to be pressed on it: each a button, or pressed with by whom and when. */
+.card-actions { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+.card-action { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.card-action-done { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.card-action-done strong::before { content: '✓ '; color: var(--accent); }
+/* On the board: what a card waits for to be pressed, under its name. */
+.card-waits { font-size: calc(12px * var(--size)); color: var(--accent); overflow-wrap: anywhere; }
+.card-plan { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+.card-plan p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* What a card's form holds, closed as one to whoever may not change a card (`cardform.tsx`): no box of its own, its parts laid out as the form's. */
+.card-fields { display: contents; }
+.card-say { display: grid; gap: 6px; }
+.card-say textarea { resize: vertical; }
+.say-public { display: inline-flex; align-items: center; gap: 5px; font-size: calc(12px * var(--size)); color: var(--faint); cursor: pointer; }
+.say-public input { margin: 0; }
+.journey-public { margin-left: 6px; padding: 0 5px; border: 1px solid var(--accent); border-radius: calc(8px * var(--round)); color: var(--accent); font-size: calc(10px * var(--size)); }
+
+/* Someone in a channel, under it in the side panel. */
+.nav-who { display: flex; align-items: center; gap: 8px; min-height: calc(26px * var(--tall)); padding: 0 8px 0 calc(var(--mark-in, 8px) + 2.5px); border-radius: calc(6px * var(--round)); font-size: calc(12.5px * var(--size)); color: var(--dim); cursor: default; }
+/* Whoever it is, a person, an agent or a bot, their name is drawn in the panel's ordinary colour for a name (and
+   not in an agent's colour for all): what they are is said by the mark before
+   it (a person's dot, a bot's diamond, an agent's state) and the faint words after it. A line that only says
+   something (nobody yet) stays faint. */
+.nav-who:not(.faint) { color: var(--dim); }
+.nav-who .glyph { width: 9px; text-align: center; color: var(--faint); }
+.nav-who .faint { font-size: calc(11px * var(--size)); }
+/* The factory's log: when, what in a word, and the rest of it. */
+.factory-log td:first-child, .factory-log td:nth-child(2) { white-space: nowrap; width: 1%; vertical-align: top; }
+.factory-log td:last-child { color: var(--dim); }
+/* The history of what something was applied with: the versions down the
+   side, and the one that is chosen beside them. */
+.history { display: grid; grid-template-columns: 300px 1fr; min-height: 0; height: 100%; }
+.history-list { overflow: auto; border-right: 1px solid var(--line); padding: 4px 8px; }
+.history-row { display: grid; gap: 2px; height: auto; padding: 7px 8px; font-size: calc(12px * var(--size)); }
+.history-row .row { gap: 6px; font-size: calc(13px * var(--size)); }
+.history-change { color: var(--dim); white-space: normal; }
+/* An instance that is behind the text now there: the mark that says so, and why, which may be an error of several lines. */
+.lag-mark { padding: 0; border: 0; background: none; display: inline-flex; }
+.lag-why, .lag-moved, .lag-leave { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* The button that applies it again says what that does, which is a sentence: it goes over two lines where one is too narrow, and never past the edge of what it is in. */
+button.lag-again { height: auto; min-height: calc(28px * var(--tall)); padding: 4px 10px; white-space: normal; text-align: left; }
+.history-shown { display: grid; grid-template-rows: auto auto 1fr; min-height: 0; }
+.history-head { padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.history-text { min-height: 0; margin-top: 10px; border-top: 1px solid var(--line); }
+/* A board's stages in the drawer: each, how many are at it, and which. */
+.stages td { padding: 3px 8px 3px 0; vertical-align: top; }
+.stages td:first-child { white-space: nowrap; }
+/* A word where a tree has nothing to show, or is being read. */
+.nav-note { display: block; padding: 4px 8px; font-size: calc(12px * var(--size)); color: var(--faint); }
+/* Who is signed in, on the rail over the settings: a face, small and round. */
+.rail-me .avatar { width: calc(26px * var(--tall)); height: calc(26px * var(--tall)); border-radius: 50%; font-size: calc(10.5px * var(--size)); }
+
+.main { min-width: 0; min-height: 0; position: relative; overflow: hidden; background: var(--bg0); }
+/* The workbench. Everything in it is placed by the layout: see workbench.tsx. */
+.panes { position: absolute; inset: 0; }
+.tabs {
+  position: absolute; height: var(--strip); box-sizing: border-box;
+  display: flex; align-items: stretch; background: var(--bg1); overflow-x: auto; scrollbar-width: none;
+}
+.tab {
+  display: flex; align-items: center; gap: 7px; flex: 0 1 168px; min-width: 76px; height: auto; padding: 0 6px 0 12px;
+  border: 0; border-right: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--dim);
+  user-select: none; -webkit-user-select: none; touch-action: none;
+}
+/* The tab showing in each group is marked; the group in use, in colour. */
+/* Every tab is as wide as every other, whatever it is called: as wide as
+   is comfortable while there is room, and narrower together as more are
+   opened, down to where the row scrolls instead. Its name takes what the
+   tab has, so the cross that closes it is always at its end. */
+.tab > .truncate { flex: 1; min-width: 0; text-align: left; }
+.tab[aria-selected="true"] { background: var(--bg0); color: var(--text); box-shadow: inset 0 2px 0 var(--line-strong); }
+.tabs.focused .tab[aria-selected="true"] { box-shadow: inset 0 2px 0 var(--accent); }
+/* What brings the side panel back: a tab's place and size, without being one. */
+.tabs-side { flex: none; width: 38px; height: auto; padding: 0; display: grid; place-items: center; border: 0; border-right: 1px solid var(--line); border-radius: 0; background: transparent; color: var(--faint); }
+.tabs-side:hover { background: var(--bg2); color: var(--text); }
+.tab-edited { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+/* What is left of the row after its tabs, and never taken from them. */
+.tabs-end { flex: 1 0 28px; }
+/* Split stays at the row's end, whole, while its tabs scroll under it: a block of the row's own ground with an edge, and never over a tab's words, since the row scrolls far enough for its last tab to clear it. */
+.tabs-split { position: sticky; right: 0; z-index: 1; align-self: stretch; flex: none; height: auto; margin: 0; padding: 0 9px; display: grid; place-items: center; border: 0; border-left: 1px solid var(--line); border-radius: 0; background: var(--bg1); }
+/* In a browser, what is over the one thing that shows (`PlaceBar`): no row of tabs, but what brings the side panel back and what is shown. */
+.placebar {
+  position: absolute; left: 0; top: 0; width: 100%; height: var(--strip); box-sizing: border-box;
+  display: flex; align-items: stretch; background: var(--bg1); border-bottom: 1px solid var(--line);
+}
+.placebar-shown { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 0 12px; color: var(--dim); font-size: calc(13px * var(--size)); }
+.placebar-shown > .truncate { min-width: 0; }
+.tab .close { width: calc(18px * var(--tall)); height: calc(18px * var(--tall)); padding: 0; justify-content: center; border: 0; background: transparent; color: var(--faint); border-radius: calc(4px * var(--round)); }
+.tab .close:hover { background: var(--bg3); color: var(--text); }
+.view { position: absolute; overflow: auto; background: var(--bg0); }
+.view-head { display: flex; align-items: center; gap: 10px; padding: calc(14px * var(--density)) 20px calc(10px * var(--density)); flex-wrap: wrap; }
+.view-body { padding: 4px 20px 24px; }
+/* What a table is for, as its blueprint says: a line of its own at the foot of its head. */
+.view-head > .table-said { flex: 1 0 100%; order: 99; margin: 0; color: var(--dim); font-size: calc(13px * var(--size)); overflow-wrap: anywhere; }
+.split { display: grid; grid-template-rows: auto 1fr; height: 100%; min-height: 0; }
+
+/* A panel that floats over the right of the workbench, clear of its edges
+   and of the first row of tabs. */
+.drawer, .drawer-leaving {
+  position: absolute; top: calc(37px + 10px); right: 10px; bottom: 10px; width: min(var(--drawer-width, 400px), calc(100% - 20px));
+  background: var(--bg1); border: 1px solid var(--line-strong); border-radius: calc(12px * var(--round)); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; overflow: hidden; z-index: 5;
+}
+/* Its left edge, which is dragged: inside it, since what is past its border is cut off. */
+.drawer-edge { position: absolute; z-index: 1; left: 0; top: 0; bottom: 0; width: 8px; cursor: col-resize; touch-action: none; }
+.drawer-edge::after { content: ""; position: absolute; top: 12px; bottom: 12px; left: 0; width: 2px; border-radius: calc(2px * var(--round)); background: transparent; transition: background 0.12s; }
+.drawer-edge:focus-visible::after { background: var(--line-strong); }
+.drawer-edge:focus-visible { outline: none; }
+.drawer-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.drawer-body { flex: 1; overflow: auto; padding: 14px; display: grid; gap: 16px; align-content: start; }
+.field { display: grid; gap: 4px; }
+.field > span:first-child { font-size: calc(11px * var(--size)); letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); }
+.code-box { padding: 8px 10px; border-radius: calc(6px * var(--round)); background: var(--bg0); border: 1px solid var(--line); overflow: auto; max-height: 260px; }
+/* A sentence the daemon says of something (why an instance failed, or what it went on with) is read whole: kept to one line it scrolled sideways inside a box one line tall, and read as cut off. */
+.code-box.said-whole { white-space: pre-wrap; overflow-wrap: anywhere; flex: none; }
+
+.scrim { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: start center; padding-top: 12vh; z-index: 20; }
+/* Signing in: nothing is behind it, so it is a page, not a dialog over one.
+ * It sits a little above the middle, where a lone form reads as centred. */
+.scrim.plain { background: var(--bg0); place-items: center; padding: var(--bar) 0 8vh; }
+.modal { width: min(420px, 92vw); background: var(--bg1); border: 1px solid var(--line-strong); border-radius: calc(12px * var(--round)); box-shadow: var(--shadow); padding: 22px; display: grid; gap: 14px; }
+.modal.wide { width: min(620px, 94vw); padding: 0; gap: 0; overflow: hidden; }
+/* A dialog is never taller than the window it is over: one that asks many
+   things (a blueprint with many params) is gone through by scrolling, and what it is
+   left by stays in reach at its foot. */
+.modal:not(.wide):has(.modal-foot) { max-height: calc(100vh - 12vh - 24px); overflow-y: auto; }
+.modal-foot { position: sticky; bottom: -22px; margin: 0 -22px -22px; padding: 12px 22px 22px; background: var(--bg1); border-top: 1px solid var(--line); justify-content: flex-end; }
+/* In from the corner and up beside where things are written: level with
+   a composer and the row over it, not under them. */
+.toasts { position: fixed; right: 40px; bottom: 60px; display: grid; gap: 8px; z-index: 30; }
+.toast { padding: 9px 12px; border-radius: calc(5px * var(--round)); background: var(--bg2); border: 1px solid var(--line-strong); box-shadow: var(--shadow); max-width: min(380px, calc(100vw - 56px)); }
+.toast.bad { border-color: var(--bad); }
+/* Something that can be taken back says so at its end, and is pressed there. */
+.toast.undoable { display: flex; align-items: center; gap: 12px; }
+.toast .toast-undo { margin-left: auto; padding: 2px 8px; color: var(--accent); font-weight: 600; }
+/* Its line is already as thin as a line can be drawn, so it is made lighter
+   instead: the accent, most of the way back to an ordinary line. */
+.toast.notice { display: grid; gap: 8px; border-color: color-mix(in srgb, var(--accent) 40%, var(--line-strong)); }
+.toast.notice button { border-radius: calc(4px * var(--round)); }
+.toast.notice p { margin: 0; }
+button.link { padding: 0; border: 0; background: none; color: var(--accent); justify-self: start; }
+button.link:hover { background: none; text-decoration: underline; }
+
+/* ---- channel ----------------------------------------------------------- */
+
+/* How far in what a message says begins, said once: the list's room at its side (`--said-side`), a message's own
+   (`--said-pad`), the column its writer's picture is in (`--said-face`) and the room after it (`--said-gap`). What
+   stands with the messages and is to begin where their words do (who is writing) adds up the same four. */
+:root { --said-side: 20px; --said-pad: 8px; --said-face: 30px; --said-gap: 10px; }
+/* Room over the first message for what is shown on a message's upper edge. */
+/* Laid out as blocks one under another, and not as a column of flexible boxes: each width the panel's edge is dragged
+   through lays out every message there is, out of sight ones by the size they stand by, and a column of thousands of
+   flexible boxes took twice as long as the same in blocks. */
+.messages { display: block; padding: calc(14px * var(--density)) var(--said-side) calc(12px * var(--density)); overflow-y: auto; min-height: 0; }
+.messages > * + * { margin-top: calc(6px * var(--density)); }
+.message { display: grid; grid-template-columns: var(--said-face) 1fr; gap: var(--said-gap); padding: calc(7px * var(--density)) var(--said-pad); border-radius: calc(8px * var(--round)); }
+.message:hover { background: var(--bg1); }
+.message { position: relative; }
+/* What is said out of sight is not laid out: with a few thousand things said, a drag of the panel's edge laid every
+   one of them out at each width, and so did a page that only scrolled. Each stands, out of sight, as tall as it was last
+   laid out (`inview.ts`, on the message); the newest fifty are always laid out (`said-far` is the rest), so that a list kept
+   at its foot is as tall there as it is. One being pointed at, in which the keyboard is, or with something open over it
+   (who somebody is, a dialog) is laid out as it always was: what is laid out only in sight is cut off at its edges and
+   holds what is fixed inside it, and what is shown on its upper edge, and a card over the page, are neither. */
+.messages > .message.said-far:not(:hover, :focus-within, .picked, :has(.who-card, .scrim)) { content-visibility: auto; }
+/* A line of the Tools panel's list of a board's cards, the same (`Plan` in `views/context.tsx`). */
+.plan-row { content-visibility: auto; contain-intrinsic-size: auto calc(28px * var(--tall)); }
+.plan-more { height: auto; padding: 3px 6px; font-size: calc(12px * var(--size)); }
+/* Under the latest of what a bot says again and again: how many like it came before, shown by a press (`folded.ts`). */
+.message .earlier-updates { display: block; height: auto; padding: 2px 0; font-size: calc(12px * var(--size)); }
+/* What stands for whoever said it is as tall as their picture and no taller: the rest of that column, beside a long message, is not them, and pointing at it shows nothing. */
+.message > .who-anchor { align-self: start; justify-self: start; }
+.message.in-thread { background: var(--accent-soft); }
+/* What can be done with a message, shown while it is pointed at: on the
+   line that says who said it and when, after them. Its room is kept when
+   it is not shown, so the line is no longer or taller for being pointed at. */
+.message-actions { display: inline-flex; vertical-align: middle; margin: -3px 0 -1px 8px; padding: 1px; visibility: hidden; background: var(--bg1); border: 1px solid var(--line-strong); border-radius: calc(7px * var(--round)); }
+.message:hover .message-actions, .message:focus-within .message-actions { visibility: visible; }
+/* A message that carries on from the last has no such line: there it is on the message's upper edge, where its words start. */
+.message-actions.unnamed { position: absolute; z-index: 2; top: -13px; left: 46px; margin: 0; }
+.message-actions button { width: 26px; height: calc(18px * var(--tall)); padding: 0; justify-content: center; }
+.message-actions svg { width: 14px; height: 14px; }
+.message .replies { height: auto; padding: 2px 0; font-size: calc(12px * var(--size)); font-weight: 600; }
+.message .said-more { display: block; height: auto; padding: 2px 0; font-size: calc(12px * var(--size)); }
+.said-by { margin-top: 4px; padding: 6px 9px; font-size: calc(12px * var(--size)); color: var(--dim); background: var(--bg2); border: 1px solid var(--line); border-radius: calc(7px * var(--round)); }
+.said-by .link { height: auto; padding: 0; font-size: calc(12px * var(--size)); }
+.said-by pre { margin: 0 0 6px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: calc(11.5px * var(--size)); }
+/* How wide the tools panel beside a channel is (`PANEL_WIDTH` in `views/edge.tsx`), set on the channel a frame at a time
+   while its edge is held: it is the channel's alone and is handed to nothing inside it, or every message there would
+   have its style worked out again at each frame. */
+@property --context-width { syntax: '<length>'; inherits: false; initial-value: 388px; }
+/* The run that failed, and what was running, side by side under the whole of an error. */
+.said-by .failed-run, .said-by .failed-run-gone { margin-right: 14px; }
+/* A channel, and beside it the thread that is open. */
+.channel { display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; min-height: 0; }
+/* What is written in a thread is written straight under the last thing said
+   in it, not at the foot of the window: what is said there takes the room
+   it needs and no more, and scrolls once there is no more to take. */
+.thread { display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0; }
+.thread > * { flex: none; }
+.thread > .messages { flex: 0 1 auto; }
+.thread .view-head { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.thread .messages { padding-top: 12px; }
+/* Here what is written follows what was said, as wide as the thread is; and at the panel's foot it stands a step higher than the channel's. */
+.thread .composer { width: auto; margin: 4px 16px calc(var(--composer-below, 44px) + var(--thread-step, 12px)); }
+.thread .composer-box textarea { min-height: calc(44px * var(--tall)); }
+.thread-count { display: flex; align-items: center; gap: 8px; padding: 6px 8px; font-size: calc(12px * var(--size)); }
+.thread-count::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.avatar { width: calc(30px * var(--tall)); height: calc(30px * var(--tall)); border-radius: calc(8px * var(--round)); display: grid; place-items: center; font-weight: 700; font-size: calc(12px * var(--size)); background: var(--bg3); color: var(--dim); }
+.avatar.agent { background: color-mix(in srgb, var(--agent) 22%, transparent); color: var(--agent); }
+.avatar.bot { background: var(--info-soft); color: var(--info); }
+/* Who is in a channel and who wrote a message: an agent and a bot each in a colour of its own. */
+.badge.plain.agent, .message .who.agent, .mentions .glyph.agent { color: var(--agent); }
+.badge.plain.bot, .message .who.bot, .mentions .glyph.bot { color: var(--info); }
+.message .when .model { font-family: var(--mono, ui-monospace, monospace); }
+.avatar.system { background: var(--accent-soft); color: var(--accent); }
+.message .who { font-weight: 650; }
+.message .when { font-size: calc(11px * var(--size)); color: var(--faint); margin-left: 6px; }
+.message .body { white-space: pre-wrap; word-break: break-word; }
+.message .body code { padding: 1px 4px; border-radius: calc(4px * var(--round)); background: var(--bg2); }
+.message .body strong { font-weight: 650; }
+/* What is written in a channel, drawn as it is meant to look (`prose.ts`). */
+.prose-text, .prose-quote, .prose-item { white-space: pre-wrap; }
+.prose-text + *, .prose-list + *, .prose-quote + *, .prose-heading + *, .code-box + .prose-text, .code-box + .prose-list, .code-box + .prose-quote, .code-box + .prose-heading, .code-block + .code-block { margin-top: 6px; }
+.prose-heading { font-weight: 700; line-height: 1.3; }
+.prose-heading.level-1 { font-size: 1.3em; }
+.prose-heading.level-2 { font-size: 1.15em; }
+.prose-quote { margin: 0; padding: 1px 0 1px 10px; border-left: 3px solid var(--line-strong); color: var(--dim); }
+.prose-list { display: grid; gap: 2px; }
+.prose-item { display: grid; grid-template-columns: minmax(18px, max-content) minmax(0, 1fr); column-gap: 4px; }
+.prose-mark { color: var(--dim); text-align: center; font-variant-numeric: tabular-nums; }
+/* Who is in a channel, in its head: a few faces, each over the edge of
+   the one before, and how many there are; and under it, all of them. */
+.participants { gap: 8px; color: var(--dim); }
+.participants:hover { color: var(--text); }
+.faces { display: inline-flex; }
+.avatar.face { width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); border-radius: 50%; font-size: calc(9px * var(--size)); flex: none; }
+.faces > span + span { margin-left: -6px; }
+/* Over one another they must not show through, and need an edge to be told apart by. */
+.faces .avatar.face { width: calc(20px * var(--tall)); height: calc(20px * var(--tall)); font-size: calc(8.5px * var(--size)); box-shadow: 0 0 0 2px var(--bg0); background: var(--bg3); }
+.faces .avatar.face.agent { background: color-mix(in srgb, var(--agent) 30%, var(--bg1)); }
+.faces .avatar.face.bot { background: color-mix(in srgb, var(--info) 28%, var(--bg1)); }
+/* Who is in a channel: never wider than the window and never scrolled sideways. Each is a name and under it, fainter,
+   what they are; a name longer than the list is wide wraps, whole, where a cut one could not be read under a finger. */
+.menu.people { width: calc(280px * var(--size)); max-width: calc(100vw - 16px); max-height: 320px; overflow: hidden; display: flex; flex-direction: column; }
+.people-list { display: grid; min-height: 0; flex: 1 1 auto; overflow: hidden auto; }
+.person { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: calc(13px * var(--size)); }
+.person > .avatar { flex: none; }
+.person-said { display: grid; gap: 1px; flex: 1 1 auto; min-width: 0; }
+.person-name, .person-kind { min-width: 0; overflow-wrap: anywhere; }
+.person-kind { font-size: calc(12px * var(--size)); }
+/* The one line that adds somebody, at the foot of who is in a channel, set apart under them: a mark and its words, as wide
+   as the list, with its words wrapping whole where the list is narrow. */
+.menu.people > button.people-add {
+  flex: none; display: flex; align-items: center; gap: 8px; width: 100%; min-height: calc(32px * var(--tall)); margin-top: 4px; padding: 7px 10px;
+  border-top: 1px solid var(--line); border-radius: 0 0 calc(6px * var(--round)) calc(6px * var(--round));
+  font-size: calc(13px * var(--size)); white-space: normal; overflow-wrap: anywhere;
+}
+.people-add-mark { display: inline-flex; flex: none; color: var(--dim); }
+/* How an agent stands, beside its name: yellow and still when it is idle,
+   green and turning while it is in the middle of a turn, hollow when it is
+   not running. */
+.standing { display: inline-block; box-sizing: border-box; width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.standing.idle { background: var(--card); }
+.standing.working { width: 9px; height: 9px; margin: 0 -1px; border: 2px solid color-mix(in srgb, var(--ok) 30%, transparent); border-top-color: var(--ok); animation: turn 0.8s linear infinite; }
+.standing.stopped { border: 1.5px solid var(--faint); }
+@keyframes turn { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .standing.working { animation: none; border-color: var(--ok); }
+}
+/* Who can be asked in the channel: a row as wide as the composer, just over it, starting where its words do. */
+/* A little more room in these than in a badge elsewhere, and between the mark and the name. */
+.members .badge { height: calc(23px * var(--tall)); padding: 0 10px; gap: 7px; }
+.members .badge[role="button"] { cursor: pointer; }
+.members .badge[role="button"]:hover { background: color-mix(in srgb, currentColor 16%, var(--bg3)); }
+.members { display: flex; flex-wrap: wrap; gap: 6px; box-sizing: border-box; width: min(720px, calc(100% - 40px)); margin: 8px auto 2px; padding: 0 12px; }
+/* Put away for now, to see the channel without them: take this line out to have them back. */
+.members { display: none; }
+/* The box to write in sits in the middle of the view, at a width that is
+   comfortable to type in however wide the view is. */
+/* How far over the foot of the channel its composer stands, and how much higher still a thread's beside it does:
+   their feet a clear and constant step apart, which each keeps as it grows upward with what is typed. */
+.channel { --composer-below: 44px; --thread-step: 12px; }
+.composer { position: relative; box-sizing: border-box; width: min(720px, calc(100% - 40px)); margin: 0 auto var(--composer-below, 44px); }
+/* Who can be mentioned, offered above the box while an @ is being typed. */
+.mentions {
+  position: absolute; left: 0; bottom: calc(100% + 4px); z-index: 8; min-width: 260px; max-width: min(420px, 100%); max-height: 240px; overflow-y: auto;
+  display: grid; padding: 4px; background: var(--bg1); border: 1px solid var(--line-strong); border-radius: calc(10px * var(--round)); box-shadow: var(--shadow);
+}
+.mentions button { display: flex; align-items: flex-start; gap: 8px; height: auto; min-height: calc(30px * var(--tall)); padding: 5px 8px; border: 0; background: transparent; text-align: left; justify-content: flex-start; white-space: normal; }
+.mentions button > .glyph { margin-top: 1px; }
+.mentions.commands button { align-items: center; }
+.mentions button.marked { background: var(--accent-soft); }
+.mentions .glyph { width: 14px; text-align: center; color: var(--faint); flex: none; }
+/* What the factory's bot takes, offered while it is written to: as it is written, and what it does. */
+.mentions.commands code { flex: none; font-size: calc(12px * var(--size)); }
+.mentions .commands-how { padding: 4px 8px 2px; font-size: calc(11.5px * var(--size)); }
+/* Who someone is, shown while their name or picture is pointed at. It is
+   placed by where that is in the window, so nothing cuts it off. */
+.who-anchor { cursor: default; }
+.who-anchor:focus-visible { outline-offset: 2px; }
+.who-card {
+  position: fixed; z-index: 30; box-sizing: border-box; display: grid; gap: 8px; padding: 12px; cursor: auto; user-select: text;
+  background: var(--bg1); border: 1px solid var(--line-strong); border-radius: calc(12px * var(--round)); box-shadow: var(--shadow);
+  color: var(--text); font-size: calc(12.5px * var(--size)); font-weight: 400; text-align: left; white-space: normal; text-transform: none; letter-spacing: 0;
+}
+.who-card .who-head { display: flex; align-items: flex-start; gap: 10px; }
+.who-card .who-head .avatar { flex: none; }
+.who-card .who-named { display: grid; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.who-card .who-name { display: block; font-size: calc(14px * var(--size)); line-height: 1.3; overflow-wrap: anywhere; }
+.who-card .who-what { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
+.who-card .who-what .badge { flex: none; }
+.who-card dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+.who-card dt { color: var(--faint); }
+.who-card dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.who-card p { margin: 0; }
+.who-card .who-note { padding: 7px 9px; border-radius: calc(8px * var(--round)); background: var(--bg0); border: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* A small menu under the button that opened it. */
+.menu-anchor { position: relative; }
+.menu {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 9; width: 300px; display: grid; padding: 4px;
+  background: var(--bg1); border: 1px solid var(--line-strong); border-radius: calc(10px * var(--round)); box-shadow: var(--shadow);
+}
+.menu button { display: grid; gap: 1px; height: auto; padding: 7px 10px; border: 0; background: transparent; text-align: left; justify-items: start; }
+.menu button:hover, .menu button:focus-visible { background: var(--bg3); }
+.menu button .muted { font-size: calc(12px * var(--size)); white-space: normal; }
+textarea.mono { font-family: var(--mono, ui-monospace, monospace); font-size: calc(12px * var(--size)); }
+/* What is attached to a message: pictures as they are, small, and other
+   files by name. And, over the composer, what is waiting to go with the
+   next one (placed in composer.css). */
+.attached { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.attached-picture { height: auto; padding: 0; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); overflow: hidden; background: var(--bg1); }
+.attached-picture img { display: block; max-width: min(320px, 100%); max-height: 220px; }
+.attached-picture:hover { border-color: var(--line-strong); }
+/* A page somebody attached, drawn where it is: as wide as the message, as tall as it says it is. */
+.attached-view { flex: 1 1 100%; min-width: 0; max-width: 760px; border: 1px solid var(--line); border-radius: calc(10px * var(--round)); background: var(--bg1); overflow: hidden; }
+.view-frame { display: block; width: 100%; border: 0; background: transparent; color-scheme: inherit; }
+.view-missing { padding: 14px; }
+.attached-view-foot { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-top: 1px solid var(--line); font-size: calc(12px * var(--size)); color: var(--dim); }
+.attached-view-foot svg { flex: none; color: var(--faint); }
+.attached-view-foot button.link { height: auto; padding: 0; font-size: calc(12px * var(--size)); }
+.attached-file, .attaching-one { display: inline-flex; align-items: center; gap: 7px; max-width: 320px; height: calc(30px * var(--tall)); padding: 0 10px; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); color: var(--text); font-size: calc(12.5px * var(--size)); }
+.attached-file:hover { border-color: var(--line-strong); text-decoration: none; }
+.attached-file svg, .attaching-one svg { flex: none; color: var(--faint); }
+.attaching { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px; padding: 0 2px 6px; font-size: calc(12px * var(--size)); }
+.attaching-one { padding-right: 2px; }
+.attaching-one button { width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); }
+.picture-opened { display: grid; gap: 10px; padding: 14px; }
+.picture-opened img { max-width: 100%; max-height: 70vh; justify-self: center; border-radius: calc(6px * var(--round)); }
+/* Sending is a mark, not a word, and always in the accent: it is what the
+   box is for. With nothing to send it only does not answer the pointer. */
+.composer-box .send { align-self: flex-end; width: 32px; height: calc(30px * var(--tall)); color: var(--accent); }
+.composer-box .send:hover:not(:disabled) { background: var(--accent-soft); }
+.composer-box .send:disabled { color: var(--accent); opacity: 1; cursor: default; }
+/* The keys the client answers to: by where, each with what it does. */
+.shortcuts-head { padding: 14px 18px; font-weight: 700; border-bottom: 1px solid var(--line); }
+.shortcuts { max-height: min(64vh, 620px); overflow: auto; padding: 4px 18px 14px; }
+.shortcuts h3 { margin: 14px 0 4px; }
+.shortcut { display: flex; align-items: center; gap: 12px; min-height: calc(32px * var(--tall)); }
+.shortcut .keys { margin-left: auto; display: inline-flex; gap: 5px; }
+.key { min-width: 24px; padding: 2px 7px; text-align: center; font: calc(11.5px * var(--size)) var(--sans); color: var(--dim); background: var(--bg2); border: 1px solid var(--line-strong); border-radius: calc(5px * var(--round)); }
+.composer-box .attach { align-self: flex-end; width: calc(30px * var(--tall)); height: calc(30px * var(--tall)); color: var(--faint); }
+.composer-box .attach:hover { color: var(--text); }
+.composer-box.over { outline: 2px dashed var(--accent); outline-offset: 2px; }
+/* No line round it and no shade of its own, with the caret in it or not: it is part of the channel, where the next
+   thing said will be. */
+.composer-box { display: flex; flex-direction: column; gap: 2px; padding: 10px 10px 8px; border: 0; border-radius: calc(12px * var(--round)); background: transparent; }
+/* In the channel the box is as wide as its tools, in the middle, so that what is written starts over the first of them. */
+.composer > .composer-box { width: fit-content; max-width: 100%; box-sizing: border-box; margin: 0 auto; }
+.composer > .composer-box textarea { padding-left: 9px; }
+.thread .composer > .composer-box { width: auto; }
+.thread .composer > .composer-box textarea { padding-left: 4px; }
+/* Where there is not the width for them the tools go on to a second line, under the first.
+   They stand in the middle of the box; what is written still starts at its left. */
+.composer-foot { display: flex; align-items: flex-start; justify-content: center; gap: 6px; }
+/* Being tried: the tools over what is written. Take this line out to have the tools under it again. */
+.composer-box > .composer-foot { order: -1; margin-bottom: 6px; }
+/* The tools, under what is written, after the button that attaches. Quiet,
+   each until it is pointed at: the words are what the box is about. */
+.format { flex: 0 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 1px; min-height: calc(30px * var(--tall)); }
+.composer-foot > .format-rule { align-self: flex-end; margin: 0 2px 7px; }
+.format button.icon { width: calc(26px * var(--tall)); height: calc(26px * var(--tall)); font: calc(14px * var(--size)) var(--sans); color: var(--faint); opacity: 0.6; }
+.format button.icon:hover, .format button.icon:focus-visible, .format button.icon.on { opacity: 1; }
+.format button.icon.wide { width: 36px; gap: 3px; }
+.format button.icon.wide .faint { font-size: calc(9px * var(--size)); }
+.format button.icon.on { background: var(--bg3); color: var(--text); }
+.format-rule { width: 1px; height: calc(16px * var(--tall)); margin: 0 5px; background: var(--line-strong); }
+.format-lines { position: relative; display: inline-flex; }
+.format-menu { position: absolute; z-index: 20; left: 0; bottom: calc(100% + 4px); display: grid; min-width: 150px; padding: 4px; background: var(--bg2); border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); box-shadow: var(--shadow); }
+.format-menu button { justify-content: flex-start; height: calc(30px * var(--tall)); padding: 0 8px; }
+.format-menu .line-h1 { font-size: calc(16px * var(--size)); font-weight: 700; }
+.format-menu .line-h2 { font-size: calc(14.5px * var(--size)); font-weight: 700; }
+.format-menu .line-h3 { font-weight: 700; }
+/* Room for two lines before anything is typed; it grows with what is. */
+.composer-box textarea { border: 0; background: transparent; box-shadow: none !important; min-height: calc(48px * var(--tall)); max-height: 220px; padding: 3px 4px; resize: none; }
+/* Who is typing: small and quiet, at the top of where one writes, starting where what is written does.
+   It has its line whether or not anybody is typing, so that nothing moves when somebody begins or stops. */
+.typing-line { flex: none; height: calc(16px * var(--tall)); min-width: 0; padding: 0 4px 0 9px; font-size: calc(11.5px * var(--size)); line-height: calc(16px * var(--tall)); color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Over what is waiting to go and the tools, which are over what is written. */
+.composer-box > .typing-line { order: -4; margin-bottom: 2px; }
+/* Under the channel and a thread: its words begin where the names of whoever said something do, beside their pictures
+   (the four measures a message is laid out by), and end as far in as a message does, whatever the box under it. */
+.typing-line.typing-edge { padding: 0 calc(var(--said-side) + var(--said-pad)) 0 calc(var(--said-side) + var(--said-pad) + var(--said-face) + var(--said-gap)); margin: 0 0 4px; }
+
+/* ---- board ------------------------------------------------------------- */
+
+.board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: 12px; padding: 4px 20px 20px; height: 100%; overflow-x: auto; }
+.column { display: flex; flex-direction: column; min-height: 0; background: var(--bg1); border: 1px solid var(--line); border-radius: calc(10px * var(--round)); }
+.column.over { border-color: var(--accent); background: var(--accent-soft); }
+.column-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px 6px; text-transform: capitalize; font-weight: 650; }
+.cards { flex: 1; overflow-y: auto; padding: 4px 8px 10px; display: grid; gap: 7px; align-content: start; }
+.card { padding: 9px 10px; border-radius: calc(8px * var(--round)); background: var(--bg2); border: 1px solid var(--line); cursor: grab; display: grid; gap: 5px; }
+.card:hover { border-color: var(--line-strong); }
+.card.dragging { opacity: 0.4; }
+.card .id { font: calc(11px * var(--size)) var(--mono); color: var(--faint); }
+
+/* ---- blueprint ----------------------------------------------------------- */
+
+.editor { height: 100%; min-height: 0; }
+.editor .cm-editor { height: 100%; background: var(--bg0); font-size: calc(12.5px * var(--size)); }
+.editor .cm-scroller { font-family: var(--mono); line-height: 1.55; }
+.editor .cm-gutters { background: var(--bg0); border-right: 1px solid var(--line); color: var(--faint); }
+.editor .cm-activeLine, .editor .cm-activeLineGutter { background: var(--bg1); }
+.editor .cm-content { caret-color: var(--accent); }
+.editor .cm-cursor { border-left-color: var(--accent); }
+.editor .cm-selectionBackground, .editor .cm-focused .cm-selectionBackground { background: var(--accent-soft) !important; }
+.editor .cm-tooltip { background: var(--bg2); border: 1px solid var(--line-strong); border-radius: calc(6px * var(--round)); }
+
+/* A blueprint's text. The words of the language, the names somebody chose
+   and their own keys each have a colour, so that which is which is seen
+   before it is read. What is inside `${ }` sits on a tint of its own. */
+.bp-comment { color: var(--faint); font-style: italic; }
+.bp-mark { color: var(--faint); }
+.bp-field { color: var(--agent); }
+.bp-name { color: var(--text); font-weight: 650; }
+.bp-key { color: var(--info); }
+.bp-action, .bp-blueprint { color: var(--accent); font-weight: 600; }
+.bp-string { color: var(--ok); }
+.bp-number, .bp-atom { color: var(--accent); }
+.bp-held { background: color-mix(in srgb, var(--agent) 13%, transparent); }
+.bp-hole { color: var(--agent); font-weight: 650; }
+.bp-root { color: var(--info); font-weight: 600; }
+.bp-function { color: var(--accent); }
+.bp-member { color: var(--text); }
+.bp-operator { color: var(--agent); }
+
+/* What is offered while one is written. */
+.editor .cm-tooltip.cm-tooltip-autocomplete { box-shadow: var(--shadow); }
+.editor .cm-tooltip.cm-tooltip-autocomplete > ul { font-family: var(--mono); font-size: calc(12px * var(--size)); max-height: 272px; min-width: 260px; max-width: 460px; border-radius: calc(5px * var(--round)); }
+.editor .cm-tooltip.cm-tooltip-autocomplete > ul > li { display: flex; align-items: baseline; gap: 14px; padding: 3px 10px; line-height: 1.5; }
+.editor .cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--accent-soft); color: var(--text); }
+.editor .cm-completionLabel { flex: none; }
+.editor .cm-completionMatchedText { text-decoration: none; font-weight: 700; }
+.editor .cm-completionDetail { margin-left: auto; font: calc(11px * var(--size)) var(--sans); font-style: normal; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bp-option-field .cm-completionLabel { color: var(--agent); }
+.bp-option-argument .cm-completionLabel { color: var(--info); }
+.bp-option-action .cm-completionLabel, .bp-option-blueprint .cm-completionLabel, .bp-option-function .cm-completionLabel { color: var(--accent); }
+.editor .cm-tooltip.cm-completionInfo { padding: 0; max-width: 360px; box-shadow: var(--shadow); }
+
+/* What something is, beside a suggestion or over a word that is pointed at. */
+.bp-note { padding: 9px 12px; max-width: 360px; max-height: 340px; overflow: auto; font: calc(12px * var(--size))/1.5 var(--sans); color: var(--dim); white-space: normal; }
+.bp-note-title { font: 600 calc(12px * var(--size)) var(--mono); color: var(--text); margin-bottom: 4px; }
+.bp-note p { margin: 0; color: var(--text); }
+.bp-note code { font: calc(11.5px * var(--size)) var(--mono); color: var(--accent); }
+.bp-note h4 { margin: 9px 0 3px; font-size: calc(10.5px * var(--size)); font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.bp-note dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+.bp-note dt { font: calc(11.5px * var(--size)) var(--mono); color: var(--info); }
+.bp-note dd { margin: 0; }
+.bp-note-type { font: calc(11px * var(--size)) var(--mono); color: var(--faint); margin-right: 7px; }
+.bp-note p.bp-note-where { margin-top: 7px; font-size: calc(11px * var(--size)); color: var(--faint); }
+.problems { border-top: 1px solid var(--line); max-height: 132px; overflow: auto; background: var(--bg1); font-size: calc(12px * var(--size)); }
+.problem { display: flex; gap: 8px; padding: 4px 14px; border: 0; border-radius: 0; height: auto; width: 100%; background: transparent; text-align: left; justify-content: flex-start; white-space: normal; }
+.problem .at { font-family: var(--mono); color: var(--faint); flex: none; }
+
+/* ---- tables, runs, metrics ---------------------------------------------- */
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: calc(11px * var(--size)); font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); padding: 6px 10px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg0); }
+td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--bg1); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+/* A document as a page, in the client, is in the client's colours. Published,
+   it has its own (page.css): there is no theme to be in. */
+#app .page { --page-bg: var(--bg0); --page-text: var(--text); --page-dim: var(--dim); --page-line: var(--line); --page-wash: var(--bg2); --page-accent: var(--accent); }
+.panel { background: var(--bg1); border: 1px solid var(--line); border-radius: calc(10px * var(--round)); }
+.panel-head { display: flex; align-items: center; gap: 8px; padding: calc(10px * var(--density)) 14px; border-bottom: 1px solid var(--line); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { padding: 12px 14px; background: var(--bg1); border: 1px solid var(--line); border-radius: calc(10px * var(--round)); display: grid; gap: 2px; }
+.tile .value { font-size: calc(22px * var(--size)); font-weight: 650; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.tile .value small { font-size: calc(12px * var(--size)); font-weight: 400; color: var(--dim); letter-spacing: 0; }
+/* A tile that goes somewhere. */
+button.tile { height: auto; text-align: left; justify-items: start; align-content: start; cursor: pointer; }
+/* Laid at its start, what a tile says is still no wider than the tile, so that a line too long for it is cut. */
+.tile > * { max-width: 100%; }
+button.tile:hover { border-color: var(--line-strong); background: var(--bg2); }
+.project-readme { height: min(70vh, 640px); display: flex; }
+/* Finding something in a project: where it is typed, and what was found under it. */
+.find { display: grid; gap: 6px; }
+.find-input { width: 100%; height: calc(38px * var(--tall)); padding: 0 14px; font-size: calc(14px * var(--size)); border-radius: calc(10px * var(--round)); }
+.find-results { display: grid; gap: 1px; max-height: 340px; overflow: auto; padding: 6px; background: var(--bg1); border: 1px solid var(--line); border-radius: calc(10px * var(--round)); }
+.find-results .hit .row { min-width: 0; }
+.find-none { padding: 14px; color: var(--faint); text-align: center; }
+/* A board at a glance: its columns side by side, each with the cards at the top of it. */
+.glance { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border-radius: 0 0 calc(10px * var(--round)) calc(10px * var(--round)); overflow: hidden; }
+.glance-column { display: grid; align-content: start; gap: 4px; padding: 10px 12px 12px; background: var(--bg1); min-width: 0; font-size: calc(12px * var(--size)); }
+.glance-head { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; font-size: calc(11px * var(--size)); font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); }
+.glance-head .count { margin-left: auto; font-weight: 400; letter-spacing: 0; }
+.glance-card { display: flex; gap: 8px; width: 100%; height: auto; min-height: calc(26px * var(--tall)); padding: 4px 8px; justify-content: space-between; text-align: left; font-size: calc(12px * var(--size)); background: var(--bg2); border-color: var(--line); }
+/* Whom a card is assigned to, wherever it is said (`views/assignee.tsx`): an agent in the agents' colour; at the end of a
+   row, one line with the name giving way and the kind whole. */
+.assignee-name.agent { color: var(--agent); }
+.assigned-brief { display: inline-flex; gap: 4px; flex: none; max-width: 60%; min-width: 0; white-space: nowrap; }
+.assigned-brief > .assignee-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.assigned-brief > .faint { flex: none; }
+.glance-card:hover { border-color: var(--line-strong); }
+.glance-column button.link { justify-self: start; height: auto; padding: 0; font-size: calc(12px * var(--size)); }
+/* What was said lately: when, where, who, and as much of it as fits on a line. */
+.said td:not(:last-child) { white-space: nowrap; width: 1%; }
+/* Its words break anywhere where the room is short (large text on a phone), so that the line is cut and the table is
+   never wider than its panel. */
+.said-body { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; color: var(--dim); }
+/* Where something is, as its folders one after another; each goes there. */
+.crumbs { min-width: 0; }
+.crumbs button.link { height: auto; padding: 0; font-weight: 400; }
+.view-head .crumbs { font-size: calc(15px * var(--size)); }
+.crumbs h1 { display: inline; margin: 0; font-size: inherit; font-weight: 650; }
+.files .glyph { display: inline-block; width: 16px; color: var(--faint); }
+.files td:first-child { width: 100%; }
+.files td.num { white-space: nowrap; }
+/* A picture, as large as it is or as large as fits. */
+.file-picture { display: grid; place-items: center; min-height: 0; padding: 20px; overflow: auto; background: var(--bg0); }
+.file-picture img { max-width: 100%; max-height: 100%; object-fit: contain; border: 1px solid var(--line); border-radius: calc(6px * var(--round)); background: var(--bg1); }
+.project-readme > * { flex: 1; }
+/* Shown whole: as tall as the page is, so that what scrolls is the page it is on. */
+.project-readme.whole { height: auto; display: block; }
+.page-frame.whole { display: block; height: auto; min-height: 120px; overflow: hidden; }
+.bar { height: 6px; border-radius: calc(3px * var(--round)); background: var(--bg3); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); border-radius: calc(3px * var(--round)); transition: width 0.2s; }
+.log { font: calc(12px * var(--size))/1.5 var(--mono); padding: 10px 12px; background: var(--bg0); border: 1px solid var(--line); border-radius: calc(8px * var(--round)); overflow: auto; max-height: 340px; }
+.log .e { color: var(--bad); }
+.log .s { color: var(--faint); }
+.spark { display: block; width: 100%; height: calc(36px * var(--tall)); }
+.spark path { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.spark .area { fill: var(--accent-soft); stroke: none; }
+
+/* ---- search palette ------------------------------------------------------ */
+
+/* No line under what is typed, lit or not: the row under it is part of asking, and the line is under that. */
+.palette-input, .palette-input:focus { border: 0; border-radius: 0; padding: 14px 16px 8px; font-size: calc(15px * var(--size)); background: transparent; box-shadow: none !important; }
+/* How much was found, and what the search can be made to do. */
+/* What narrows it starts where what is typed does; how much was found is beside that, and what is seldom wanted is at the far end. */
+.palette-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; min-height: calc(30px * var(--tall)); padding: 0 10px 10px 14px; border-bottom: 1px solid var(--line); color: var(--faint); font-size: calc(12px * var(--size)); }
+.palette-tools .pills button { height: calc(22px * var(--tall)); padding: 0 8px; font-size: calc(12px * var(--size)); }
+.palette-tools > button.ghost { height: calc(26px * var(--tall)); padding: 0 8px; font-size: calc(12px * var(--size)); color: var(--dim); }
+.palette-results { max-height: 52vh; overflow: auto; padding: 6px; }
+.hit { display: grid; gap: 2px; width: 100%; height: auto; padding: 8px 10px; border: 0; border-radius: calc(8px * var(--round)); background: transparent; text-align: left; justify-content: stretch; white-space: normal; }
+.hit[aria-selected="true"], .hit:hover { background: var(--bg2); }
+.hit .snippet { color: var(--dim); font-size: calc(12px * var(--size)); }
+.hit .row { min-width: 0; }
+.hit .hit-where { max-width: 50%; flex-shrink: 1; }
+.hit mark { background: var(--accent-soft); color: var(--accent); border-radius: calc(3px * var(--round)); padding: 0 1px; }
+.palette-foot { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid var(--line); color: var(--faint); font-size: calc(12px * var(--size)); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ---- charts -------------------------------------------------------------- */
+
+/* One hue for anything plotted, kept apart from the accent (which means
+ * "live or actionable") and from the status colours (which mean a state). */
+:root { --series: #3987e5; --series-wash: rgba(57, 135, 229, 0.12); }
+:root[data-light] { --series: #2a78d6; --series-wash: rgba(42, 120, 214, 0.1); }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; }
+.trend { position: relative; touch-action: none; }
+.trend svg { display: block; }
+.trend .grid { stroke: var(--line); stroke-width: 1; }
+.trend .tick { fill: var(--faint); font: calc(11px * var(--size)) var(--sans); font-variant-numeric: tabular-nums; }
+.trend .line { fill: none; stroke: var(--series); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.trend .wash { fill: var(--series-wash); }
+.trend .dot { fill: var(--series); stroke: var(--bg1); stroke-width: 2; }
+.trend .cross { stroke: var(--line-strong); stroke-width: 1; }
+.trend .tip {
+  position: absolute; transform: translateX(-50%); pointer-events: none; white-space: nowrap;
+  display: grid; padding: 4px 8px; border-radius: calc(6px * var(--round)); font-size: calc(11px * var(--size)); color: var(--dim);
+  background: var(--bg2); border: 1px solid var(--line-strong); box-shadow: var(--shadow);
+}
+.trend .tip strong { color: var(--text); font-size: calc(13px * var(--size)); }
+.bar > i.measure { background: var(--series); }
+.tile .value { font-variant-numeric: normal; }
+
+.panel-head h2 { white-space: nowrap; }
+.panel-head h2:not(.grow) { flex: none; }
+.panel-head .muted { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.charts { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+
+/* ---- the desktop app's window ------------------------------------------------ */
+
+:root.framed { --bar: 36px; }
+/* Above everything, dialogs included, and see-through: it shows the page. */
+.titlebar { position: fixed; top: 0; left: 0; right: 0; height: var(--bar); z-index: 40; display: flex; justify-content: flex-end; user-select: none; -webkit-user-select: none; }
+/* Signed in, there is no bar: the buttons are at the end of the first row of
+   tabs, and the window is moved by the empty parts of that row. */
+.titlebar.corner { left: auto; }
+.shell.cornered { padding-top: 0; }
+.tabs-corner { position: absolute; top: 0; right: 0; height: var(--strip); box-sizing: border-box; background: var(--bg1); }
+/* Room for the buttons the system draws itself, top left. */
+.titlebar[data-frame="overlay"] { padding-left: 78px; }
+.window-controls { display: flex; }
+.window-controls button { width: 46px; height: var(--bar); padding: 0; display: grid; place-items: center; border: 0; border-radius: 0; background: transparent; color: var(--dim); cursor: default; }
+.window-controls button:hover { background: var(--bg3); color: var(--text); }
+.window-controls button.close:hover { background: #c42b1c; color: #ffffff; }
+.window-controls button:focus-visible { outline-offset: -3px; }
+.window-edge { position: fixed; z-index: 50; }
+.window-edge.n, .window-edge.s { left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+.window-edge.e, .window-edge.w { top: 8px; bottom: 8px; width: 4px; cursor: ew-resize; }
+.window-edge.n { top: 0; } .window-edge.s { bottom: 0; } .window-edge.e { right: 0; } .window-edge.w { left: 0; }
+.window-edge.ne, .window-edge.nw, .window-edge.se, .window-edge.sw { width: 8px; height: 8px; }
+.window-edge.ne { top: 0; right: 0; cursor: nesw-resize; } .window-edge.sw { bottom: 0; left: 0; cursor: nesw-resize; }
+.window-edge.nw { top: 0; left: 0; cursor: nwse-resize; } .window-edge.se { bottom: 0; right: 0; cursor: nwse-resize; }
+
+/* ---- extensions, in the side panel --------------------------------------------- */
+
+.ext-row { display: flex; align-items: center; gap: 8px; padding: 0 6px 0 0; border-radius: calc(6px * var(--round)); }
+.ext-row:hover { background: var(--bg2); }
+.ext-open { flex: 1; min-width: 0; height: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; justify-items: start; text-align: left; padding: 6px 8px; border: 0; background: transparent; line-height: 1.35; }
+.ext-open strong { color: var(--text); max-width: 100%; }
+.ext-open .faint { font-size: calc(12px * var(--size)); max-width: 100%; }
+.ext-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; margin-right: 4px; }
+.ext-dot.ok { background: var(--ok); }
+.ext-dot.off { background: var(--faint); }
+button.small { padding: 2px 9px; font-size: calc(12px * var(--size)); }
+/* A tab being moved, and where it would land: before another tab, or in
+   the half of a group that the shaded box covers. */
+.tab.dragged { opacity: 0.45; }
+.tab.drop-before, .tabs .tab.drop-before[aria-selected="true"], .tabs-end.drop-before { box-shadow: inset 2px 0 0 var(--accent); }
+.panes.dragging { cursor: grabbing; }
+.panes.dragging .tab { cursor: grabbing; }
+.landing {
+  position: absolute; z-index: 7; pointer-events: none; box-sizing: border-box;
+  background: var(--accent-soft); border: 1px solid var(--accent); border-radius: calc(4px * var(--round));
+  transition: left 80ms, top 80ms, width 80ms, height 80ms;
+}
+.tab-ghost {
+  position: fixed; z-index: 60; pointer-events: none; box-sizing: border-box; padding: 4px 10px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--bg2); color: var(--text); border: 1px solid var(--line-strong); border-radius: calc(6px * var(--round)); box-shadow: var(--shadow); font-size: calc(12px * var(--size));
+}
+/* The line between two groups. It is wider to the pointer than to the eye. */
+.divider { position: absolute; z-index: 6; touch-action: none; }
+.divider-row { width: 7px; margin-left: -3px; cursor: col-resize; }
+.divider-column { height: 7px; margin-top: -3px; cursor: row-resize; }
+.divider::after { content: ""; position: absolute; background: var(--line); }
+.divider-row::after { left: 3px; top: 0; bottom: 0; width: 1px; }
+.divider-column::after { top: 3px; left: 0; right: 0; height: 1px; }
+
+/* ---- writing a document --------------------------------------------------------- */
+
+/* The document itself is drawn by page.css, the same rules as its published
+ * page. What is here is only what belongs to editing it. */
+/* Room for a scrollbar at both sides, whether or not there is anything to scroll: the column stays where it is as a document grows long. */
+.writer { overflow: auto; min-height: 0; position: relative; scrollbar-gutter: stable both-edges; }
+.writer .ProseMirror { outline: none; min-height: 60vh; white-space: pre-wrap; overflow-wrap: anywhere; }
+.writer .ProseMirror-selectednode { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: calc(3px * var(--round)); }
+.writer .empty-line::before { content: attr(data-hint); float: left; height: 0; color: var(--faint); pointer-events: none; }
+.page > .block-menu { position: absolute; z-index: 15; margin: 0; width: 264px; max-width: none; max-height: 320px; overflow: auto; padding: 4px; border-radius: calc(9px * var(--round)); background: var(--bg2); border: 1px solid var(--line-strong); box-shadow: var(--shadow); font: calc(13px * var(--size))/1.4 var(--sans); }
+.block-menu button { display: grid; gap: 0; width: 100%; height: auto; justify-items: start; padding: 6px 9px; border: 0; border-radius: calc(6px * var(--round)); background: transparent; text-align: left; }
+.block-menu button strong { color: var(--text); font-weight: 600; }
+.block-menu button span { color: var(--faint); font-size: calc(12px * var(--size)); }
+.block-menu button.chosen, .block-menu button:hover { background: var(--bg3); }
+.page-frame { width: 100%; height: 100%; min-height: 0; border: 0; background: var(--bg0); }
+/* A document, and beside it the panel of its comments, details and history where that is open (`views/doctools.tsx`). */
+.doc-with { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-height: 0; min-width: 0; }
+/* Whatever shows the document fills what is left under any note about it. */
+.doc-body { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.doc-body > :last-child { flex: 1; min-height: 0; }
+.doc-note { margin: 0; padding: 8px 20px; border-bottom: 1px solid var(--line); background: var(--bg1); }

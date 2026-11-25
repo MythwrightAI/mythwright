@@ -1,0 +1,31 @@
+{
+  "says": "A repository none of whose remotes is on GitHub is shown as git says it, and the program is asked nothing.",
+  "steps": [
+    {
+      "repository": "shop",
+      "remote": "https://example.org/acme/shop.git"
+    },
+    {
+      "run": [
+        "project",
+        "create",
+        "--bare",
+        "Shop",
+        "--path",
+        "{here}/shop"
+      ]
+    },
+    {
+      "run": [
+        "project",
+        "git",
+        "shop",
+        "--parts"
+      ],
+      "says": "https://example.org/acme/shop.git"
+    },
+    {
+      "ran": []
+    }
+  ]
+}

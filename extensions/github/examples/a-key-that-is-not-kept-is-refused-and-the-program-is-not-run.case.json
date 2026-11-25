@@ -1,0 +1,11 @@
+{
+  "says": "Told a key the factory does not keep, the program is not run as anybody: the step that would have run it says which secret is missing and how to set it.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "pull-requests", "project": "shop", "params": {"key": "nobodys"}, "fails": "there is no secret called `nobodys`"},
+    {"ran": []}
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "says": "It opens pull requests for one project's branches, and the program is run in that project's folder: applied to no project it is refused, and the program is not run.",
+  "steps": [
+    {"apply": "pull-requests", "fails": "so it is applied to a project: --project <project>."},
+    {"ran": []}
+  ]
+}

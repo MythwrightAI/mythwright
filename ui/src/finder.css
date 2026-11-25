@@ -1,0 +1,40 @@
+/* The bar that finds in an editor's text (`editor/find.tsx`).
+   It lies over the top right of the text and is no part of what the text is laid out by: the editor's library
+   puts what it calls a panel above the text and pushes the text down by it, so the place it is put in is taken
+   out of the flow here, and no line moves as the bar opens or goes. How far it stands from the right edge and how
+   wide it may be are said by the bar itself as it is placed (`placed`). It is over the text and under everything
+   that lies over the page: the library would have it over them all, a dialog and a drawer included. */
+.editor .cm-panels-top { position: absolute; z-index: 3; top: 6px; right: 16px; left: auto; max-width: calc(100% - 24px); border: 0; background: none; color: inherit; }
+.finder {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 0; align-items: start;
+  width: 440px; max-width: 100%; box-sizing: border-box; padding: 5px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--bg2); box-shadow: var(--shadow);
+  font: calc(13px * var(--size)) var(--sans); color: var(--text);
+}
+/* A line of it: what is asked, and what is done with it. Its field is what gives way, and where there is too
+   little room for one line the buttons go under the field. */
+.finder-line { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 3px; min-width: 0; }
+.finder-line input { flex: 1 1 120px; width: auto; min-width: 0; height: calc(28px * var(--tall)); padding: 0 8px; font: calc(12.5px * var(--size)) var(--mono); }
+/* Marked in focus by its edge alone, in no colour of the theme's accent: the matches are what draws the eye. */
+.finder-line input:focus { border-color: var(--dim); box-shadow: none; }
+.finder-line input[aria-invalid="true"] { border-color: var(--bad); }
+.finder-line button { flex: none; }
+/* The two that replace stay side by side where the line is too narrow for them beside their field. */
+.finder-does { display: flex; flex: none; gap: 3px; }
+.finder button[aria-disabled="true"] { opacity: 0.5; cursor: default; }
+.finder-switch { width: 28px; padding: 0; justify-content: center; font: calc(12px * var(--size)) var(--mono); }
+.finder-switch[aria-pressed="true"] { background: var(--bg3); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.finder-wholeWord { text-decoration: underline; text-underline-offset: 2px; }
+/* Which match this is of how many: as wide as most counts are, so that the buttons after it stay where they are
+   while it changes. */
+.finder-count { flex: none; min-width: 70px; padding: 0 4px; color: var(--dim); font-size: calc(12px * var(--size)); white-space: nowrap; text-align: center; font-variant-numeric: tabular-nums; }
+/* What opens the second line stands before both, where the text may be changed. */
+.finder-turn { grid-column: 1; grid-row: 1; width: 20px; margin-right: 2px; }
+.finder-turn .sign { transform: rotate(-90deg); }
+.finder-turn[aria-expanded="true"] .sign { transform: none; }
+
+/* A match is tinted as a tag is and no more, in a colour of the theme's, so that the text on it is read in every
+   theme (`pills.test.ts` holds it, for the one the caret is at too, which is tinted over the selection). The
+   one the caret is at has the same tint and its edge in the whole colour. */
+.editor .cm-searchMatch { background: color-mix(in srgb, var(--card) 18%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card) 46%, transparent); border-radius: calc(2px * var(--round)); }
+.editor .cm-searchMatch-selected { box-shadow: inset 0 0 0 1px var(--card); }

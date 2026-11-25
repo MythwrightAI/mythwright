@@ -1,0 +1,100 @@
+[
+  {
+    "said": "whoever made it manages it",
+    "channel": { "members": [{ "actor": "user:ada", "manages": true }] },
+    "actor": "user:ada",
+    "scopes": ["channels"],
+    "manages": true
+  },
+  {
+    "said": "somebody a manager named one manages it",
+    "channel": { "members": [{ "actor": "user:ada", "manages": true }, { "actor": "user:grace", "manages": true }] },
+    "actor": "user:grace",
+    "scopes": ["channels:read", "channels:write"],
+    "manages": true
+  },
+  {
+    "said": "a member who is no manager does not",
+    "channel": { "members": [{ "actor": "user:ada", "manages": true }, { "actor": "user:mira" }] },
+    "actor": "user:mira",
+    "scopes": ["channels"],
+    "manages": false
+  },
+  {
+    "said": "whoever manages the factory does, in it or not",
+    "channel": { "members": [{ "actor": "user:ada", "manages": true }] },
+    "actor": "user:owen",
+    "scopes": ["admin", "channels"],
+    "manages": true
+  },
+  {
+    "said": "everything held is managing the factory",
+    "channel": { "members": [] },
+    "actor": "user:owen",
+    "scopes": ["*"],
+    "manages": true
+  },
+  {
+    "said": "a manager who may not write in channels does not",
+    "channel": { "members": [{ "actor": "user:ada", "manages": true }] },
+    "actor": "user:ada",
+    "scopes": ["channels:read"],
+    "manages": false
+  },
+  {
+    "said": "whoever manages the factory and may not write in channels does not",
+    "channel": { "members": [] },
+    "actor": "user:owen",
+    "scopes": ["admin", "channels:read"],
+    "manages": false
+  },
+  {
+    "said": "of one made before channels had managers, nobody in it does",
+    "channel": { "members": [{ "actor": "user:ada" }, { "actor": "user:mira" }] },
+    "actor": "user:ada",
+    "scopes": ["channels"],
+    "manages": false
+  },
+  {
+    "said": "of one made before channels had managers, whoever manages the factory does",
+    "channel": { "members": [{ "actor": "user:ada" }] },
+    "actor": "user:owen",
+    "scopes": ["admin", "channels:write"],
+    "manages": true
+  },
+  {
+    "said": "every person in a conversation does",
+    "channel": { "conversation": true, "members": [{ "actor": "user:ada" }, { "actor": "user:mira" }] },
+    "actor": "user:mira",
+    "scopes": ["channels"],
+    "manages": true
+  },
+  {
+    "said": "somebody not in a conversation does not",
+    "channel": { "conversation": true, "members": [{ "actor": "user:ada" }] },
+    "actor": "user:mira",
+    "scopes": ["channels"],
+    "manages": false
+  },
+  {
+    "said": "an agent in a conversation does not",
+    "channel": { "conversation": true, "members": [{ "actor": "user:ada" }, { "actor": "agent:scout" }] },
+    "actor": "agent:scout",
+    "scopes": ["channels"],
+    "manages": false
+  },
+  {
+    "said": "an agent never manages one, whatever its row says",
+    "channel": { "members": [{ "actor": "agent:scout", "manages": true }] },
+    "actor": "agent:scout",
+    "scopes": ["channels"],
+    "manages": false
+  },
+  {
+    "said": "a private one is managed as an open one is",
+    "channel": { "kept": true, "members": [{ "actor": "user:ada", "manages": true }, { "actor": "user:mira" }] },
+    "actor": "user:mira",
+    "scopes": ["channels", "private"],
+    "manages": false
+  }
+]

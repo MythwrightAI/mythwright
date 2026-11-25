@@ -1,0 +1,15 @@
+{
+  "says": "A daemon stopped as the step that says something public on an issue begins has not asked the program. Back, the step is not done twice, what was to be said is looked for by its mark, found not to be there, and said: once, and the link keeps which thing said there it is.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"stopped_at": "say", "of": "issues", "by": {"run": ["record", "comment", "shop-1", "--public", "Shipping", "on", "Friday."]}, "sets_off": "say"},
+    {"holds": {"said/1": {"1": "ada OWNER\nAda said:\n\nShipping on Friday.\n\n<!-- said {any} -->"}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "sent: c1-1"}
+  ]
+}

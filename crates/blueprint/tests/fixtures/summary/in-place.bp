@@ -1,0 +1,9 @@
+blueprint: shop/in-place
+description: It takes a new text where it is, and does nothing for it
+
+on_update: []
+
+on:
+  changed:
+    event: thing.changed
+    do: noop

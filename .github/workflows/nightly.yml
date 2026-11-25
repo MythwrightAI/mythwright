@@ -1,0 +1,226 @@
+# The nightly: a package of each system made from main once a night,
+# where main has moved since the last one and the gate passes on it.
+#
+# There are two lines of what is released. A pinned release is a tag
+# (`v0.1.0`, `v0.1.1` …) made by `package.yml`, and somebody on one stays
+# there until they choose to move. The nightly is one release, called
+# `nightly` and marked as a pre-release, whose files are replaced each
+# time this makes them: they are called the same every night
+# (`<id>-nightly-linux-x86_64.tar.gz`, `id` of `brand.toml`), so a link
+# to one leads to the latest, and which night and which commit each is is said in its version
+# (`0.1.0-nightly.20261124+abc1234`, which the program says where it says
+# its version) and in the release's text. Nothing in the program looks for
+# either: whoever runs it moves from one to another by hand (the README,
+# *Which build*).
+#
+# The tag `nightly` is where the last nightly was made, and is moved to
+# the commit each nightly is made of. So nothing is built where main is
+# still there: the tag says it was made already. The tag is no `v…` tag,
+# so moving it makes no pinned release.
+#
+# The gate is the one in `gate.yml`, run here on the very commit that is
+# packaged (it is called, so a run of it is part of this run). A gate that
+# fails makes no nightly, and the release stays the one before; the next
+# night asks again, since main has still moved past the tag.
+name: nightly
+
+on:
+  schedule:
+    # Once a night, at a minute that is not the top of the hour, when
+    # these machines are asked for most.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+# One at a time, and one asked while another runs waits for it: two
+# would each replace what the other attached.
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  # Whether there is anything to make: main's commit, against the one the
+  # tag says the last nightly was made of. And the day, said once for the
+  # three systems, so that a night's packages are one version whichever
+  # of them finished after midnight.
+  moved:
+    name: whether main moved since the last nightly
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Of main alone: asked for by hand on another branch, it makes nothing.
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      commit: ${{ steps.look.outputs.commit }}
+      short: ${{ steps.look.outputs.short }}
+      day: ${{ steps.look.outputs.day }}
+      build: ${{ steps.look.outputs.build }}
+    steps:
+      # The commit this run is of, which is main's as the run began; the
+      # gate checks out the same, and the packages check it out by its id.
+      - uses: actions/checkout@v4
+
+      - name: Main, the last nightly, and the day
+        id: look
+        run: |
+          commit=$(git rev-parse HEAD)
+          last=$(git ls-remote origin refs/tags/nightly | cut -f1)
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "day=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+          if [ "$commit" = "$last" ]; then
+            echo "main is at $commit, which the last nightly was made of: nothing is made"
+            echo "build=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "main is at $commit and the last nightly was made of ${last:-nothing}: one is made, if the gate passes"
+            echo "build=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+  # The gate, as `gate.yml` runs it for a pull request, on that commit:
+  # called, it checks out what this run is of.
+  gate:
+    name: the gate
+    needs: moved
+    if: needs.moved.outputs.build == 'yes'
+    uses: ./.github/workflows/gate.yml
+    permissions:
+      contents: read
+
+  linux:
+    name: the nightly, for Linux
+    needs: [moved, gate]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.moved.outputs.commit }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: What the window is built on
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
+
+      - name: The pinned toolchain
+        run: rustup show
+
+      - name: The client's packages
+        working-directory: ui
+        run: npm ci
+
+      - name: The package
+        run: cargo xtask package --nightly ${{ needs.moved.outputs.day }}
+
+      - name: What the release says
+        run: |
+          version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version *= *"\(.*\)"/\1/p' Cargo.toml)
+          cat > target/package/release.md <<SAID
+          **A nightly**: built from main at commit ${{ needs.moved.outputs.commit }} on ${{ needs.moved.outputs.day }} (UTC), once the gate passed on that commit. Its version is \`$version-nightly.${{ needs.moved.outputs.day }}+${{ needs.moved.outputs.short }}\`, which the program says where it says its version (\`mw version\`, and the client's report under Help).
+
+          This release is replaced each night that main has moved: its files are called the same every night, and these are the latest. Nothing updates by itself, and nothing in the program looks for a newer one. A pinned release (\`v$version\` and its patch versions) is the other line, and stays as it is until you move. The README of the repository, under *Which build*, says how to move from one to the other, and that moving back from a nightly to an earlier pinned version needs a copy of the data folder made before the nightly first ran.
+
+          - The file that ends \`-linux-x86_64.tar.gz\` is for Linux, which is the system the product is tested on.
+          - The file that ends \`-windows-x86_64.zip\` is for Windows. On Windows the product has been started by hand, once, on one machine, and its tests have been run there by hand and by no gate. Its programs are not signed, and Windows asks before it starts one (**More info**, then **Run anyway**).
+          - The file that ends \`-macos-aarch64.tar.gz\` is for a Mac with Apple silicon. Nothing of the product has been run on macOS. Its programs are not signed and not notarised, and its \`README.md\` says how macOS is told to let them run.
+
+          Each \`.sha256\` file is the SHA-256 of the file it is named for. The packages for Windows and macOS are made after the one for Linux and attached when they are made: one that is not here was not made this time.
+          SAID
+
+      # The tag moves to the commit first, so that the release, which is
+      # of the tag, is of this commit; then what the last night attached
+      # goes, so that no file of another night is left beside this one's
+      # where the package for a system is not made tonight.
+      - name: The release, of this commit, holding this package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git push --force origin "${{ needs.moved.outputs.commit }}:refs/tags/nightly"
+          if gh release view nightly > /dev/null 2>&1; then
+            for asset in $(gh release view nightly --json assets --jq '.assets[].name'); do
+              gh release delete-asset nightly "$asset" --yes
+            done
+            gh release edit nightly \
+              --title "nightly ${{ needs.moved.outputs.day }} (${{ needs.moved.outputs.short }})" \
+              --prerelease \
+              --latest=false \
+              --notes-file target/package/release.md
+          else
+            gh release create nightly \
+              --title "nightly ${{ needs.moved.outputs.day }} (${{ needs.moved.outputs.short }})" \
+              --prerelease \
+              --latest=false \
+              --notes-file target/package/release.md
+          fi
+          gh release upload nightly --clobber target/package/*.tar.gz target/package/*.tar.gz.sha256
+
+  windows:
+    name: the nightly, for Windows
+    needs: [moved, linux]
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.moved.outputs.commit }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: The pinned toolchain
+        run: rustup show
+
+      - name: The client's packages
+        working-directory: ui
+        run: npm ci
+
+      - name: The package
+        run: cargo xtask package --nightly ${{ needs.moved.outputs.day }}
+
+      - name: Attached to the nightly
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload nightly --clobber target/package/*.zip target/package/*.zip.sha256
+
+  macos:
+    name: the nightly, for macOS
+    needs: [moved, linux]
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.moved.outputs.commit }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: The pinned toolchain
+        run: rustup show
+
+      - name: The client's packages
+        working-directory: ui
+        run: npm ci
+
+      - name: The package
+        run: cargo xtask package --nightly ${{ needs.moved.outputs.day }}
+
+      - name: Attached to the nightly
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload nightly --clobber target/package/*.tar.gz target/package/*.tar.gz.sha256

@@ -1,0 +1,31 @@
+# A service with a log feed attached.
+#
+# The feed is a component of its own: apply this again with a different `to`
+# and the feed is replaced while the service keeps running, untouched.
+blueprint: logged-service
+description: Host a service and ship its log, each changeable on its own.
+permissions: [fleet, blueprints]
+
+params:
+  binary: { type: string, default: target/debug/kv-cache }
+
+  to:
+    type: string
+    default: ""
+    description: "Where the log goes; a file in the project if empty."
+
+uses:
+  logs: { blueprint: std/log-feed, with: { to: "${params.to}" } }
+
+steps:
+  host:
+    call: std/slot
+    as: slot
+    with:
+      name: cache
+      service:
+        cmd: ["${params.binary}"]
+        health: { tcp: true, interval: 200ms }
+
+outputs:
+  address: ${steps.host.out.address}

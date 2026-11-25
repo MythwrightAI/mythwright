@@ -1,0 +1,9 @@
+# What is written inside braces and cannot begin a line there is put in quotes where its braces are opened: a value, and the first key of a list's item.
+blueprint: opened
+steps:
+  say:
+    do: emit
+    with: { topic: shop.said, data: { share: %half of it, to: &whoever asked, note: a value long enough that the braces about it are opened into lines of their own } }
+  list:
+    do: emit
+    with: { topic: shop.listed, data: { all: [{ [odd: 1, plain: a value long enough that the braces about it are opened into lines of their own, more: and more of it }] } }

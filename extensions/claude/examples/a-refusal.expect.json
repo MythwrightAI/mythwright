@@ -1,0 +1,10 @@
+{
+  "reply": "I cannot do that",
+  "session": "0f1e2d3c-0000-4000-8000-000000000002",
+  "model": null,
+  "shown": [],
+  "cost_usd": null,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "failure": "I cannot do that"
+}

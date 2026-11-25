@@ -1,0 +1,240 @@
+{
+  "says": "A card whose branch reaches the repository's remote is a row of the project's Git table, beside its board and about the card, written only from here: its branch, and once it has a pull request where that is read, how it stands, its checks, what was decided of it, its commits and the issues it closes, each read as it is and read again as GitHub says the pull request changed; a call about another repository changes nothing.",
+  "steps": [
+    {
+      "repository": "shop",
+      "remote": "https://github.com/acme/shop.git"
+    },
+    {
+      "run": [
+        "project",
+        "create",
+        "--bare",
+        "Shop",
+        "--path",
+        "{here}/shop"
+      ]
+    },
+    {
+      "run": [
+        "apply",
+        "std/board",
+        "--project",
+        "shop"
+      ]
+    },
+    {
+      "run": [
+        "board",
+        "add",
+        "shop",
+        "Add a cart"
+      ]
+    },
+    {
+      "apply": "work",
+      "project": "shop",
+      "sets_off": "look"
+    },
+    {
+      "ran": [
+        "auth status",
+        "repo view --json=nameWithOwner --jq=.nameWithOwner"
+      ]
+    },
+    {
+      "run": [
+        "record",
+        "list",
+        "shop",
+        "git"
+      ],
+      "says": "has no records yet"
+    },
+    {
+      "given": {
+        "pushed.bp": "blueprint: pushed\nsteps:\n  say: { do: emit, with: { topic: card.pushed, card: shop-1, project: shop, branch: \"lane/shop-1\", remote: origin, title: \"Add a cart\" } }\n"
+      }
+    },
+    {
+      "run": [
+        "apply",
+        "{here}/pushed.bp",
+        "--force"
+      ],
+      "sets_off": "heard"
+    },
+    {
+      "ran": [
+        "pr list --head=lane/shop-1 {work-of}"
+      ]
+    },
+    {
+      "run": [
+        "record",
+        "show",
+        "shop-git-1"
+      ],
+      "says": "card: shop-1"
+    },
+    {
+      "run": [
+        "record",
+        "show",
+        "shop-git-1"
+      ],
+      "says": "branch: lane/shop-1"
+    },
+    {
+      "given": {
+        "work/lane-shop-1": "{\"found\": true, \"url\": \"https://github.example/acme/shop/pull/1\", \"state\": \"open\", \"changed\": \"2026-11-23T10:00:00Z\", \"reviews\": \"review required\", \"checks\": \"1 pending\", \"commits\": 2, \"commit\": \"0123456789abcdef0123456789abcdef01234567\", \"committed\": \"2026-11-23T09:58:00Z\", \"issues\": [\"https://github.example/acme/shop/issues/3\"]}"
+      }
+    },
+    {
+      "run": [
+        "apply",
+        "{here}/pushed.bp",
+        "--force"
+      ],
+      "sets_off": "heard"
+    },
+    {
+      "ran": [
+        "pr list --head=lane/shop-1 {work-of}"
+      ]
+    },
+    {
+      "run": [
+        "record",
+        "list",
+        "shop",
+        "git"
+      ],
+      "says": "shop-git-1"
+    },
+    {
+      "run": [
+        "record",
+        "show",
+        "shop-git-1"
+      ],
+      "says": "pull_request: https://github.example/acme/shop/pull/1"
+    },
+    {
+      "run": [
+        "record",
+        "show",
+        "shop-git-1"
+      ],
+      "says": "https://github.example/acme/shop/issues/3"
+    },
+    {
+      "run": [
+        "record",
+        "show",
+        "shop-git-1"
+      ],
+      "says": "checks: 1 pending"
+    },
+    {
+      "given": {
+        "signing.txt": "s3cret"
+      }
+    },
+    {
+      "run": [
+        "secret",
+        "set",
+        "hub-signing",
+        "--file",
+        "{here}/signing.txt"
+      ]
+    },
+    {
+      "run": [
+        "caller",
+        "set",
+        "hub",
+        "--topic",
+        "work.called",
+        "--secret",
+        "hub-signing",
+        "--header",
+        "X-Hub-Signature-256",
+        "--prefix",
+        "sha256="
+      ]
+    },
+    {
+      "given": {
+        "work/lane-shop-1": "{\"found\": true, \"url\": \"https://github.example/acme/shop/pull/1\", \"state\": \"merged\", \"changed\": \"2026-11-23T11:00:00Z\", \"reviews\": \"approved\", \"checks\": \"2 success\", \"commits\": 2, \"commit\": \"0123456789abcdef0123456789abcdef01234567\", \"committed\": \"2026-11-23T09:58:00Z\", \"issues\": [\"https://github.example/acme/shop/issues/3\"]}"
+      }
+    },
+    {
+      "call": "hub",
+      "signed": "s3cret",
+      "header": "X-Hub-Signature-256",
+      "prefix": "sha256=",
+      "body": {
+        "action": "closed",
+        "pull_request": {
+          "number": 1,
+          "head": {
+            "ref": "lane/shop-1"
+          }
+        },
+        "repository": {
+          "full_name": "acme/elsewhere"
+        }
+      }
+    },
+    {
+      "call": "hub",
+      "signed": "s3cret",
+      "header": "X-Hub-Signature-256",
+      "prefix": "sha256=",
+      "body": {
+        "action": "closed",
+        "pull_request": {
+          "number": 1,
+          "head": {
+            "ref": "lane/shop-1"
+          }
+        },
+        "repository": {
+          "full_name": "acme/shop"
+        }
+      },
+      "sets_off": "heard"
+    },
+    {
+      "ran": [
+        "pr list --head=lane/shop-1 {work-of}"
+      ]
+    },
+    {
+      "run": [
+        "record",
+        "show",
+        "shop-git-1"
+      ],
+      "says": "state: merged"
+    },
+    {
+      "run": [
+        "record",
+        "show",
+        "shop-git-1"
+      ],
+      "says": "reviews: approved"
+    },
+    {
+      "run": [
+        "record",
+        "show",
+        "shop-git-2"
+      ],
+      "refused": "shop-git-2"
+    }
+  ]
+}

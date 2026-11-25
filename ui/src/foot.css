@@ -1,0 +1,57 @@
+/* The foot of a side panel (views/chosen.tsx): a strip that stays there while the lists scroll above it. At its left
+   the workspace the panel is of, one button: a square that stands for it, its name, a small arrow and, at the
+   button's right, how many wait unread in what the panel leaves out; pressed, its menu opens upward. At its right
+   Help, a round button (views/help.tsx), which is there with no workspace too. A long name gives way, and nothing
+   of the strip is past the panel's edge. */
+.space-foot { flex: none; display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 49px; padding: 6px; border-top: 1px solid var(--line); }
+.space-pick { display: flex; flex: 1; justify-content: flex-start; gap: 8px; min-width: 0; height: auto; min-height: calc(36px * var(--tall)); padding: 3px 8px 3px 6px; border: 0; background: transparent; text-align: left; }
+.space-pick:hover, .space-pick[aria-expanded="true"] { background: var(--bg2); }
+.space-said { display: grid; flex: 0 1 auto; min-width: 0; line-height: 1.3; }
+.space-said > strong { font-size: calc(14px * var(--size)); font-weight: 600; color: var(--text); }
+.space-turn { flex: none; display: inline-grid; color: var(--faint); }
+/* How many wait unread out of sight: a button of its own beside the workspace, as large as is pressed with ease, whose
+   count is drawn small inside it. */
+.space-out-press { flex: none; display: inline-grid; place-items: center; min-width: 24px; height: calc(28px * var(--tall)); padding: 0 2px; border: 0; border-radius: calc(6px * var(--round)); background: transparent; }
+.space-out-press:hover { background: var(--bg2); }
+.space-out { flex: none; min-width: 20px; height: calc(18px * var(--tall)); padding: 0 6px; border-radius: calc(9px * var(--round)); background: var(--accent-soft); color: var(--accent); font-size: calc(11px * var(--size)); font-weight: 600; line-height: calc(18px * var(--tall)); text-align: center; font-variant-numeric: tabular-nums; }
+/* What stands for a workspace: the first letter of its name on a quiet ground, since it has no picture; what is in
+   no workspace is called nothing, and its square is only an edge. */
+.space-face { flex: none; display: inline-grid; place-items: center; width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); border-radius: calc(5px * var(--round)); background: var(--bg3); color: var(--dim); font-size: calc(12px * var(--size)); font-weight: 600; line-height: 1; }
+.space-face.none { background: transparent; border: 1px dashed var(--line-strong); }
+.foot-help { position: relative; flex: none; width: calc(28px * var(--tall)); height: calc(28px * var(--tall)); margin-right: 2px; padding: 0; justify-content: center; border-color: var(--line-strong); border-radius: 50%; background: transparent; color: var(--dim); }
+.foot-help:hover, .foot-help[aria-expanded="true"] { background: var(--bg2); color: var(--text); }
+/* Something is new: a dot on the button's edge, which takes no room and moves nothing. */
+.foot-new { position: absolute; top: -2px; right: -2px; width: 9px; height: 9px; border: 2px solid var(--bg1); border-radius: 50%; background: var(--accent); }
+
+/* What the menus of the foot hold beside lines that are pressed (`RowMenu` in views/grouped.tsx): a drawing before a
+   line's name, in room every line of such a menu keeps; a line that only says something; a head that says what
+   the menu is of; a line that takes something away; and lines joined by a thin line down their left. */
+/* A line is as wide as its menu and no wider: its words are what gives way. */
+.row-menu { grid-template-columns: minmax(0, 1fr); }
+.row-menu > * { min-width: 0; }
+.row-menu .menu-sign { flex: none; display: inline-grid; place-items: center; width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); color: var(--dim); }
+.row-menu .menu-sign .space-face { width: calc(20px * var(--tall)); height: calc(20px * var(--tall)); font-size: calc(11px * var(--size)); }
+.row-menu .menu-said { display: flex; align-items: center; min-width: 0; padding: 0 8px; color: var(--faint); font-size: calc(12px * var(--size)); }
+.row-menu .menu-said.apart { position: relative; margin-top: 9px; }
+.row-menu .menu-said.apart::before { content: ""; position: absolute; left: 4px; right: 4px; top: -5px; border-top: 1px solid var(--line); }
+.row-menu .menu-quiet { min-width: 0; padding: 5px 0 3px; }
+.row-menu .menu-heading { padding: 5px 0 3px; color: var(--dim); font-weight: 600; }
+.row-menu .menu-head { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 0 8px; }
+.row-menu .menu-head .space-face { width: calc(32px * var(--tall)); height: calc(32px * var(--tall)); border-radius: calc(7px * var(--round)); font-size: calc(16px * var(--size)); }
+.row-menu .menu-head-said { display: grid; min-width: 0; gap: 1px; line-height: 1.3; }
+.row-menu .menu-head-said > strong { color: var(--text); font-size: calc(14px * var(--size)); font-weight: 700; }
+.row-menu .menu-head-said > small { color: var(--faint); font-size: calc(11.5px * var(--size)); }
+.row-menu button.menu-grave, .row-menu button.menu-grave .menu-sign { color: var(--bad); }
+.row-menu button[class*="menu-joined"] { position: relative; }
+.row-menu button[class*="menu-joined"] .menu-sign::after { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--faint); }
+.row-menu button[class*="menu-joined"]::before { content: ""; position: absolute; left: 18.5px; top: 0; bottom: 0; border-left: 1px solid var(--line-strong); }
+.row-menu button.menu-joined-first::before { top: 50%; }
+.row-menu button.menu-joined-last::before { bottom: 50%; }
+.row-menu button.menu-joined-last .menu-sign::after { background: transparent; border: 1px solid var(--faint); }
+/* The notes of each release, as a page in a tab (views/releases.tsx). */
+.releases .view-body { max-width: 860px; }
+.row-menu .menu-indent { flex: none; }
+/* A line with words under its name (`under` of a line): as tall as both, the words read whole on as many lines as they take. */
+.row-menu button.menu-two { height: auto; min-height: calc(28px * var(--tall)); padding-top: calc(4px * var(--density)); padding-bottom: calc(4px * var(--density)); align-items: center; }
+.row-menu .menu-lines { display: grid; min-width: 0; gap: 1px; line-height: 1.3; }
+.row-menu .menu-under { color: var(--faint); font-size: calc(11.5px * var(--size)); white-space: normal; overflow-wrap: anywhere; }

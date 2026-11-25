@@ -1,0 +1,37 @@
+# What was written as the daemon went down and never said, said now.
+#
+# A card's row is what is so, and the daemon may stop between a row being
+# written and the event that says so (a person's move, in the instant the
+# daemon goes). Nothing heard of such a move, and nothing waits for it: it
+# is looked for when the daemon has started (`started` in `std/working`,
+# which calls this, and in `std/cards`, which asks as it comes up too).
+#
+# The looking is the board's own (`board.settle`): each card whose row is
+# in another column than it was last said to be in has that move said,
+# late. From there it is a move like any other. The stage of the column it
+# came to takes it up, as worked, planned or reviewed; one sent back goes
+# round again and is counted once; one that was finished has its place
+# tidied. Nothing here judges by what a row looks like, which a move being
+# made at this very moment looks like too.
+#
+# It keeps nothing, and done twice it finds nothing left to say.
+blueprint: std/owed
+version: 2
+description: "What was written as the daemon went down and never said is said when it is back: a card moved with nobody told."
+durable: false
+permissions: [board, records, fleet]
+
+params:
+  project: { type: string, description: "The project it works in." }
+
+  column:
+    type: string
+    default: ""
+    description: "The column of the stage that asks. Every card of the board is looked at whichever stage asks; kept for the texts that hand it."
+
+steps:
+  said:
+    description: Each card that was moved with nobody told has its move said now.
+    allow_failure: true
+    do: board.settle
+    with: { project: "${params.project}" }

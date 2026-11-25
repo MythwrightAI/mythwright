@@ -1,0 +1,50 @@
+/* A part of the Resources panel under its heading, which folds it: the heading's words and its arrow are one thing
+   to press, drawn as the heading was, and what else stands in it (a button that adds) is beside them. */
+.nav h3.nav-section { padding-left: 2px; }
+.nav h3 button.section-fold {
+  display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; width: auto;
+  height: calc(20px * var(--tall)); margin: 0; padding: 0 6px 0 calc(var(--mark-in, 8px) - 2px);
+  border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit;
+  justify-content: flex-start; text-align: left;
+}
+.nav h3 button.section-fold:hover { color: var(--text); }
+.nav h3 button.section-fold:hover .twist { color: var(--text); }
+.nav h3 button.section-fold + button { margin-left: 0; }
+/* Under a finger the heading is as tall as anything pressed there, and its arrow and words stay where they were. */
+@media (pointer: coarse), (max-width: 760px) {
+  .nav h3 button.section-fold { width: auto; height: calc(36px * var(--tall)); margin: -8px 0 -4px; font-size: inherit; }
+}
+
+/* A tree's lines, the side panel's one drawing of them at every level, a part's heading as much as a project or
+   a folder. Every row's mark, an arrow or the glyph of a line that opens something, stands
+   `--mark-in` from the row's left, and its middle half the mark (7px) further; the line runs down from there, from
+   the middle of the box that unfolded it, and a short one runs across from it to each thing under it, at the
+   row's middle (`--row-half`), stopping short of its mark; it stops at the last. So every level is one step further
+   in, `--mark-in` and 7px and `--tree-in`, the same at every level. Dragged narrow, the room before a mark and
+   beside a line gives way, the same at every level, before any name is cut to nothing. */
+.sidebar {
+  --mark-in: clamp(2px, calc((var(--side-width, 252px) - 180px) / 6 + 2px), 8px);
+  --tree-in: clamp(3px, calc((var(--side-width, 252px) - 180px) / 9 + 3px), 7px);
+  --row-half: calc(13.5px * var(--tall));
+}
+.tree { position: relative; margin-left: calc(var(--mark-in, 8px) + 7px); padding-left: var(--tree-in, 7px); }
+.tree:empty { display: none; }
+.tree::before { content: ""; position: absolute; left: 0; top: calc(-1 * var(--row-half, 13.5px)); height: var(--row-half, 13.5px); border-left: 1px solid var(--line-strong); }
+.tree > * { position: relative; }
+.tree > *::before { content: ""; position: absolute; left: calc(-1 * var(--tree-in, 7px)); top: 0; bottom: 0; border-left: 1px solid var(--line-strong); }
+.tree > *:last-child::before { bottom: auto; height: var(--row-half, 13.5px); }
+.tree > *::after { content: ""; position: absolute; left: calc(-1 * var(--tree-in, 7px)); top: var(--row-half, 13.5px); width: calc(var(--tree-in, 7px) + var(--mark-in, 8px) - 2px); border-top: 1px solid var(--line-strong); }
+
+/* A line of a tree carried to another place (`views/treedrag.tsx`, a project's by `views/outlinedrag.tsx`): drawn fainter where it stands,
+   with what is under it, and nothing of the tree moved; what says where it would land lies over the page, out of
+   the flow: a line between two lines, or a folder's line outlined, which is landed in at its end. */
+.outline-carried :is(.nav-item, .nav-twist, .row-more, .nav-note) { opacity: 0.45; }
+body.outline-carrying, body.outline-carrying * { cursor: grabbing; user-select: none; }
+.outline-drop { position: fixed; z-index: 55; height: 2px; background: var(--accent); border-radius: calc(1px * var(--round)); pointer-events: none; }
+.outline-drop.into { background: transparent; box-shadow: inset 0 0 0 2px var(--accent); border-radius: calc(4px * var(--round)); }
+
+/* How a table made from the side panel is first laid out (`views/tablemade.tsx`): its few ways on one line, which
+   wraps where the dialog is narrow. */
+.table-layouts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.table-layouts legend { padding: 0; margin-bottom: 6px; font-size: calc(12.5px * var(--size)); color: var(--dim); }
+.table-layouts label { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; }

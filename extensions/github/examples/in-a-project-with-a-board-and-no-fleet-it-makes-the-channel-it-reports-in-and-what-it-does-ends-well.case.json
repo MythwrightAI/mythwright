@@ -1,0 +1,23 @@
+{
+  "says": "A project need not have a fleet, and the channel called what the project is is a fleet's making. Applied to a project with a board and nothing else, this makes sure of the channel it reports in: an issue brought in by its label and a card sent out by its label each end well, and each is said there.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"apply": "issues", "project": "shop", "sets_off": "look", "params": {"in_label": "factory", "out_label": "public"}},
+    {"given": {"signing.txt": "s3cret"}},
+    {"run": ["secret", "set", "hub-signing", "--file", "{here}/signing.txt"]},
+    {"run": ["caller", "set", "hub", "--topic", "issues.called", "--secret", "hub-signing", "--header", "X-Hub-Signature-256", "--prefix", "sha256="]},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"given": {"issues/1/title": "Refunds", "issues/1/body": "People ask for them.", "issues/1/state": "OPEN", "issues/1/stamp": "s1", "issues/1/labels": "factory"}},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 1}, "repository": {"full_name": "acme/shop"}}, "sets_off": "bring"},
+    {"run": ["emit", "issues.look", "project=shop"], "sets_off": "look"},
+    {"run": ["record", "show", "shop-1"], "says": "title: Refunds"},
+    {"run": ["record", "show", "shop-links-1"], "says": "agreed_title: Refunds"},
+    {"run": ["read", "shop"], "says": "shop-1 was made for an issue on GitHub: https://github.example/acme/shop/issues/1"},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"run": ["board", "set", "shop-2", "labels=public"], "sets_off": "make"},
+    {"run": ["emit", "issues.look", "project=shop"], "sets_off": "look"},
+    {"run": ["record", "show", "shop-links-2"], "says": "agreed_title: Add a cart"},
+    {"run": ["read", "shop"], "says": "shop-2 is linked with an issue on GitHub: https://github.example/acme/shop/issues/2"}
+  ]
+}

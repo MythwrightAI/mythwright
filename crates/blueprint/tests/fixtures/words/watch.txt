@@ -1,0 +1,244 @@
+The words of a watch, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== watch.after
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              do: noop
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    watch:
+      - after: 1m
+        do: noop
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: soon
+              do: noop
+--- refused 6:22
+`after`: `soon` is not a duration; write it like `30s` or `1h30m`
+
+=== watch.do
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              do: noop
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    watch:
+      - after: 1m
+        do: noop
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              do: nothing.like.it
+--- refused 6:15
+there is no action called `nothing.like.it`
+
+=== watch.emit
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              emit: {topic: w.slow}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    watch:
+      - after: 1m
+        emit: { topic: w.slow }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              emit: 3
+--- refused 6:15
+`emit` needs `topic` (where to publish, e.g. `build.slow`)
+
+=== watch.every
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - every: 1m
+              do: noop
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    watch:
+      - every: 1m
+        do: noop
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - every: often
+              do: noop
+--- refused 6:22
+`every`: `often` is not a duration; write it like `30s` or `1h30m`
+
+=== watch.fail
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              fail: true
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    watch:
+      - after: 1m
+        fail: true
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              fail: maybe
+              do: noop
+--- refused 7:21
+`fail` must be true or false
+
+=== watch.log
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - log: "error:"
+              do: noop
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    watch:
+      - log: "error:"
+        do: noop
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - log: [a]
+              do: noop
+--- refused 6:20
+`log` must be text, found a list
+
+=== watch.when
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              when: ${ 1 == 1 }
+              do: noop
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    watch:
+      - after: 1m
+        when: ${ 1 == 1 }
+        do: noop
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              when: ${ 1 + }
+              do: noop
+--- refused 7:21
+`when`: the expression ends too soon
+
+=== watch.with
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              do: log
+              with: {message: slow}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    watch:
+      - after: 1m
+        do: log
+        with: { message: slow }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - after: 1m
+              do: noop
+              with: [a]
+--- refused 8:21
+`with` must be a mapping, found a list

@@ -1,0 +1,508 @@
+# The versions of the blueprints that ship here: each version of each, and
+# what its text comes to, layout and comments aside. A number is one
+# meaning. Written by a test, never by hand. After changing what a text
+# that ships means:
+#   WRITE_VERSIONS=1 cargo test -p api the_versions
+# gives the text its next number, in the text, and writes its line here.
+# Commit both. A line is never changed, and is taken out by hand only for
+# a version nobody was ever given.
+#
+# The files they link (prompts/, what an agent is told) have their lines
+# here too. Such a file says no number: its version is the last of its
+# lines, and the same command writes the next when its words change. A
+# prompt that changes is not another version of the blueprint that links it.
+
+std/ab 1 3b6579d8984878cb
+std/ab 2 79a82b1b0ea8e644
+std/ab 3 af68ffd3dbfed88d
+std/ab 4 a50501c0a2b3995f
+std/ab 5 fcadf3802a499b6c
+
+std/agent 1 71dc11f8580f29ea
+std/agent 2 6f200be2a5ce4b0a
+
+std/arrangement 1 4380df97ea6211f6
+std/arrangement 2 0ee3ced144821bff
+std/arrangement 3 f4b1d240821d903a
+std/arrangement 4 0835f97051571bb5
+std/arrangement 5 64eca5be048013d2
+std/arrangement 6 42720f056db4bffb
+std/arrangement 7 43853f8f4c126170
+std/arrangement 8 237dc5baed719885
+std/arrangement 9 ff0374f0f13e171a
+std/arrangement 10 a551f4fb43b6a20d
+std/arrangement 11 bbbc7849287d773b
+std/arrangement 12 5b62cc3e0c190682
+std/arrangement 13 ce587d542eea99ae
+std/arrangement 14 42412584cee49b63
+std/arrangement 15 9cffcdeb9abb7569
+std/arrangement 16 2499046ccda8f55a
+std/arrangement 17 3aad8c370f4a4ca2
+
+std/board 1 54f0c966c01b0401
+std/board 2 1891e749f10e6dfe
+std/board 3 15e9932570670afc
+std/board 4 b62d3150712a6146
+std/board 5 a5b84415fb3d5de4
+std/board 6 269eb51b633e7fea
+std/board 7 b832a579b54c0333
+std/board 8 bf19575b92dfca00
+std/board 9 032bb6db4de060c3
+std/board 10 d60a69e04c287579
+std/board 11 c05bb7ea76c1b4f0
+std/board 12 c97d6d4a236d6334
+std/board 13 1d843b139f08e132
+
+std/bot 1 39c6e4dc8baa1c5d
+std/bot 2 fa3dc99df398ba06
+std/bot 3 44c165c002abc2ff
+
+std/canary-stage 1 bd8d8687c7fcb28f
+std/canary-stage 2 73b844983ee06272
+std/canary-stage 3 263bd7da3a2a4cdc
+
+std/cards 1 329c4744ecc0dad2
+std/cards 2 1f321ce42964ee93
+std/cards 3 a56a0d6589f194ab
+std/cards 4 4121bd240d8ed4dc
+std/cards 5 0214bc6aa1817b07
+
+std/chain 1 9498e6ed26ec5e9a
+std/chain 2 782719d968e698af
+
+std/chain-wait 1 ca5c2fbe00877092
+std/chain-wait 2 97dce3dcbfe8e0cc
+std/chain-wait 3 055924c3ffff5692
+std/chain-wait 4 6802419d63a0ee8b
+std/chain-wait 5 2696f6b8dfb587fa
+
+std/cleared 1 8c12a38713a89695
+std/cleared 2 9f959c8b7cd354de
+
+std/contended 1 bdbcf90d65519860
+std/contended 2 f862beada183f297
+std/contended 3 359f490c1978e68b
+std/contended 4 565d5e3c69822f32
+std/contended 5 ae867cf354a0f846
+
+std/contest 1 3c1fb89be7f738cc
+std/contest 2 4987c2bcf82a1a0a
+std/contest 3 4862986fb91e0a4b
+std/contest 4 d4030c2f36b1565e
+
+std/discuss 1 e2d7d465c8229261
+
+std/discussion 1 c0e280e4cc771d89
+
+std/discussion-turn 1 4da58379b71564c9
+std/discussion-turn 2 48bc8cc2b6c78e10
+
+std/dispatch 1 576d33d8b1b2f469
+std/dispatch 2 9911d49d21c7e837
+std/dispatch 3 954492122ef72ef2
+
+std/docs 1 307853b9dac3c356
+
+std/due 1 fc1f2a08cbbfb7e4
+std/due 2 31b55154de41c5df
+
+std/entry 1 48f7237fb04df3d6
+std/entry 2 86f8586b0b64ab73
+std/entry 3 b4b054401a754123
+
+std/environment 1 258742ce5f298701
+
+std/environments 1 027136e0f2434f8d
+
+std/feature 1 550445c620aa3715
+std/feature 2 93d776ca29f273e0
+std/feature 3 02fdc26c51e4e03f
+std/feature 4 021730694c30c779
+std/feature 5 ac7aacdba5a0be68
+
+std/feature-round 1 15cde45f104b5d37
+std/feature-round 2 2a846520e28d4cc6
+std/feature-round 3 012a7b14de22ad23
+std/feature-round 4 ef101a0a97685609
+
+std/features 1 4e6df7fda1a0ac6c
+std/features 2 d503cb5b1531bae5
+std/features 3 31c2a03188e77968
+std/features 4 7c55919c10edd477
+
+std/flags 1 64d7c8e3c6e4bdb8
+std/flags 2 5485394e7f4bc84b
+
+std/flags-due 1 df4b04059c9a2143
+
+std/fleet 1 ffb566391ee55f56
+std/fleet 2 b900a6e9269236b3
+std/fleet 3 e0a6d69b8c868772
+std/fleet 4 0529cd9af27bd97c
+std/fleet 5 e8e025d39e4b23f2
+std/fleet 6 502230d806564911
+std/fleet 7 3eae1f5a817f9972
+std/fleet 8 f50551a7be77b823
+std/fleet 9 04ed782033ea710a
+std/fleet 10 27bb0024a7a3995f
+std/fleet 11 584c16bba6928877
+std/fleet 12 fb4de4cdb9a751af
+std/fleet 13 ca6335986272fa7f
+std/fleet 14 cb9fe7271a823a4d
+std/fleet 15 b7f3c8a1187abb0c
+std/fleet 16 3cad7a51064df20b
+std/fleet 17 ec8a9635975e8c42
+std/fleet 18 8a6d7ce69b1ed7a6
+std/fleet 19 01cced720b371031
+std/fleet 20 193a15a86047c065
+std/fleet 21 b2a7b25a55f924d9
+std/fleet 22 76fda3ce1f3ad0b4
+std/fleet 23 12b222a45d8cf8e7
+std/fleet 24 eae767dc6391fa72
+std/fleet 25 a7b4e2a40de5f943
+std/fleet 26 7066e74734e4236d
+std/fleet 27 671b3e7759ea4833
+std/fleet 28 3fdc98491b7179f6
+
+std/judge 1 66b26aa2e40e07d6
+std/judge 2 558ceed2829b5135
+
+std/judge-scores 1 b7080b9fe5feac70
+std/judge-scores 2 4fb345ed314dbbc9
+
+std/judge-seat 1 e3c456af1c68f44b
+std/judge-seat 2 dd62fadd573dfbe6
+
+std/judge-talk 1 2dcc21dd7bf49050
+std/judge-talk 2 fdf611a9ca26fde3
+
+std/keep 1 bf2af462766b0334
+std/keep 2 0edd9c7c454cad7f
+
+std/lane-round 1 643566a5b24bbe2b
+std/lane-round 2 5b0eb5582b06b0c7
+std/lane-round 3 43ef11cf2d1b6d92
+std/lane-round 4 398b7181d74cb677
+std/lane-round 5 78448b813d91c6f8
+std/lane-round 6 25ff6c29d2074abe
+std/lane-round 7 a18310ebb542ff36
+std/lane-round 8 0cb288ba5cb918e2
+std/lane-round 9 9a28c73174488ecd
+std/lane-round 10 22bbbc10d9a684bc
+std/lane-round 11 6b430e28df819ade
+std/lane-round 12 b4438ff4680e9d08
+std/lane-round 13 4361644d7c1a377f
+std/lane-round 14 ca62706c2419fd1a
+std/lane-round 15 7511e965dc0c538d
+
+std/later 1 08c1627a869bb471
+
+std/log-feed 1 21386527e3da627d
+std/log-feed 2 77a4e4a1b68179ef
+
+std/looked 1 5fc68a033e61f479
+std/looked 2 8ef11563bf302def
+std/looked 3 bc660a4689421f78
+
+std/merge 1 ae45fad47adbe135
+std/merge 2 20d95746ffcbacea
+std/merge 3 675048cbe35c842d
+
+std/mockups 1 29f2838a41a89ffc
+
+std/onward 1 d10d0dcbe14885e2
+std/onward 2 5fd9ab293f956857
+
+std/owed 1 bc0d7f1145adc541
+std/owed 2 0d4b1c6c6a593e98
+
+std/pass-by-hand 1 6919079b45415d8a
+std/pass-by-hand 2 1634e357de4eccc8
+std/pass-by-hand 3 a9bb0844e8065419
+
+std/pipeline 1 2879e38aa717afcd
+std/pipeline 2 8ec4dd2843c8e62e
+std/pipeline 3 fe251ad7439cc740
+std/pipeline 4 b45329929f390651
+
+std/pipeline-at 1 0edd03d6b76e29c4
+std/pipeline-at 2 bed9ad027ed97a35
+
+std/pipeline-timed 1 4c31e3bf8ff49bc4
+std/pipeline-timed 2 36f090e64176d051
+
+std/plan 1 762d6571957b55a0
+std/plan 2 8ed8b1eae4c4529e
+std/plan 3 5640ede450e1d733
+std/plan 4 d07e09aee09c54b4
+
+std/planning 1 318df15c0c1e0788
+std/planning 2 7bcc25db097ddc35
+std/planning 3 286f87af9ced09c1
+std/planning 4 33b5975f1cefabff
+std/planning 5 a35ff1e4d43b7ace
+std/planning 6 2d9f34102919f9f4
+
+std/pool 1 4c27b2bd7ad90fb5
+std/pool 2 8b564b54667efa32
+std/pool 3 54c982bbd79479ac
+std/pool 4 e3245e670ab8299f
+std/pool 5 c8cd3ef273306dad
+std/pool 6 3dc8930c9d0c0543
+std/pool 7 685d97bd93db67b3
+std/pool 8 76094bdcf1fe1891
+
+std/profile 1 1078a2dba2f53299
+
+std/project 1 802521a5ad21e20d
+std/project 2 75c4dd1160868aa7
+
+std/prompts/chain.md 1 b01ded7897dc72bc
+
+std/prompts/chain/answer.md 1 b47549144659b480
+
+std/prompts/feature-round.md 1 fab8e72c0c6f603d
+std/prompts/feature-round.md 2 d81e2aec2ed40d53
+
+std/prompts/feature-round/back.md 1 219ed23843adbbaf
+
+std/prompts/feature-round/changed.md 1 87cdbbe388e7c391
+
+std/prompts/feature-round/gathers.md 1 c159463509b9851b
+
+std/prompts/feature-round/new.md 1 5d905d8062e1de29
+
+std/prompts/feature-round/planned.md 1 e59572bb6d716b25
+
+std/prompts/feature-round/said.md 1 95df615e2f585026
+
+std/prompts/judge.md 1 1c592d2acb3250c6
+
+std/prompts/judge/pick.md 1 849b79725c25f5b8
+
+std/prompts/judge/scores.md 1 89e0de1bf1b84486
+
+std/prompts/judge/talk.md 1 5c25f79e70e869fb
+
+std/prompts/judge/talked.md 1 edf893798b27aca5
+
+std/prompts/lane-round.md 1 cce72ac511864ae5
+std/prompts/lane-round.md 2 c1dd5677d0ee946e
+
+std/prompts/lane-round/answered.md 1 203679f7622fc68a
+
+std/prompts/lane-round/back-said.md 1 b34a4b891da78b28
+
+std/prompts/lane-round/back.md 1 5253f28c29b473e5
+
+std/prompts/lane-round/blocked.md 1 cdc3222857faea94
+
+std/prompts/lane-round/discussed.md 1 ccbece37ca441b72
+
+std/prompts/lane-round/in-project.md 1 4adb365cc75e8db6
+
+std/prompts/lane-round/in-worktree.md 1 e08b52e79e79ab0a
+
+std/prompts/lane-round/new-said.md 1 3744f7745afc2b64
+
+std/prompts/lane-round/new.md 1 dcae63bff8c96548
+
+std/prompts/lane-round/planned.md 1 ff64139ab6edfddc
+
+std/prompts/lane-round/posted.md 1 001e7532493de430
+
+std/prompts/lane-round/resumed-said.md 1 201fc695f36c64a0
+
+std/prompts/lane-round/resumed.md 1 f5cea18f37dd2b1f
+std/prompts/lane-round/resumed.md 2 360a8d531d2d5207
+
+std/prompts/lane-round/unkept.md 1 5edd66b6882e230e
+
+std/prompts/proposal-round.md 1 2be336ca4b0c9add
+
+std/prompts/proposal-round/back-said.md 1 835ba5b152ebe0d0
+
+std/prompts/proposal-round/back.md 1 622cdeb72c4dfe11
+
+std/prompts/proposal-round/changed.md 1 cace61bcec0911bb
+
+std/prompts/proposal-round/new.md 1 ae86895a0484ccbb
+
+std/prompts/proposal-round/planned.md 1 fcdb4f7750ee5fab
+
+std/prompts/proposal-round/said.md 1 8ed7349232d2573e
+
+std/prompts/review-seat.md 1 349655361497e71f
+
+std/prompts/review-seat/among.md 1 353880c84c5b66e9
+
+std/prompts/review-seat/changed.md 1 44c5ba34c7f81459
+
+std/prompts/review-seat/in-project.md 1 337312a739c5d52f
+
+std/prompts/review-seat/in-worktree.md 1 1beb7b577c893b41
+
+std/prompts/review/asks.md 1 8e9b38c9ce919e9a
+
+std/prompts/review/planned.md 1 d439f725c20d5ea5
+
+std/prompts/turn.md 1 a5501bdc15c98081
+
+std/prompts/turn/looked.md 1 162281182d403dc8
+
+std/prompts/turn/nearly.md 1 4e0fe81864a415c9
+
+std/prompts/turn/said.md 1 1891a3b2fb06c48e
+
+std/prompts/turn/told.md 1 6a9437129f17f932
+
+std/proposal 1 7df5cd9a8cf8dde8
+std/proposal 2 fd922058b139cfaf
+std/proposal 3 29523e19cd07d904
+std/proposal 4 277fd0808c76c9cd
+std/proposal 5 d6e057ac7b49bfaa
+
+std/proposal-round 1 4edb6f21d80f7f00
+std/proposal-round 2 4bb73bcfacc11856
+std/proposal-round 3 78ade0b4b8ea65ef
+std/proposal-round 4 4b6d4166230595eb
+std/proposal-round 5 efb02e2a410e22ab
+std/proposal-round 6 de69b73379964ac0
+std/proposal-round 7 8d3f656ee43106a7
+
+std/resumed 1 da7c5d70a73dca5d
+std/resumed 2 4b42e1ec5459d28e
+
+std/review 1 6f6dbd51286add95
+std/review 2 8209c0aa54df48d7
+std/review 3 6a615f3e86fbf078
+std/review 4 77c7f562c778247d
+std/review 5 2f67f3c6a600ea71
+std/review 6 aa4ce6c3f84268bb
+std/review 7 42ba8769a9cec654
+std/review 8 d70294cbdddac971
+std/review 9 bf7f2e0c807ca7e4
+std/review 10 02e431e5b69bde94
+std/review 11 d53deff295c4948c
+
+std/reviewing 1 195ecc70019817be
+std/reviewing 2 76c3db0cd87dbc8e
+std/reviewing 3 c01ebe6d8887fbd3
+std/reviewing 4 4b5e1f7481661ab4
+std/reviewing 5 20116492ae5efee2
+std/reviewing 6 3f9ecfd0709a527b
+std/reviewing 7 8e5aad7f78afc45f
+std/reviewing 8 c086423590f91dbe
+std/reviewing 9 35d14f9ffb77de24
+std/reviewing 10 b6ca1261c5d9d77e
+std/reviewing 11 0db483472913b210
+std/reviewing 12 34d4899be66a5f9f
+std/reviewing 13 bc88ca6f73016dd4
+
+std/role 1 dc807d6b70639b93
+std/role 2 59882f7356208fce
+std/role 3 d16298c1cc70fb2b
+std/role 4 1104f507021b0dc1
+std/role 5 505aa1fcdfd765a6
+std/role 6 f82b8c86599a0c15
+
+std/rolling 1 de7a6eadade4c040
+std/rolling 2 d4d53932d1ff8a7b
+
+std/rolling-step 1 03d98b4274c5e4b7
+std/rolling-step 2 298b278ccbc354da
+
+std/run 1 55ceff9e2f491545
+std/run 2 9e0279a740f291f1
+std/run 3 0f195b642984e7cc
+std/run 4 073999bd0428b8e9
+std/run 5 b6c86b5a318003e9
+std/run 6 825b7a495241e6e6
+std/run 7 a02f9eeac21caee0
+std/run 8 fbc570648ed7d0c5
+
+std/segments 1 3d876662223a0938
+std/segments 2 aafbfe74332b514f
+std/segments 3 fcc1a926e2f37b6d
+std/segments 4 ba5a502176902ce3
+std/segments 5 46d40dcf1576ebac
+std/segments 6 3eaa2d1ed7685819
+
+std/send 1 401753ae0de6ea50
+std/send 2 03807f5036ad9863
+
+std/signin 1 3d61333655ea4239
+std/signin 2 a57c288cc73f0461
+
+std/site 1 de874ec52becbbf3
+std/site 2 9430b7ee03e47fa4
+
+std/slot 1 ab48b27a473e302b
+std/slot 2 1f5ec450e673cbd1
+
+std/snapshot 1 97c01c98736c08a9
+
+std/store 1 bb20475379b73e73
+std/store 2 4a6c2f0d270066c9
+
+std/table 1 03b27f70c909a042
+
+std/through 1 7adbc475190afd06
+std/through 2 c499fd5470828fa7
+
+std/timed 1 ce463ecad771694d
+std/timed 2 8401d0dfbc1a6332
+
+std/timed-card 1 4266a9abe9f923e0
+std/timed-card 2 23708385c74d96b3
+
+std/timed-table 1 55475e45b02ab601
+std/timed-table 2 2380bcf3eebc940c
+
+std/told 1 0c8f00b2e00dba45
+std/told 2 9c6d8ed4a89fa979
+std/told 3 1440de5a4ec61350
+std/told 4 4efe6ea3734c2252
+std/told 5 2afd45ce58815f94
+
+std/topics 1 f039aa51813094f4
+std/topics 2 ff81614d7f17a8ac
+
+std/turn 1 e28e26e4d9d4c563
+std/turn 2 e680091a2b3c265f
+std/turn 3 9171995b8996778c
+std/turn 4 0e319fa878756fc4
+std/turn 5 dfdf5bcda30ec8cd
+std/turn 6 ac2155f0f94ea336
+std/turn 7 82cd1beb72dd2809
+std/turn 8 e2de786671daef93
+
+std/watch 1 a75ba523da40aaa7
+std/watch 2 4272ee07133729b1
+std/watch 3 cd1c501112a28766
+
+std/work 1 3c9ea10de4646a50
+std/work 2 1c940d682c111319
+std/work 3 a34ad0ad2233fff5
+std/work 4 31b11a8dd57322ab
+std/work 5 48f1251f0b3f8773
+std/work 6 f4d3058946b387bd
+std/work 7 1c2dd3bcdc6ea444
+std/work 8 1def52499780ddc6
+std/work 9 57e927b7738723b7
+std/work 10 6a18ff544daa221d
+std/work 11 98af509106b6be6e
+
+std/working 1 dc8d15c2ddfce0aa
+std/working 2 3f06843e5e4aec17
+std/working 3 4a15a2a244ee8e59
+std/working 4 abe6a710eb02d49f
+std/working 5 28c67535de7e2531
+std/working 6 ae0396abb99eb58e
+std/working 7 1e9aed4ac787411c
+std/working 8 9573a5f104ce2901
+std/working 9 a1f68611a44df5f8
+std/working 10 a654fa3b526f6662
+std/working 11 4150f90b64e51fd9
+std/working 12 138b7394b793700d
+std/working 13 fa97ee93fb9780c9

@@ -1,0 +1,26 @@
+[package]
+name = "reader"
+description = "The blueprint language as it is read: the text as a tree, what is wrong with it, and what is written inside it. Pure; no I/O."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# All tests live in tests/suite.
+test = false
+doctest = false
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+regex-lite = { workspace = true }
+jiff = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

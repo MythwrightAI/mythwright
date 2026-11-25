@@ -1,0 +1,33 @@
+[package]
+name = "desktop"
+description = "The desktop app: a window onto the daemon's client, starting the daemon if it is not running."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# All tests live in tests/suite. Compiling the library a second time in test
+# mode was the single largest rustc invocation on the previous codebase.
+test = false
+doctest = false
+
+[[bin]]
+name = "desktop"
+path = "src/main.rs"
+test = false
+
+[dependencies]
+brand = { workspace = true }
+kernel = { workspace = true }
+serde_json = { workspace = true }
+wry = { workspace = true }
+tao = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

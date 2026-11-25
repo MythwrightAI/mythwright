@@ -1,0 +1,47 @@
+shop/tables
+
+What it is
+  = Give a project the tables its work is kept in.
+  After a restart:
+    title: Taken up where it was
+  = Whoever applies it may tell it 3 things:
+    = The table a project names for itself. It has to be said. [extra]
+    = What that table is made of. It has to be said. [shape]
+    = What kind its size is. Unless it is said: `number`. [kind]
+
+What it makes
+  Makes: [main/people]
+    title: a table called `people`
+    made: a table `people` (people)
+    model: born: date []
+    model: count: number []
+    model: holds: list ["Whoever writes a row holds each scope it then says.", "Where nothing is said: `things`."]
+    model: how: choice of `look`, `change` or `run` ["Giving it `run` takes `shell`."]
+    model: lead: record of `people` -> people []
+    model: level: choice of `low` or `high` ["Where nothing is said: `low`."]
+    model: ready: flag []
+    model: role: text ["Usually `maker` or `keeper`."]
+    model: secret: text ["Giving it a value takes `shell` and `secrets:use`."]
+    model: size: what the param `kind` says []
+    model: tags: list []
+    model: title: text ["A row cannot be without it."]
+    model: works: records of `jobs` -> jobs []
+  Makes: [main/jobs]
+    title: a table called `jobs`
+    made: a table `jobs` (jobs)
+    model: worker: record of `people` -> people ["Giving it a value takes `things:write`."]
+    model: It sits beside `people`, and each of its rows is about what its `worker` says of that.
+    model: Its rows are not written by hand: what keeps it writes them.
+  Makes: [main/own]
+    title: a table called what the param `extra` says
+    made: a table the param `extra`
+    model: What it is made of is what the param `shape` says.
+
+What it does when it is applied
+  Make sure a table is there, made as it says. [main/people]
+  Make sure a table is there, made as it says. [main/jobs]
+  Make sure a table is there, made as it says. [main/own]
+
+What it may do
+  = It runs as whoever applies it, and can do no more than they can.
+  = Make and change things. [things:write]

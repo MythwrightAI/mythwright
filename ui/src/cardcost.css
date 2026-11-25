@@ -1,0 +1,18 @@
+/* What a card cost, in its drawer: what all of it came to at its head,
+   and a line for each round with a bar at its right as long as the
+   round's tokens, drawn as an agent's history draws a turn's (the bar's
+   parts and its track are agenthistory.css's), with its turns under it. */
+.card-cost { display: grid; gap: 8px; min-width: 0; padding-top: 4px; }
+.card-cost > h3 { margin: 0; }
+.card-cost-key { margin: 0; font-size: calc(12px * var(--size)); line-height: 1.45; }
+.card-cost-key .turn-part { display: inline-block; width: 10px; height: 8px; margin: 0 2px 0 0; border-radius: calc(2px * var(--round)); vertical-align: baseline; }
+.card-cost-key .turn-part.written { margin-left: 8px; }
+.cost-round { display: grid; gap: 3px; min-width: 0; padding: 6px; border-radius: calc(6px * var(--round)); background: var(--bg0); }
+/* A round: which it is and what was decided, and at the right the bar's track and the figure, each as wide in every line. */
+.cost-round-line { display: grid; grid-template-columns: auto minmax(0, 1fr) auto 40px; align-items: center; column-gap: 8px; min-height: calc(28px * var(--tall)); }
+.cost-round-n { color: var(--text); font-weight: 600; white-space: nowrap; }
+.cost-round-came { min-width: 0; color: var(--dim); overflow-wrap: anywhere; }
+.cost-round-said { margin: 0; padding-left: 8px; border-left: 2px solid var(--line-strong); color: var(--text); font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; }
+.cost-turns { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; color: var(--text); font-size: calc(12px * var(--size)); font-variant-numeric: tabular-nums; }
+.cost-turns > li { min-width: 0; overflow-wrap: anywhere; }
+.cost-round-spent { margin: 0; font-size: calc(11.5px * var(--size)); font-variant-numeric: tabular-nums; }

@@ -1,0 +1,79 @@
+/* Pictures in what somebody wrote (`views/pictured.tsx`): at most as wide
+ * as the column, with a caption under one that stands as a figure; at the
+ * side, with the words going round it, where the window is wide, and across
+ * the column where it is as narrow as a phone. The same in the block editor,
+ * where a picture chosen has a bar over it (`write/pictured.ts`). Colours
+ * are the theme's; a picture is drawn on white so that a diagram's dark
+ * lines read in a dark theme too. */
+
+.prose-figure { margin: 8px 0; max-width: 100%; white-space: normal; }
+.prose-figure.place-across { clear: both; }
+.prose-figure.place-side { float: right; clear: right; width: min(42%, 340px); margin: 4px 0 8px 18px; }
+.prose-figure + * { margin-top: 6px; }
+.prose-figure figcaption { margin-top: 4px; font-size: 0.86em; line-height: 1.4; color: var(--dim); overflow-wrap: anywhere; }
+.prose-figure .picture-open { display: inline-block; max-width: 100%; vertical-align: top; }
+.picture-drawn { display: block; max-width: 100%; height: auto; border-radius: calc(6px * var(--round)); background: #fff; }
+.prose-figure.drawn-view { border: 1px solid var(--line); border-radius: calc(10px * var(--round)); background: var(--bg1); overflow: hidden; }
+.prose-figure.drawn-view figcaption { margin: 0; padding: 5px 10px; border-top: 1px solid var(--line); }
+.prose-figure.drawn-view.place-side { width: min(48%, 420px); }
+/* Read, its caption and the ways to look at it larger share the line under it (`ViewFigure`). */
+.prose-figure.drawn-view.offers { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.prose-figure.drawn-view.offers > .view-box { grid-column: 1 / -1; min-width: 0; }
+.prose-figure.drawn-view.offers > figcaption { grid-row: 2; grid-column: 1; }
+.prose-view-acts { grid-row: 2; grid-column: 2; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 5px 10px; border-top: 1px solid var(--line); font-size: calc(12px * var(--size)); white-space: nowrap; }
+.prose-figure.drawn-view.offers:not(.captioned) > .prose-view-acts { grid-column: 1 / -1; }
+.prose-view-acts button.link { height: auto; padding: 0; font-size: inherit; }
+.prose-picture { display: inline-block; max-width: 100%; vertical-align: middle; }
+.prose-picture .picture-drawn { display: inline-block; vertical-align: middle; }
+.picture-missing { display: block; padding: 6px 10px; border: 1px dashed var(--line); border-radius: calc(6px * var(--round)); font-size: 0.9em; }
+.prose-picture .picture-missing { display: inline; padding: 0 4px; }
+.prose-after-side { clear: both; }
+.code-undrawn + * { margin-top: 6px; }
+.code-undrawn-said { margin: 3px 0 0; font-size: 0.85em; }
+/* A diagram (`views/diagram.tsx`): as wide as the column, never smaller
+ * than its words read at, past which its box scrolls sideways;
+ * Code under it, small and at its right. */
+.diagram { margin: 8px 0; max-width: 100%; white-space: normal; }
+.diagram + * { margin-top: 6px; }
+.diagram-box { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.diagram-box svg { display: block; height: auto; margin: 0 auto; }
+.diagram-foot { display: flex; justify-content: flex-end; margin-top: 2px; }
+.diagram-code { height: calc(22px * var(--tall)); padding: 0 8px; font-size: calc(12px * var(--size)); color: var(--dim); background: none; border: 1px solid transparent; }
+.diagram-code:hover, .diagram-code:focus-visible { color: var(--text); border-color: var(--line); }
+.diagram-code[aria-pressed="true"] { color: var(--text); background: var(--bg3); }
+/* Under a finger, a finger's size. */
+@media (hover: none) { .diagram-code { height: max(calc(32px * var(--tall)), 36px); padding: 0 12px; } }
+
+/* As narrow as a phone, nothing stands beside the words. */
+@media (max-width: 760px) {
+  .prose-figure.place-side, .prose-figure.drawn-view.place-side { float: none; width: auto; margin: 8px 0; }
+  .writer-picture[data-place="side"] { float: none; width: auto; margin: 8px 0; }
+}
+
+/* ---- in the block editor ---------------------------------------------- */
+
+.writer-picture { position: relative; display: block; max-width: 100%; margin: 4px 0; border-radius: calc(8px * var(--round)); outline: 2px solid transparent; outline-offset: 2px; }
+.writer-picture[data-place="side"] { float: right; clear: right; width: min(42%, 340px); margin: 4px 0 8px 18px; }
+.writer-picture.chosen { outline-color: var(--accent); }
+.writer-picture .prose-figure { margin: 0; float: none; width: auto; }
+.writer-picture-bar { display: none; position: absolute; top: 6px; left: 6px; right: 6px; align-items: center; gap: 4px; flex-wrap: wrap; padding: 4px; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg2, var(--bg1)); box-shadow: 0 2px 10px rgb(0 0 0 / 0.18); font-size: calc(12.5px * var(--size)); }
+.writer-picture.chosen .writer-picture-bar, .writer-picture:focus-within .writer-picture-bar { display: flex; }
+.writer-picture-bar button { height: calc(26px * var(--tall)); padding: 0 8px; font-size: inherit; }
+.writer-picture-bar button[aria-pressed="true"] { background: var(--bg3); color: var(--text); }
+.writer-picture-caption { flex: 1 1 120px; min-width: 0; height: calc(26px * var(--tall)); padding: 0 8px; font-size: inherit; }
+.writer-chooser { display: none; }
+.topic-reply-picture { padding: 0 8px; }
+.topic-reply-arriving { align-self: center; font-size: calc(12.5px * var(--size)); }
+
+/* ---- full screen (`views/fullscreen.tsx`) ------------------------------ */
+
+/* The box fills the screen in the page's own background; a view's frame fills the box
+ * (`fill`), a diagram is drawn as large as the screen holds it whole. */
+.full-box:fullscreen { background: var(--bg0); color: var(--text); }
+.full-box:fullscreen > .view-frame { border: 0; border-radius: 0; }
+.full-box.diagram-full:fullscreen .diagram-frame { height: 100%; }
+.full-box.diagram-full:fullscreen .diagram-box { height: 100%; box-sizing: border-box; padding: 52px 24px 24px; overflow: auto; cursor: auto; }
+.full-box.diagram-full:fullscreen .diagram-box svg { width: 100%; height: 100%; max-width: none; }
+/* The way out, small, over the corner of what fills the screen. */
+.full-exit { position: absolute; top: 12px; right: 12px; z-index: 1; height: calc(28px * var(--tall)); padding: 0 10px; border: 1px solid var(--line); border-radius: calc(7px * var(--round)); background: var(--bg2); color: var(--text); font-size: calc(12px * var(--size)); box-shadow: 0 2px 10px rgb(0 0 0 / 0.18); opacity: 0.85; }
+.full-exit:hover, .full-exit:focus-visible { opacity: 1; }

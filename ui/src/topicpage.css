@@ -1,0 +1,109 @@
+/* A forum's topic as a page of its own (views/topicpage.tsx): its head, its summary in a band at its top, the
+   reply that answered it, its post written as blocks and its replies as a tree, each part in one column a reader's width
+   with the room at its sides the head's. A topic that is an article has two tabs under its head, Article and Talk, each
+   a panel of those parts (`.topic-parts`); a thread draws them on the page itself. */
+.topic-page { min-height: 0; overflow-y: auto; padding-bottom: 32px; }
+.topic-page-head { align-items: baseline; }
+.topic-page-title { min-width: 0; overflow-wrap: anywhere; }
+.topic-page-where { font-size: calc(13px * var(--size)); overflow-wrap: anywhere; }
+.topic-status { padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: calc(10px * var(--round)); font-size: calc(12px * var(--size)); color: var(--dim); white-space: nowrap; }
+.topic-status.is-answered { border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--text); }
+.topic-status.is-closed { color: var(--faint); }
+/* Pressed, the status is chosen: drawn as it is shown to anybody, with a button's hover. */
+button.topic-status-pick { height: auto; gap: 0; background: transparent; }
+button.topic-status-pick:hover { background: var(--bg3); }
+button.topic-status-add { height: auto; padding: 1px 8px; font-size: calc(12px * var(--size)); color: var(--faint); }
+.topic-page-none { margin: 0 20px; max-width: var(--column); color: var(--dim); }
+.topic-page > section, .topic-parts > section { box-sizing: border-box; max-width: calc(var(--column) + 40px); margin: 0 0 calc(18px * var(--density)); padding: 0 20px; min-width: 0; }
+.topic-part-label { margin: 0 0 6px; font-size: calc(11.5px * var(--size)); font-weight: 600; color: var(--faint); text-transform: uppercase; letter-spacing: 0.04em; }
+/* The summary is what is known now, so it stands out at the top: a band of its own. */
+.topic-summary .topic-doc, .topic-summary .topic-doc-read, .topic-summary .topic-doc-empty { padding: calc(8px * var(--density)) 12px; border: 1px solid var(--line); border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+.topic-answer { padding-top: 4px; }
+.topic-answer-words { padding: calc(8px * var(--density)) 12px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius: calc(8px * var(--round)); background: var(--bg1); font-size: calc(14px * var(--size)); line-height: 1.5; overflow-wrap: anywhere; }
+.topic-answer time { display: block; margin-top: 4px; font-size: calc(12px * var(--size)); }
+/* A document of the topic is written in place, in the flow of the page: the block editor's own scrolling and the room
+   it keeps for a document's page are not this page's. */
+.topic-doc .writer.page { overflow: visible; padding: 0; background: none; color: var(--text); font-size: calc(15px * var(--size)); scrollbar-gutter: auto; }
+.topic-doc .writer.page > * { max-width: none; }
+.topic-doc .writer .ProseMirror { min-height: 3.4em; }
+.topic-post .topic-doc .writer .ProseMirror { min-height: 6em; }
+.topic-doc-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; min-height: calc(28px * var(--tall)); font-size: calc(12.5px * var(--size)); }
+.topic-doc-read { font-size: calc(15px * var(--size)); line-height: 1.55; overflow-wrap: anywhere; }
+.topic-doc-empty { margin: 0; font-size: calc(13px * var(--size)); }
+/* The replies: each under the one it answers, a line down from it to what answers it. */
+.topic-replies, .topic-replies-under { list-style: none; margin: 0; padding: 0; min-width: 0; }
+.topic-replies-under { margin-left: calc(14px * var(--density)); padding-left: calc(12px * var(--density)); border-left: 1px solid var(--line); }
+.topic-reply { margin: calc(10px * var(--density)) 0 0; min-width: 0; }
+.topic-reply-body { min-width: 0; }
+.topic-reply.answer > .topic-reply-body { padding: 6px 10px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); border-radius: calc(8px * var(--round)); }
+.topic-reply-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; font-size: calc(13px * var(--size)); min-width: 0; }
+.topic-reply-who { overflow-wrap: anywhere; }
+.topic-reply-head time { font-size: calc(12px * var(--size)); }
+.topic-answered-mark { color: var(--accent); font-size: calc(12px * var(--size)); }
+.topic-reply-words { margin-top: 2px; font-size: calc(14px * var(--size)); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.topic-reply-acts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.topic-reply-acts button, .topic-reply-more { height: calc(24px * var(--tall)); padding: 0 6px; font-size: calc(12px * var(--size)); color: var(--dim); }
+.topic-reply-more { margin: 6px 0 0 calc(14px * var(--density)); color: var(--accent); }
+.topic-replies-none { margin: 8px 0 0; font-size: calc(13px * var(--size)); }
+.topic-reply-box { display: grid; gap: 6px; margin: 8px 0; min-width: 0; }
+.topic-reply-box textarea { box-sizing: border-box; width: 100%; min-height: calc(64px * var(--tall)); resize: vertical; font: inherit; font-size: calc(14px * var(--size)); }
+.topic-reply-box-acts { display: flex; justify-content: flex-end; gap: 8px; }
+/* A page of a wiki: where it is over its title, each page above it a link, the wiki and the last two
+   kept and the rest under `…`; its title a field for whoever may change it, drawn as the title is until it is pointed at
+   or written in; the pages in it a line each; and the reply an inbox line opened it at, marked. */
+.topic-path { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; padding: calc(12px * var(--density)) 20px 0; font-size: calc(13px * var(--size)); color: var(--dim); min-width: 0; }
+.topic-path-part { display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
+.topic-path-sep { color: var(--faint); }
+.topic-path-page { color: var(--dim); text-decoration: none; overflow-wrap: anywhere; min-width: 0; }
+.topic-path-page:hover, .topic-path-page:focus-visible { color: var(--text); text-decoration: underline; }
+.topic-path-fold { height: calc(22px * var(--tall)); padding: 0 6px; color: var(--dim); }
+.topic-path + .topic-page-head { padding-top: calc(6px * var(--density)); }
+/* The field is as wide as what is written in it, so that how the page stands follows its title as the words do, and wraps
+   as a long title does; its words stand where the title's would, the room about them drawn into the head's gutter. */
+.topic-title-form { display: flex; flex-direction: column; flex: 0 1 auto; min-width: 0; max-width: calc(100% + 7px); margin-left: -7px; }
+.topic-title-sized { display: inline-grid; min-width: 0; max-width: 100%; }
+/* Said twice over so as to stand over what a phone's layout says of every field's letters, which are as large as these. */
+.topic-title-sized::after, .topic-title-sized .topic-title-field { grid-area: 1 / 1; box-sizing: border-box; min-width: 4ch; margin: 0; padding: 2px 6px; border: 1px solid transparent; font: inherit; font-size: calc(20px * var(--size)); font-weight: 650; letter-spacing: -0.01em; line-height: 1.3; white-space: pre-wrap; overflow-wrap: anywhere; }
+.topic-title-sized::after { content: attr(data-said); visibility: hidden; }
+.topic-title-field { width: 100%; height: 100%; min-height: 0; resize: none; overflow: hidden; border-radius: calc(6px * var(--round)); background: none; color: var(--text); }
+.topic-title-field:hover { border-color: var(--line); }
+.topic-title-field:focus { border-color: var(--line-strong); background: var(--bg1); }
+.topic-title-field.unsaved { border-color: var(--line-strong); }
+.topic-title-wrong { margin: 4px 0 0; font-size: calc(12.5px * var(--size)); }
+.topic-pages-list { list-style: none; margin: 0; padding: 0; min-width: 0; }
+.topic-pages-line { display: flex; align-items: baseline; gap: 8px; min-width: 0; min-height: calc(30px * var(--tall)); padding: 4px 6px; border-radius: calc(6px * var(--round)); color: var(--text); text-decoration: none; font-size: calc(14px * var(--size)); }
+.topic-pages-line:hover, .topic-pages-line:focus-visible { background: var(--bg1); text-decoration: none; }
+.topic-pages-glyph { color: var(--faint); flex: none; }
+.topic-pages-title { min-width: 0; overflow-wrap: anywhere; }
+.topic-pages-status { flex: none; font-size: calc(12px * var(--size)); }
+.topic-new-page { margin-top: 4px; height: calc(28px * var(--tall)); padding: 0 8px; font-size: calc(13px * var(--size)); color: var(--dim); }
+.topic-reply.asked > .topic-reply-body { padding: 6px 10px; border: 1px solid var(--accent); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+/* Article and Talk, on the head's last line, ruled under as a page's tabs are; Talk's count faint beside it. */
+.topic-tabs { margin-top: calc(4px * var(--density)); }
+.topic-tab-count { font-weight: 400; }
+/* The article's column, a reader's width, with room at its left for its contents and at its right for boxes beside it,
+   each where the page hands one: on a narrow page those go above and under it. */
+.topic-article { display: flex; flex-wrap: wrap; align-items: flex-start; min-width: 0; }
+.topic-article-main { flex: 1 1 0; min-width: min(100%, 20em); max-width: calc(var(--column) + 40px); }
+.topic-article-contents, .topic-article-boxes { flex: none; min-width: 0; max-width: 100%; box-sizing: border-box; padding: 0 20px; }
+.topic-doc-remove { height: calc(26px * var(--tall)); padding: 0 8px; color: var(--dim); }
+/* A topic's line in the Topics panel says how it stands, faintly, where it is not open (views/topics.tsx). */
+.topic-made-says { margin: 0; font-size: calc(12px * var(--size)); }
+@media (max-width: 760px) {
+  .topic-page > section, .topic-parts > section { padding: 0 12px; }
+  .topic-article-main { max-width: none; }
+  .topic-path { padding: calc(10px * var(--density)) 12px 0; }
+  .topic-path-page, .topic-pages-line, .topic-new-page, .topic-path-fold { min-height: calc(40px * var(--tall)); }
+  .topic-path-page { display: inline-flex; align-items: center; }
+  .topic-reply-acts button, .topic-reply-more { min-height: calc(40px * var(--tall)); }
+  .topic-replies-under { margin-left: 6px; padding-left: 8px; }
+}
+/* The line that offers the first topic gives way as a name does where the panel is dragged narrow, so that nothing of the
+   panel scrolls sideways (`spaces.mjs`, at the largest size). */
+.topics-first > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Linked from: the pages of a series that link only through its box, one folded line for each series (`articleend.tsx`). */
+.topic-linked-series { min-width: 0; }
+.topic-linked-fold { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; width: 100%; height: auto; min-height: calc(30px * var(--tall)); padding: 4px 6px; justify-content: flex-start; text-align: left; white-space: normal; font-size: calc(14px * var(--size)); color: var(--text); }
+.topic-linked-fold .faint { font-size: calc(12px * var(--size)); }
+.topic-linked-series .topic-pages-list { padding-left: calc(18px * var(--density)); }
+@media (max-width: 760px) { .topic-linked-fold { min-height: calc(40px * var(--tall)); } }

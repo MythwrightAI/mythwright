@@ -1,0 +1,50 @@
+/* An article's boxes (`views/boxes.tsx`): an info box of key facts, a series of pages that go together and a note at
+   the top. On an article the boxes stand in a column at the text's right while the article has the room for both
+   side by side, and above the text where it has not (a phone, or a page narrowed beside others): the article is
+   measured as a container for that, and not the window, since the side panel takes some of the window. Elsewhere a
+   box stands where it was written, no wider than an info box is. Colours are the theme's, in light and dark. */
+.topic-article { container: article / inline-size; }
+.topic-article-boxes { display: grid; gap: calc(14px * var(--density)); align-content: start; width: calc(250px * var(--size) + 40px); margin-bottom: calc(18px * var(--density)); }
+@container article (max-width: 700px) {
+  .topic-article-boxes { order: -1; width: 100%; padding: 0 20px; }
+}
+@media (max-width: 760px) {
+  .topic-article-boxes, .topic-head-note { padding: 0 12px; }
+}
+
+.info-box, .series-box { min-width: 0; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg1); font-size: calc(13px * var(--size)); line-height: 1.45; overflow-wrap: anywhere; }
+.box-title { padding: calc(6px * var(--density)) 10px; border-bottom: 1px solid var(--line); border-radius: calc(8px * var(--round)) calc(8px * var(--round)) 0 0; background: var(--bg2); color: var(--text); font-weight: 650; text-align: center; }
+.info-box-picture { padding: 8px 10px 0; text-align: center; }
+.info-box-picture .prose-figure { margin: 0; }
+.info-box-rows { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.info-box-rows th, .info-box-rows td { padding: calc(4px * var(--density)) 10px; vertical-align: top; text-align: left; }
+.info-box-rows th { position: static; border-bottom: 0; background: none; width: 38%; color: var(--dim); font-size: inherit; font-weight: 600; letter-spacing: normal; text-transform: none; white-space: normal; }
+.info-box-rows tr + tr > * { border-top: 1px solid var(--line); }
+
+.series-group { padding: calc(6px * var(--density)) 10px; }
+.series-group + .series-group { border-top: 1px solid var(--line); }
+.series-group-name { margin-bottom: 2px; color: var(--dim); font-weight: 600; }
+.series-pages { list-style: none; margin: 0; padding: 0; }
+.series-pages li { padding: 1px 0; }
+/* The page it is drawn on, among its pages: where the reader is, in the text's colour; at the side with a bar before it. */
+.series-pages li.here { font-weight: 650; }
+.series-pages li.here a { color: var(--text); }
+.series-box.place-side .series-pages li.here { padding-left: 7px; margin-left: -10px; border-left: 3px solid var(--accent); }
+.series-box.place-end .series-pages { display: flex; flex-wrap: wrap; gap: 2px 16px; }
+
+/* A note pointing elsewhere: in italics, further in than the text; on an article, over everything of it, a line of its
+   own above its text and its boxes. */
+.box-note { padding-left: 1.6em; color: var(--dim); font-style: italic; line-height: 1.5; overflow-wrap: anywhere; }
+.box-note p + p { margin-top: 2px; }
+.box-note.head { font-size: calc(14px * var(--size)); }
+/* The row is the article's whole width, so that nothing beside it stands on its line; its words keep a reader's. */
+.topic-head-note { flex: 0 0 100%; order: -2; box-sizing: border-box; margin: 0 0 calc(10px * var(--density)); padding: 0 20px; }
+.topic-head-note > .box-note { max-width: var(--column); }
+
+/* Where it was written: in a reply, a thread's post, a message. */
+.box-inline { margin: 8px 0; max-width: 100%; white-space: normal; }
+.box-inline > .info-box, .box-inline > .series-box { max-width: calc(250px * var(--size) + 40px); }
+.box-inline + * { margin-top: 6px; }
+
+/* Where a box was taken out of an article's text, the blocks either side keep a blank line's gap (`Prose`). */
+.prose-gap { height: max(0px, calc(1lh - 6px)); }

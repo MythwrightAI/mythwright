@@ -1,0 +1,57 @@
+# One stage of a canary rollout: send the candidate a share of new
+# connections, then watch it for a while. Fails if the candidate refuses too
+# many connections, becomes unhealthy, or exits or restarts while being
+# watched; the slot that called this stage rolls back when it does.
+#
+# A candidate that was sent nothing while it was watched has shown nothing.
+# Whether that passes is `min_connections`: with 0 it does, and what the
+# stage gives out says how many connections there were, for whoever called
+# it to say so; with more, a stage that saw fewer fails.
+blueprint: std/canary-stage
+version: 3
+description: Shift a share of traffic to a candidate and watch it.
+permissions: [fleet]
+
+params:
+  router: { type: string, description: "The router that shares connections out." }
+  stable: { type: string, description: "The service that has them now." }
+  candidate: { type: string, description: "The service given a share of them." }
+  weight: { type: int, description: "Share for the candidate, out of 100." }
+  observe: { type: duration, default: 20s, description: "How long it is watched." }
+  max_fail_ratio: { type: number, default: 0.05, description: "Refused connections it may have." }
+
+  min_connections:
+    type: int
+    default: 0
+    description: "How many connections the candidate must have been sent while it was watched; fewer fails the stage."
+
+steps:
+  shift:
+    do: router.route
+    with:
+      name: "${params.router}"
+      backends:
+        - { service: "${params.stable}", weight: rest }
+        - { service: "${params.candidate}", weight: "${params.weight}" }
+
+  announce:
+    do: emit
+    with:
+      topic: slot.shifted
+      slot: "${params.router}"
+      candidate: "${params.candidate}"
+      weight: ${params.weight}
+
+  watch:
+    do: router.observe
+    with:
+      router: "${params.router}"
+      backend: "${params.candidate}"
+      for: "${params.observe}"
+      max_fail_ratio: ${params.max_fail_ratio}
+      min_connections: ${params.min_connections}
+
+outputs:
+  weight: ${params.weight}
+  connections: ${steps.watch.out.connections}
+  failures: ${steps.watch.out.failures}

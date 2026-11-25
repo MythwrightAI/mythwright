@@ -1,0 +1,15 @@
+/* The Members line under Factory in the Resources panel (`views/direct.tsx`): a fold as the panel's others are, and each member a line of it as any line of the tree is. */
+/* The faint words beside a name (you, agent, agent (external), stopped): whole after the name, which is what gives way. */
+/* The words give way first, and the name after them, so that a narrow panel keeps a name to read. */
+.member-line .member-said { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--faint, var(--dim)); font-size: calc(11.5px * var(--size)); white-space: nowrap; }
+.member-line > .truncate { flex: 0 0 auto; max-width: 70%; }
+.member-line .count { flex: none; padding-left: 4px; }
+/* A person's mark is a small dot where an agent's is how it stands, each in the glyph's place, so that every name begins in one place. */
+.member-line > .glyph { display: inline-flex; align-items: center; justify-content: center; }
+.member-line .member-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--faint, var(--dim)); }
+.member-line .standing { flex: none; }
+/* The dialog that writes one: its heading says who to, with the faint words, giving way at the name. */
+.direct-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.direct-head .kept-lock { display: inline-flex; flex: none; color: var(--faint, var(--dim)); }
+.direct-head .direct-said { flex: none; font-size: calc(13px * var(--size)); font-weight: 400; }
+.direct-write textarea { resize: vertical; }

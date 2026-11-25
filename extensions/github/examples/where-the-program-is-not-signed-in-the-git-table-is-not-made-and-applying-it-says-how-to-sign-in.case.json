@@ -1,0 +1,51 @@
+{
+  "says": "Where nobody has signed the program in, applying what keeps the Git table is refused with a sentence saying so and what to do, and the project is given no table.",
+  "steps": [
+    {
+      "repository": "shop",
+      "remote": "https://github.com/acme/shop.git"
+    },
+    {
+      "run": [
+        "project",
+        "create",
+        "--bare",
+        "Shop",
+        "--path",
+        "{here}/shop"
+      ]
+    },
+    {
+      "run": [
+        "apply",
+        "std/board",
+        "--project",
+        "shop"
+      ]
+    },
+    {
+      "given": {
+        "signed-out": ""
+      }
+    },
+    {
+      "apply": "work",
+      "project": "shop",
+      "fails": "is not signed in on this device. Sign in with `gh auth login`"
+    },
+    {
+      "ran": [
+        "auth status"
+      ]
+    },
+    {
+      "run": [
+        "record",
+        "list",
+        "shop",
+        "git"
+      ],
+      "refused": "has no collection called `git`"
+    }
+  ]
+}

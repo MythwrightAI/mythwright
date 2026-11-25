@@ -1,0 +1,21 @@
+[alias]
+xtask = "run --quiet -p xtask --"
+
+# No linker override: the pinned toolchain already links with rust-lld on
+# x86_64 Linux. No sccache either: on the previous codebase it measured 12%
+# slower than no cache at a 99.8% hit rate, because workspace crates miss
+# whenever the checkout path differs.
+
+# The database library is built keeping no count of the memory it has in
+# use. The count is one lock for the whole program, taken at every
+# allocation the library makes, by every database's thread: a factory has
+# a thread for each project's journal, and a test program a node, or a
+# conductor, for each test. With thirty-two of them at once the threads
+# stood in line for it: the runner's suite made 63 million waits for one
+# another where it makes 3 million without, and took 123 s where it takes
+# 32 (docs/build-times.md). Nothing here reads the count, or sets a limit
+# that goes by it. It is said here because the library's own build reads
+# it from the environment: a test of the journal's suite fails where it
+# was built otherwise.
+[env]
+LIBSQLITE3_FLAGS = "-DSQLITE_DEFAULT_MEMSTATUS=0"

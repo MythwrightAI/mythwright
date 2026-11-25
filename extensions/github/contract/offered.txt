@@ -1,0 +1,114 @@
+# What a blueprint can depend on of this package: its actions. Written by a
+# test, never by hand, as the application's own is (contract/offered.txt).
+
+action github.account
+  needs extensions:github
+
+action github.changed
+  needs extensions:github
+  gives issues
+
+action github.checks
+  needs extensions:github
+  gives rows
+
+action github.find
+  needs extensions:github
+  takes branch string needed
+  gives found
+  gives number
+  gives url
+
+action github.issue
+  needs extensions:github
+  takes number int needed
+  gives author
+  gives body
+  gives closed
+  gives labels
+  gives number
+  gives said
+  gives stamp
+  gives title
+  gives trusted
+  gives url
+
+action github.issue-close
+  needs extensions:github
+  takes number int needed
+
+action github.issue-edit
+  needs extensions:github
+  takes body string
+  takes card string needed
+  takes number int needed
+  takes sends list needed
+  takes title string
+
+action github.issue-find
+  needs extensions:github
+  takes card string needed
+  gives found
+  gives number
+  gives url
+
+action github.issue-open
+  needs extensions:github
+  makes title an issue
+  takes body string
+  takes card string needed
+  takes title string needed
+  gives url
+
+action github.issue-reopen
+  needs extensions:github
+  takes number int needed
+
+action github.issues-open
+  needs extensions:github
+  gives rows
+
+action github.open
+  needs extensions:github
+  makes title a pull request
+  takes base string
+  takes body string
+  takes branch string needed
+  takes title string needed
+  gives url
+
+action github.pulls
+  needs extensions:github
+  gives rows
+
+action github.repository
+  needs extensions:github
+  gives name
+
+action github.said-find
+  needs extensions:github
+  takes mark int needed
+  takes number int needed
+  gives found
+  gives id
+
+action github.say
+  needs extensions:github
+  takes body string needed
+  takes mark int needed
+  takes number int needed
+  gives url
+
+action github.work
+  needs extensions:github
+  takes branch string needed
+  gives changed
+  gives checks
+  gives commit
+  gives commits
+  gives committed
+  gives found
+  gives issues
+  gives reviews
+  gives state
+  gives url

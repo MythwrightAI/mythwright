@@ -1,0 +1,19 @@
+{
+  "says": "With `key`, the program is handed that secret each time it is run and goes by it, so the pull request is opened by the key's account; applied again with none, it is handed nothing and acts as whoever is signed in on the device.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"given": {"pushed.bp": "blueprint: pushed\nsteps:\n  say: { do: emit, with: { topic: card.pushed, card: shop-1, project: shop, branch: \"lane/shop-1\", remote: origin, title: \"Add a cart\" } }\n", "token.txt": "tok_of_the_bot"}},
+    {"run": ["secret", "set", "shop-bot", "--file", "{here}/token.txt"]},
+    {"apply": "pull-requests", "project": "shop", "params": {"key": "shop-bot"}},
+    {"holds": {"acted": {"as": "tok_of_the_bot"}}},
+    {"run": ["apply", "{here}/pushed.bp", "--force"], "sets_off": "pushed"},
+    {"ran": ["auth status", "pr list --head=lane/shop-1 --state=open --json=number,url --limit=1", "pr create --head=lane/shop-1 --title=Add a cart --body=Customers need one.\\n\\nCard shop-1"]},
+    {"holds": {"acted": {"as": "tok_of_the_bot"}}},
+    {"apply": "pull-requests", "project": "shop"},
+    {"ran": ["auth status"]},
+    {"holds": {"acted": {}}}
+  ]
+}

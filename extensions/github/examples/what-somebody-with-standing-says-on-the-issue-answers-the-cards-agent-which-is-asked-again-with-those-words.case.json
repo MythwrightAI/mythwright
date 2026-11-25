@@ -1,0 +1,23 @@
+{
+  "says": "A card's agent that asked something instead of guessing is given the card again with the answer when a person answers on the card. What somebody GitHub says has standing in the repository says on the card's issue answers the same way: the question comes off the card, and the agent is asked again with the words that were said there.",
+  "agent": "#!/bin/sh\n# An agent's program, for one case: asked anything, it asks which colour;\n# asked again with the answer among what it is told, it does the work. It\n# writes down which of the two each asking was.\nPATH=/usr/bin:/bin\nasked=$(cat)\nmkdir -p \"{here}/asked\"\nturn=$(($(ls \"{here}/asked\" | wc -l) + 1))\ncase \"$asked\" in\n  *\"Blue.\"*) printf 'told the answer' > \"{here}/asked/$turn\"; echo \"Painted it blue.\"; echo \"DECISION: done\" ;;\n  *) printf 'told no answer' > \"{here}/asked/$turn\"; echo \"Which colour?\"; echo \"DECISION: ask\" ;;\nesac\n",
+  "steps": [
+    {"run": ["project", "create", "Shop", "--without", "docs"]},
+    {"run": ["record", "set", "shop-agents-2", "adapter=scripted"], "sets_off": "changed"},
+    {"run": ["board", "add", "shop", "Paint the door", "--body", "It is bare wood."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"given": {"signing.txt": "s3cret"}},
+    {"run": ["secret", "set", "hub-signing", "--file", "{here}/signing.txt"]},
+    {"run": ["caller", "set", "hub", "--topic", "issues.called", "--secret", "hub-signing", "--header", "X-Hub-Signature-256", "--prefix", "sha256="]},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"run": ["board", "move", "shop-1", "ready"], "sets_off": "asked", "in": "std/cards"},
+    {"run": ["record", "show", "shop-1"], "says": "question: Which colour?"},
+    {"holds": {"asked": {"1": "told no answer"}}},
+    {"given": {"said/1/1": "bo COLLABORATOR\nBlue."}},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 1}, "repository": {"full_name": "acme/shop"}}, "sets_off": "go"},
+    {"holds": {"asked": {"1": "told no answer", "2": "told the answer"}}},
+    {"run": ["events", "--topics", "card.answered", "--limit", "5", "--json"], "says": "\"body\":\"Blue.\""},
+    {"run": ["board", "history", "shop-1"], "says": "that answered what"}
+  ]
+}

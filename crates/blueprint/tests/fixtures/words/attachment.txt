@@ -1,0 +1,62 @@
+The words of an attachment, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== attachment.blueprint
+--- written
+blueprint: w
+uses:
+    other:
+        blueprint: other
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+uses:
+  other:
+    blueprint: other
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+uses:
+    other:
+        blueprint: [x]
+steps:
+    a: {do: noop}
+--- refused 3:5
+an attachment needs `blueprint: <name>`
+
+=== attachment.with
+--- written
+blueprint: w
+uses:
+    other:
+        blueprint: other
+        with: {word: seen}
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+uses:
+  other:
+    blueprint: other
+    with: { word: seen }
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+uses:
+    other:
+        blueprint: other
+        with: [a]
+steps:
+    a: {do: noop}
+--- refused 5:15
+`with` must be a mapping, found a list

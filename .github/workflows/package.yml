@@ -1,0 +1,168 @@
+# The packages, made when a version is tagged, and attached to its release:
+# one for Linux, one for Windows and one for macOS, each built on its own
+# system by `cargo xtask package`.
+#
+# A program starts on a system whose C library is at least as new as the
+# one it was built on. So the package for Linux is built on the oldest
+# system these machines offer that has the web view the window is built
+# against (WebKitGTK 4.1): what is made here starts there and on anything
+# newer.
+#
+# Pushing a tag such as `v0.1.0` makes a release of that name, marked as a
+# preview, holding what `cargo xtask package` makes of each folder: the
+# one file of it, and that file's SHA-256. The release is made with the
+# package for Linux, which is the one for a system the product is tested
+# on. The other two are made after it and attached when they are made: a
+# failure of either leaves the release as it was, without that one.
+# Neither is signed, and what has been run on each is said in the
+# release's text and in the README.md inside each package.
+#
+# These are the pinned releases, one of the two lines (the other is the
+# nightly, `nightly.yml`). A tag is a release wherever it was made: a fix
+# to a pinned line is made on its branch (`release/0.1`), the version
+# there is raised to the next patch (`0.1.1`, with its notes headed so in
+# `docs/releases.md`), and the tag `v0.1.1` pushed from that branch is
+# built here as `v0.1.0` was from main. `CONTRIBUTING.md` says how.
+name: package
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: the package, for Linux
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: What the window is built on
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
+
+      # The toolchain is the one `rust-toolchain.toml` pins; asking what is
+      # installed is what installs it.
+      - name: The pinned toolchain
+        run: rustup show
+
+      - name: The client's packages
+        working-directory: ui
+        run: npm ci
+
+      # The tag says which version this is; the manifest must agree, or the
+      # package would be called one thing and released as another.
+      - name: The tag and the version are the same
+        run: |
+          said=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version *= *"\(.*\)"/\1/p' Cargo.toml)
+          test "v$said" = "${{ github.ref_name }}" || {
+            echo "the tag is ${{ github.ref_name }} and Cargo.toml says version $said: make them agree" >&2
+            exit 1
+          }
+
+      - name: The package
+        run: cargo xtask package
+
+      # What the release says of itself: what each file is for, and what
+      # has been run on each system, which is not the same of the three.
+      - name: What the release says
+        run: |
+          cat > target/package/release.md <<'SAID'
+          A preview, and a pinned release: it changes only when you replace it, and the fixes made to its line are released as its patch versions. The other line is the nightly, built from main; the README of the repository, under *Which build*, says how to move between them. Each file here is the whole product for one system: unpack it and read the `README.md` inside, which says how to start it there and what it needs.
+
+          - The file that ends `-linux-x86_64.tar.gz` is for Linux, which is the system the product is tested on.
+          - The file that ends `-windows-x86_64.zip` is for Windows. It is earlier still: on Windows the product has been started by hand, once, on one machine, and its tests have been run there by hand and by no gate; no window of it has been seen there. Its programs are not signed, and Windows asks before it starts one (**More info**, then **Run anyway**).
+          - The file that ends `-macos-aarch64.tar.gz` is for a Mac with Apple silicon. Nothing of the product has been run on macOS. Its programs are not signed and not notarised, and its `README.md` says how macOS is told to let them run.
+
+          Each `.sha256` file is the SHA-256 of the file it is named for. The packages for Windows and macOS are made after the one for Linux and attached when they are made: one that is not here was not made.
+          SAID
+
+      - name: A release for the tag, holding it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --prerelease \
+            --notes-file target/package/release.md \
+            target/package/*.tar.gz target/package/*.tar.gz.sha256
+
+  # Built on Windows by that system's own compiler. A package for Windows
+  # is a zip, which the tooling writes itself, so nothing is asked of any
+  # program of the system's but the compiler and Node.
+  windows:
+    name: the package, for Windows
+    needs: linux
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: The pinned toolchain
+        run: rustup show
+
+      - name: The client's packages
+        working-directory: ui
+        run: npm ci
+
+      - name: The package
+        run: cargo xtask package
+
+      - name: Attached to the release for the tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            target/package/*.zip target/package/*.zip.sha256
+
+  # Built on macOS, on the kind of processor these machines have there
+  # (Apple silicon). The one file of it is made by that system's own
+  # `tar`, which is another program than Linux's and is asked otherwise
+  # (`package::tar`).
+  macos:
+    name: the package, for macOS
+    needs: linux
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+
+      - name: The pinned toolchain
+        run: rustup show
+
+      - name: The client's packages
+        working-directory: ui
+        run: npm ci
+
+      - name: The package
+        run: cargo xtask package
+
+      - name: Attached to the release for the tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            target/package/*.tar.gz target/package/*.tar.gz.sha256

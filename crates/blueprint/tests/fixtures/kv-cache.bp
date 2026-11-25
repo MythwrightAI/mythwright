@@ -1,0 +1,76 @@
+# Build a KV cache, host it in a slot with a canary rollout, and tell an agent
+# if anything goes wrong.
+blueprint: kv-cache
+description: Build and host the KV cache.
+permissions: [shell, system, agents, blueprints]
+
+params:
+  port: 7379
+  profile: { type: string, default: release, enum: [debug, release] }
+  helper: { type: string, default: "" }
+
+state:
+  builds: 0
+
+steps:
+  check:
+    do: system.check
+    with: { min_free_mem_mb: 512 }
+
+  low_resources:
+    when: ${ !steps.check.out.ok }
+    do: agent.consult
+    with:
+      slot: ${params.helper}
+      prompt: "Not enough resources to build: ${json(steps.check.out)}. Wait, or stop?"
+      options: [wait, stop]
+
+  give_up:
+    when: ${ steps.low_resources.out.decision == "stop" }
+    do: end
+    with: { status: failed, reason: not enough resources }
+
+  build:
+    needs: [check, give_up]
+    do: shell
+    measure: build
+    with:
+      run: cargo build --profile ${params.profile} -p kv-cache
+    timeout: 30m
+    retry: { max: 1, backoff: 10s }
+    watch:
+      - after: 5m
+        emit: { topic: build.slow, msg: build slow, code: 5 }
+      - log: "^error(\\[E\\d+\\])?:"
+        emit: { topic: build.error }
+    on_finish:
+      - do: set
+        with: { builds: ${ state.builds + 1 } }
+    on_fail:
+      - do: agent.consult
+        when: ${ params.helper != "" }
+        with:
+          slot: ${params.helper}
+          prompt: "The build failed: ${self.error}. Fix it and answer retry, or answer fail."
+          options: [retry, fail]
+
+  host:
+    call: std/slot
+    as: kv
+    with:
+      name: kv-cache
+      listen: ${params.port}
+      service:
+        run: ./target/${params.profile}/kv-cache
+        health: { tcp: true }
+
+outputs:
+  endpoint: 127.0.0.1:${params.port}
+  generation: ${ steps.host.out.generation }
+
+on:
+  unhealthy:
+    event: service.unhealthy
+    scope: own
+    do: emit
+    with: { topic: kv.degraded, service: ${event.data.service} }

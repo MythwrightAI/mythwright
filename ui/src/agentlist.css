@@ -1,0 +1,67 @@
+/* The agents on the Members page's Agents tab (`views/agents.tsx`): a band for each project that has any and,
+   where every workspace is shown, one for the factory's own, and in each a line an agent. A line is as
+   wide as the panel and no wider: every word in it gives way before
+   anything that is pressed leaves it. */
+/* The panels of Settings are as wide as the page has room for and no wider, so that what is in one is laid out for the room there is:
+   a table too wide for that scrolls in its own panel, where it used to push every panel past the page's edge. */
+.settings-panels, .agents-page { grid-template-columns: minmax(0, 1fr); }
+.settings-panels > .panel:has(> table) { overflow-x: auto; }
+/* Settings fills its tab for the sake of its tables; a field there is as wide as what is written in one
+   needs, and no wider, where the page is wide. */
+.settings-panels .panel :is(select, textarea, input:not([type=checkbox]):not([type=radio])) { max-width: calc(560px * var(--size)); }
+/* So is a panel's head: its heading is as wide as its words and never less, and what is said beside it goes onto a line under it where
+   the two do not fit side by side. Left to give way, a heading that grows was squeezed to nothing and its words lay over the note beside it
+   (Theme and Agents, at 820 wide with the side panel open). */
+.settings-panels .panel-head, .agents-page .panel-head { flex-wrap: wrap; row-gap: 6px; }
+.settings-panels .panel-head > h2.grow, .agents-page .panel-head > h2.grow { flex: 1 0 auto; }
+.settings-panels .panel-head > .faint, .agents-page .panel-head > .faint { min-width: 0; }
+/* What is pressed at a line's end is its menu alone, as wide as the menu's button. */
+.agents-listed { container-type: inline-size; --agent-acts: calc(22px * var(--tall)); }
+.agents-of + .agents-of { border-top: 1px solid var(--line); }
+/* A band's head is drawn as the side panel's headings are: what it is called, and beside it how many. */
+.agents-of > h3 { display: flex; align-items: baseline; gap: 8px; min-width: 0; padding: 12px 14px 4px; color: var(--dim); }
+.agents-of > h3 .agents-count { color: var(--faint); }
+.agents-of > h3 .agents-count { flex: none; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.agents-of > ul { list-style: none; margin: 0; padding: 0 0 4px; }
+/* A line laid across and the words over the lines are one set of columns: what is pressed at a line's end is as wide in every line. */
+.agent-line, .agent-heads { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.1fr) minmax(0, 1.2fr) var(--agent-acts); align-items: center; column-gap: 12px; padding: 2px 14px; }
+.agent-line { min-height: calc(36px * var(--tall)); }
+.agent-heads { padding-top: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--line); color: var(--faint); font-size: calc(11px * var(--size)); font-weight: 650; letter-spacing: 0.05em; text-transform: uppercase; }
+.agent-heads > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-line + .agent-line { border-top: 1px solid var(--line); }
+.agent-line > * { min-width: 0; }
+.agent-name { color: var(--agent); }
+.agent-runs { color: var(--dim); }
+/* What it is doing: the mark every agent has beside its name, and a few words. */
+.agent-doing { display: flex; align-items: center; gap: 7px; color: var(--dim); }
+.agent-doing[data-doing="working"] { color: var(--text); }
+.agent-doing[data-doing="stopped"] { color: var(--faint); }
+/* What it may ask is words that are pressed: no louder than the words beside them, and as wide as its place at most. */
+button.agent-may { justify-content: flex-start; justify-self: start; max-width: 100%; height: calc(26px * var(--tall)); padding: 0 6px; margin-left: -6px; color: var(--dim); font-weight: 400; }
+button.agent-may[aria-expanded="true"] { background: var(--bg3); color: var(--text); }
+/* The word for it is over the lines where they are laid across, and in the line where they are not. */
+.agent-may-word { display: none; flex: none; color: var(--faint); }
+.agent-acts { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+/* The whole of what it may ask, over the page under what was pressed. */
+.agent-holds { position: fixed; z-index: 40; box-sizing: border-box; display: grid; gap: 8px; max-height: calc(100dvh - 16px); overflow-y: auto; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg2); box-shadow: var(--shadow); font-size: calc(12.5px * var(--size)); }
+.agent-holds > strong { color: var(--text); font-size: calc(13px * var(--size)); }
+
+/* In a narrow panel (a phone, or a workbench with much beside it) a line is three: the name with its menu, what it is doing, and under that what it runs on and what it may ask. */
+@container (max-width: 620px) {
+  .agent-line { display: flex; flex-wrap: wrap; align-items: center; gap: 1px 12px; padding: 7px 14px 6px; }
+  .agent-name { order: 1; flex: 1 1 0; }
+  .agent-acts { order: 2; flex: none; }
+  .agent-doing { order: 3; flex: 0 0 100%; font-size: calc(12.5px * var(--size)); }
+  /* What it runs on gives way to what it may ask, which is the longer and is pressed. */
+  .agent-runs { order: 4; flex: 1 1 0; min-width: 5em; font-size: calc(12.5px * var(--size)); }
+  button.agent-may { order: 5; flex: 0 1 auto; gap: 6px; margin: 0 -6px 0 0; font-size: calc(12.5px * var(--size)); }
+  .agent-heads { display: none; }
+  .agent-may-word { display: inline; }
+}
+
+/* Under a finger, what is pressed on a line is tall enough to be touched. */
+@media (pointer: coarse) {
+  .agents-listed { --agent-acts: calc(34px * var(--tall)); }
+  button.agent-may { height: calc(34px * var(--tall)); }
+  .agent-line .row-more { width: calc(34px * var(--tall)); height: calc(34px * var(--tall)); }
+}

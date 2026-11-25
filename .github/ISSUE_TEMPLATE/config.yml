@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/mythwrightai/mythwright/discussions
+    about: Ask a question, share an idea or what you made, in Discussions.
+  - name: A security problem
+    url: https://github.com/mythwrightai/mythwright/security/advisories/new
+    about: Report it privately, never as an issue.

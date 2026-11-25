@@ -1,0 +1,71 @@
+# A forum's topics, each a page of a wiki: a title,
+# a body written as a document, where it stands, a summary kept current,
+# and its replies, each of which may answer another. A page may hold pages
+# under it; one with no page above it is a wiki.
+#
+# A topic is a workspace's or a project's, as a channel is, so both
+# tables are at the factory's own place for tables (`@`), which no project
+# is, and a topic's place is two of its cells, which the factory writes.
+#
+# Applied once for no project, by whoever manages the factory, as the
+# first topic is made: it takes `admin`, since a table of the factory's
+# own is everybody's.
+blueprint: std/topics
+version: 2
+description: "Give the factory its topics: a table of the factory's own, a topic a row, its body a document and its replies what is said on it, and the categories they are filed under."
+permissions: [admin, projects, records]
+
+steps:
+  categories:
+    description: The table of the categories topics are filed under, at the factory's own place.
+    do: collection.ensure
+    with:
+      project: "@"
+      name: categories
+      fields:
+        title: { type: text, required: true }
+        body: { type: document }
+        parents: { type: records, of: categories }
+        workspace: { type: text, quiet: true, hidden: true }
+      views:
+        categories: { kind: table }
+      history: [record.*]
+
+  topics:
+    description: The table every topic is a row of, at the factory's own place.
+    needs: [categories]
+    do: collection.ensure
+    with:
+      project: "@"
+      name: topics
+      # A topic is something the daemon itself reads: where it is, who
+      # follows it, what answered it and the page it is under. `topic` is
+      # what it takes one to be, and the fields below but the last are that.
+      model: topic
+      fields:
+        title: { type: text, required: true }
+        body: { type: document }
+        summary: { type: document }
+        status: { type: choice, of: [open, answered, closed, standing] }
+        # Where it is: a workspace's own, or a project's, and never both.
+        # The factory writes these, as a topic is moved, and nobody else.
+        workspace: { type: text, quiet: true, hidden: true }
+        project: { type: text, quiet: true, hidden: true }
+        # Who is told when what is known of it changes.
+        followers: { type: list, quiet: true, hidden: true }
+        # The reply that answered it, by the number it was said at.
+        answer: { type: text, quiet: true }
+        # The page it is under, by its id: nothing for a wiki. The factory
+        # writes it, as a page is made under another and moved.
+        parent: { type: text, quiet: true, hidden: true }
+        # Where it is filed.
+        categories: { type: records, of: categories }
+      views:
+        topics: { kind: table }
+        status: { kind: board, by: status }
+      history:
+        record.created: "{actor} made it"
+        record.updated: "{actor} changed its {changed}"
+        record.removed: "{actor} took it away"
+        record.commented: "{actor} replied: {body}"
+        topic.*: ""

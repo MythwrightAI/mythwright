@@ -1,0 +1,31 @@
+/* The page about the program (views/about.tsx): its mark beside its name, its tabs in its head, a column of a reader's width. */
+.about-page .view-body { max-width: 900px; }
+.about-mark { display: inline-grid; place-items: center; color: var(--accent); flex: none; }
+.about-tabs { min-width: 0; }
+.about-tab { flex: none; white-space: nowrap; }
+.about-panel { min-width: 0; }
+/* The guides beside the one read where there is room, and over it where there is not. */
+.about-docs { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.about-guides { display: flex; flex-direction: column; gap: 2px; min-width: 0; position: sticky; top: 0; }
+.about-guide { justify-content: flex-start; text-align: left; white-space: normal; min-height: calc(30px * var(--tall)); height: auto; padding: 4px 10px; color: var(--dim); }
+.about-guide[aria-current="page"] { color: var(--text); background: var(--bg2); font-weight: 600; }
+.about-read { min-width: 0; }
+@media (max-width: 900px) {
+  .about-docs { grid-template-columns: minmax(0, 1fr); }
+  .about-guides { position: static; flex-direction: row; flex-wrap: wrap; }
+}
+.about-technical { min-width: 0; }
+.about-part { padding: 14px 16px; display: grid; gap: 10px; min-width: 0; }
+.about-part .panel-head { display: flex; align-items: baseline; gap: 10px; }
+.about-part h2 { margin: 0; font-size: calc(14px * var(--size)); }
+.about-part p { margin: 0; }
+.about-facts { display: grid; gap: 6px; margin: 0; }
+.about-fact { display: grid; grid-template-columns: minmax(90px, 140px) minmax(0, 1fr); gap: 12px; }
+.about-fact dt, .about-fact dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.about-packages { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.about-packages li { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; min-width: 0; flex-wrap: wrap; }
+.about-report { margin: 0; padding: 10px 12px; background: var(--bg0); border: 1px solid var(--line); border-radius: calc(6px * var(--round)); white-space: pre-wrap; overflow-wrap: anywhere; font-size: calc(12px * var(--size)); }
+@media (max-width: 600px) {
+  .about-fact { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+.about-differs { color: var(--info); }

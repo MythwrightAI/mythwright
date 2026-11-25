@@ -1,0 +1,76 @@
+/* A project's environments: a table of them, and one opened in the drawer beside it as a row's form is. */
+.envs-body { gap: 16px; }
+.envs-pad { padding: 12px 14px; margin: 0; }
+.envs-table td { overflow-wrap: anywhere; }
+/* A head is never broken inside a word: it keeps to one line, and where the drawer leaves the page too little room the table scrolls in its own box. */
+.envs-table th { white-space: nowrap; }
+.envs-panel { overflow-x: auto; }
+.envs-table tr.current td { background: var(--bg1); }
+.envs-add { padding: 12px 14px; display: grid; gap: 10px; }
+.envs-field { display: grid; gap: 4px; min-width: 0; }
+.envs-field > input { box-sizing: border-box; width: 100%; min-width: 0; max-width: 360px; }
+.envs-foot { justify-content: flex-end; gap: 8px; }
+.envs-opened { min-width: 0; }
+/* In the drawer, whose body keeps its own room at its sides: the parts are divided by a line and no more. */
+.drawer-body:has(> .envs-opened) { padding-top: 0; }
+.envs-opened > .envs-part { padding: 12px 0; }
+.envs-opened > .envs-part:first-child { border-top: 0; }
+.envs-part { padding: 12px 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; min-width: 0; }
+.envs-part h3 { margin: 0; font-size: calc(13px * var(--size)); }
+.envs-part > p { margin: 0; }
+.envs-vars { display: grid; gap: 6px; }
+/* A variable's line: its name, its box, its switch and what takes it away, which wrap as one where there is no room. */
+.envs-var { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.envs-var-name { min-width: 8em; overflow-wrap: anywhere; }
+.envs-var > input:not([type="checkbox"]) { flex: 1 1 12em; min-width: 0; }
+.envs-switch { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.envs-new > button { flex: none; }
+.envs-secret { display: grid; gap: 6px; padding: 6px 0; border-top: 1px dashed var(--line); min-width: 0; }
+.envs-secret:first-of-type { border-top: 0; }
+.envs-secret-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.envs-secret-head > span { min-width: 0; overflow-wrap: anywhere; }
+.envs-secret-agents { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.envs-hand { flex-wrap: wrap; gap: 6px; min-width: 0; }
+.envs-hand > input { min-width: 0; width: 12em; max-width: 100%; }
+.envs-away { justify-items: start; }
+/* What may be done with a secret wraps as one, never a button alone on a line. */
+.envs-secret-acts { display: inline-flex; gap: 8px; flex: none; margin-left: auto; }
+/* In the drawer's width a variable's name is a line over its box, its switch and what takes it away, and a new one's two boxes stand side by side over its button. */
+.envs-opened .envs-var { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; }
+.envs-opened .envs-var-name { grid-column: 1 / -1; min-width: 0; }
+.envs-opened .envs-new { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.envs-opened .envs-new > button { grid-column: 1 / -1; justify-self: start; }
+/* Loaded from a branch: its blueprint, a branch with Fetch and Run beside it that go under it where there is no room, and the run. */
+.envs-loaded .envs-field > input, .envs-loaded .envs-field > select { max-width: none; }
+.envs-branch { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; min-width: 0; }
+.envs-branch > .envs-field { flex: 1 1 14em; }
+.envs-branch select { box-sizing: border-box; width: 100%; min-width: 0; }
+.envs-branch-acts { display: inline-flex; gap: 8px; flex: none; }
+.envs-ran { display: grid; gap: 8px; min-width: 0; }
+.envs-ran > p { margin: 0; overflow-wrap: anywhere; }
+.envs-ran table { width: 100%; }
+.envs-ran td .badge { white-space: nowrap; }
+.envs-ran th:first-child { width: 45%; }
+.envs-ran .code-box { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* What it holds to: each rule its name, what changes it where it may be changed, and what it comes to in words. */
+.envs-rule { display: grid; gap: 4px; min-width: 0; }
+.envs-rule > p { margin: 0; overflow-wrap: anywhere; }
+.envs-rule-name { color: var(--dim); }
+.envs-rule > input { box-sizing: border-box; width: 100%; min-width: 0; }
+.envs-approvers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.envs-approver { display: inline-flex; align-items: center; gap: 2px; padding: 0 0 0 8px; border: 1px solid var(--line); border-radius: calc(10px * var(--round)); max-width: 100%; overflow-wrap: anywhere; }
+.envs-approvers > select { min-width: 0; max-width: 100%; }
+/* The runs under it, a line each: how it went, and what it is of as a link to its page, which wraps. */
+.envs-acted { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.envs-acted > li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; min-width: 0; }
+.envs-acted > li > a { min-width: 0; overflow-wrap: anywhere; }
+.envs-gave { display: grid; gap: 4px; margin: 0; }
+.envs-gave-one { display: grid; grid-template-columns: minmax(6em, auto) minmax(0, 1fr); gap: 8px; }
+.envs-gave-one dt { color: var(--dim); }
+.envs-gave-one dd { margin: 0; overflow-wrap: anywhere; min-width: 0; }
+/* Where the drawer has a phone's width, the run's four columns share it, its step's words wrapping and what it gave cut short (pressed, it is whole under its line), rather than the table being wider than the screen and scrolled in its box as a phone's tables are. */
+@media (max-width: 640px) {
+  .envs-ran th:first-child { width: auto; }
+  .envs-ran td, .envs-ran th { padding-left: 6px; padding-right: 6px; }
+  .envs-ran .panel > table:has(th:nth-child(4)) { min-width: 0; }
+}

@@ -1,0 +1,22 @@
+{
+  "says": "A link that is taken away leaves its card and its issue as they are, and from then nothing of either crosses: a change to the card is not sent, and a change to the issue is not taken.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"given": {"signing.txt": "s3cret"}},
+    {"run": ["secret", "set", "hub-signing", "--file", "{here}/signing.txt"]},
+    {"run": ["caller", "set", "hub", "--topic", "issues.called", "--secret", "hub-signing", "--header", "X-Hub-Signature-256", "--prefix", "sha256="]},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"run": ["record", "remove", "shop-links-1"]},
+    {"run": ["board", "set", "shop-1", "title=Add a basket"], "sets_off": "reworded"},
+    {"given": {"issues/1/title": "Add a trolley", "issues/1/stamp": "s2"}},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 1}, "repository": {"full_name": "acme/shop"}}, "sets_off": "heard"},
+    {"ran": []},
+    {"run": ["record", "show", "shop-1"], "says": "title: Add a basket"},
+    {"holds": {"issues/1": {"title": "Add a trolley", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "s2"}}}
+  ]
+}

@@ -1,0 +1,30 @@
+[package]
+name = "deciding"
+description = "What a fleet's blueprints ask so as to work nothing out themselves: what a turn, a round, a review and a list of things done come to, each a function of plain values and the action that asks it. No agent."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# All tests live in tests/suite. Compiling the library a second time in test
+# mode was the single largest rustc invocation on the previous codebase.
+test = false
+doctest = false
+
+[dependencies]
+blueprint = { workspace = true }
+brand = { workspace = true }
+kernel = { workspace = true }
+conductor = { workspace = true }
+studio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

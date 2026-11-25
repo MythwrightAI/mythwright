@@ -1,0 +1,16 @@
+{
+  "says": "A daemon stopped while the program is saying something public on an issue, the thing said and the program not yet answered, has something on the issue nothing here says was said. Back, the step is not done twice; what was said is found by its mark, and the link keeps which it is.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"stopped_inside": "issue comment", "by": {"run": ["record", "comment", "shop-1", "--public", "Shipping", "on", "Friday."]}, "sets_off": "say"},
+    {"holds": {"said/1": {"1": "ada OWNER\nAda said:\n\nShipping on Friday.\n\n<!-- said {any} -->"}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "sent: c1-1"},
+    {"run": ["read", "shop"], "says": "shop-1 is linked with an issue on GitHub"}
+  ]
+}

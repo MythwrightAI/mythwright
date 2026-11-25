@@ -1,0 +1,51 @@
+# A table of a project's own: rows written by hand, and columns added by
+# whoever looks at it.
+#
+# It is what New… and then Table in the side panel applies for a project,
+# as whoever asked, under the key `table-<name>`. It only starts the table:
+# its rows begin with a title, and what more they are made of is added from
+# the table's head afterwards, as any table's columns are. It never
+# declares a table over one the project has (`anew`): applied again under
+# its own key it is the same done twice, and a name another blueprint, a
+# script or a person made a table of is refused, with nothing of that
+# table changed. Stopping it keeps the table, as stopping anything keeps
+# what it made. A project's fork of it makes another kind of table where
+# one is made from the side panel.
+#
+#   mw apply std/table --project shop --key table-reading --param name=reading
+blueprint: std/table
+version: 1
+description: "Give a project a table of its own: rows written by hand, columns added by whoever looks at it."
+permissions: [projects]
+
+params:
+  name:
+    type: string
+    description: "What the table is called, as the project, its address and the command line know it."
+
+  title:
+    type: string
+    default: ""
+    description: "What it is called for people, where that is other than its name."
+
+  layout:
+    type: string
+    default: table
+    enum: [table, list, gallery]
+    description: "How its rows are first laid out."
+
+steps:
+  table:
+    description: The table, its first column and how it is first laid out.
+    do: collection.ensure
+    with:
+      name: "${params.name}"
+      title: "${params.title}"
+      anew: true
+      fields:
+        title: { type: text, required: true }
+      views:
+        all: { kind: "${params.layout}" }
+
+outputs:
+  name: ${steps.table.out.name}

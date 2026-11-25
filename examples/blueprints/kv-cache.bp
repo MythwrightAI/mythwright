@@ -1,0 +1,68 @@
+# Build a small key-value cache and host it behind a stable address.
+#
+# Apply it to start the cache. Apply it again with a different `version` and
+# the new one is rolled out as a canary: started beside the old, given 10%,
+# then 50%, then all of the traffic, and watched at each stage.
+#
+# It builds with `cargo build -p kv-cache`, so as it stands it is for a
+# checkout of this repository, where that command means something. Built
+# beforehand, it is given the program and told not to build:
+#
+#   cargo build -p kv-cache
+#   apply examples/blueprints/kv-cache.bp --param build=false --param binary=$PWD/target/debug/kv-cache
+#   apply examples/blueprints/kv-cache.bp --param build=false --param binary=$PWD/target/debug/kv-cache --param version=v2
+blueprint: kv-cache
+description: Build the KV cache and host it with canary rollouts.
+permissions: [shell, fleet, blueprints]
+
+params:
+  version:
+    type: string
+    default: v1
+    description: "Reported by the cache; change it to roll out."
+
+  port: { type: int, default: 0, description: "Port of the stable address; 0 picks a free one." }
+  build: { type: bool, default: true, description: "Build the binary first." }
+  binary: { type: string, default: target/debug/kv-cache }
+  observe: { type: duration, default: 20s, description: "How long each rollout stage is watched." }
+
+  fault:
+    type: string
+    default: ""
+    description: "Make this version misbehave, to see a rollback."
+
+steps:
+  check:
+    do: system.check
+    with: { min_free_mem_mb: 128, min_free_disk_mb: 128 }
+
+  build:
+    when: ${params.build}
+    do: shell
+    measure: build
+    timeout: 30m
+    with: { run: cargo build -p kv-cache }
+    watch:
+      - after: 5m
+        emit: { topic: build.slow, msg: build slow, code: 5 }
+      - log: "^error"
+        emit: { topic: build.error }
+
+  host:
+    call: std/slot
+    as: slot
+    with:
+      name: kv-cache
+      listen: ${params.port}
+      observe: "${params.observe}"
+      service:
+        cmd: ["${params.binary}"]
+        env: { KV_VERSION: "${params.version}", KV_FAULT: "${params.fault}" }
+        health: { tcp: true, interval: 200ms }
+    on_fail:
+      - emit: { topic: kv.rollout_failed, version: "${params.version}", reason: "${self.error}" }
+
+outputs:
+  address: ${steps.host.out.address}
+  port: ${steps.host.out.port}
+  version: ${params.version}

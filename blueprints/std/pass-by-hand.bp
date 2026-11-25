@@ -1,0 +1,127 @@
+# A card passed by hand: what becomes of its branch when a person moves
+# the card on from where it is reviewed, where that stage's row says such
+# a card is merged (`by_hand` of the project's `stages`).
+#
+# Agents that approve a card have its branch merged by their stage. A
+# person who passes a card moves it, and the stage merges for them: with
+# what whoever applied the fleet holds, which may be more than whoever
+# moved the card does. So whoever moved it is asked for what merging
+# takes (`actor.holds`, of who the move's event says made it). One who
+# holds `projects:write` has the branch merged as an agents' approval
+# has, and one that no longer merges sent back to whoever worked it. One
+# who does not has passed the card and merged nothing: the card stays
+# where they put it, its branch as it was, and where the fleet reports
+# says so and what to do.
+#
+# When it has done, the card's place is tidied by the stage that worked
+# it (`stage.tidy`), and not before: nothing is tidied from under a
+# merge.
+#
+# To have a pass by hand mean something else in one project, copy this
+# file into its `blueprints/std/` and change it.
+blueprint: std/pass-by-hand
+version: 3
+description: Merge the branch of a card a person passed, where whoever passed it holds what merging takes; say so where they do not.
+permissions: [board, channels, shell, projects]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  title: { type: string, default: "", description: "Its title, for what the merge is called." }
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+  from: { type: string, description: "The column it was passed from." }
+  to: { type: string, description: "The column it was moved to." }
+
+  fail:
+    type: string
+    default: doing
+    description: "Where a card goes whose branch no longer merges."
+
+  actor: { type: string, default: "", description: "Who moved it, as the event of the move says." }
+
+steps:
+  may:
+    description: Whether whoever moved it holds what changing the project's files takes, now.
+    allow_failure: true
+    do: actor.holds
+    with: { actor: "${params.actor}", scope: "projects:write" }
+
+  merged:
+    description: Its work is put into the project's own branch, as a commit of its own that says which card.
+    when: ${ steps.may.out.holds ?? false }
+    allow_failure: true
+    do: place.merge
+    with: { item: "${params.item}", message: "${params.item}: ${params.title}" }
+
+  said:
+    description: Said of the card, for its history.
+    when: ${ steps.merged.out.came == "merged" }
+    do: emit
+    with:
+      topic: card.merged
+      card: "${params.item}"
+      project: "${params.project}"
+      branch: "lane/${params.item}"
+
+  back:
+    description: A branch that no longer merges goes back to whoever worked it, to be brought up to date, as one that agents approved does.
+    when: ${ steps.merged.out.came == "conflict" }
+    do: board.move
+    with:
+      id: "${params.item}"
+      to: "${params.fail}"
+      note: "It was passed, and its branch lane/${params.item} no longer merges into the project's branch as that is now. Merge the project's branch into yours, put right what conflicts, and hand it in again. What git said: ${ steps.merged.out.said ?? '' }"
+
+  stuck:
+    description: Anything else in the way of a merge is a person's to put right, and is said.
+    # Whoever passed it holds what merging takes, and the merge came to none
+    # of the things that are dealt with above: it is stuck, or it failed.
+    when: ${ params.channel != "" && (steps.may.out.holds ?? false) && !(steps.merged.out.came in ["merged", "nothing", "conflict"]) }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item} was passed, and its branch lane/${params.item} could not be merged into the project's: ${ steps.merged.out.why ?? steps.merged.error ?? 'the merge failed' }. It is in ${params.to}, and is not merged; when what is in the way is put right, merge it."
+      detail: "${ steps.merged.out.said ?? steps.merged.error ?? '' }"
+
+  unmerged:
+    description: Said of the card where whoever passed it does not hold what merging takes.
+    when: ${ !(steps.may.out.holds ?? false) }
+    do: emit
+    with:
+      topic: card.unmerged
+      card: "${params.item}"
+      project: "${params.project}"
+      branch: "lane/${params.item}"
+
+  # Said where the fleet reports, with what to do. One of three, by why:
+  # what whoever passed it holds could not be asked; or nobody is known to
+  # ask; or they do not hold it.
+  refused:
+    description: Whoever passed it does not hold what merging takes.
+    when: ${ params.channel != "" && steps.may.out.holds == false && params.actor != "system" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item} was passed by hand, and its branch lane/${params.item} was not merged. Whoever passed it does not hold `projects:write`, and merging into the project's branch takes that here. The card is in ${params.to}. Someone who holds `projects:write` can pass it again (move it back to ${params.from}, and on), or merge the branch themselves."
+
+  refused_unknown:
+    description: Nobody is known to have passed it.
+    when: ${ params.channel != "" && steps.may.out.holds == false && params.actor == "system" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item} was passed by hand, and its branch lane/${params.item} was not merged. Who passed it is not known: it was moved as the daemon went down, and the move was said when it was back. Nobody can be asked whether they hold `projects:write`, and merging into the project's branch takes that here. The card is in ${params.to}. Someone who holds `projects:write` can pass it again (move it back to ${params.from}, and on), or merge the branch themselves."
+
+  refused_unasked:
+    description: What whoever passed it holds could not be asked.
+    when: ${ params.channel != "" && steps.may.failed }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item} was passed by hand, and its branch lane/${params.item} was not merged. What whoever passed it holds could not be asked (${ steps.may.error ?? 'the question failed' }), and merging into the project's branch takes that here. The card is in ${params.to}. Someone who holds `projects:write` can pass it again (move it back to ${params.from}, and on), or merge the branch themselves."
+
+  tidy:
+    description: Finished, its place is tidied by the stage that worked it, now that what was to be merged is.
+    when: ${ params.to == "done" && steps.merged.out.came != "conflict" }
+    do: emit
+    with: { topic: stage.tidy, card: "${params.item}", project: "${params.project}" }

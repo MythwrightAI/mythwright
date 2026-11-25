@@ -1,0 +1,20 @@
+/* An agent's setup in the drawer (`views/agentedit.tsx`): the form that adds one, filled in from what it
+   is now, in parts under headings, with what is closed to whoever reads it said where it is closed and
+   what a save came to said by the daemon over its foot, which stays at the drawer's foot. */
+.setup-form h3 { margin: calc(8px * var(--density)) 0 0; color: var(--dim); font-size: calc(12px * var(--size)); font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; }
+.setup-form label { display: grid; gap: 4px; min-width: 0; }
+.setup-form label.setup-check { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.setup-form label.setup-check > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.setup-form label.setup-check { flex-wrap: wrap; }
+.setup-form label.setup-check > input { flex: none; }
+.setup-form label.setup-check > .setup-check-why { flex-basis: 100%; }
+.setup-form :is(select, textarea, input:not([type=checkbox])) { width: 100%; min-width: 0; box-sizing: border-box; }
+.setup-form .holds-table { width: 100%; }
+/* A part closed to whoever reads it is drawn as it is and moves nothing: a fieldset with nothing of its own. */
+fieldset.field-closed { min-width: 0; margin: 0; padding: 0; border: 0; }
+.setup-closed, .setup-said, .setup-row-said { margin: 0; overflow-wrap: anywhere; }
+.setup-foot {
+  position: sticky; bottom: -14px; z-index: 1; display: flex; align-items: center; gap: 8px;
+  margin: 0 -14px -14px; padding: 12px 14px 14px; background: var(--bg1); border-top: 1px solid var(--line);
+}
+.row-closed { margin: 0; }

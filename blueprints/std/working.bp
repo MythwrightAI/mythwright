@@ -1,0 +1,660 @@
+# A column where cards are worked: what a fleet does with the cards of
+# the column an agent takes them from (`does: work` in a row of the
+# project's `stages`; `std/fleet`, `std/arrangement`).
+#
+# An agent of the row's role does what a card asks, on a branch of its
+# own, in a round (`std/lane-round`: the work, the keeping of it and the
+# sending, with what the project's `segments` lays between). Worked, the
+# card goes to `pass`. As many are worked at once as the role has agents;
+# the rest wait their turn in the column, each a row and no more. Sent
+# back, put in the column again, or answered where its agent asked, a
+# card is taken up again by the same agent in the same conversation,
+# worktree and branch. What the stage keeps of a card it keeps on the
+# card. The row can be changed while work is under way, and this takes
+# what it now says where it is.
+blueprint: std/working
+version: 13
+description: "What a fleet does with the cards of a column where they are worked: an agent of a role works each when its turn has come, and hands it on."
+permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
+# One thing at a time, but for what takes its turn by a card.
+one_at_a_time: true
+
+params:
+  project: { type: string, description: "The project it works in." }
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+  pool: { type: string, default: "", description: "The pool its cards take turns in (`std/pool`)." }
+  segments: { type: list, default: [], description: "The rows of the project's `segments`." }
+  merged_by_hand: { type: list, default: [], description: "Columns whose stage merges by hand." }
+
+  row:
+    type: object
+    description: "The stage's row of the project's `stages`, as the fleet read it, with what the fleet says of every stage beside it: `column`, `role`, `agents` (how many the role has), `pass`, `rounds`, `picks`, `after_restart`, `restarts`, `moved_away`, and `push`, `fetch`, `base`, `remote` and `key`."
+
+state:
+  # Whether the cards that were in its column when its role came to have
+  # agents are still to be looked at.
+  catch_up: false
+  # Whether it is newly there, and has still to take up what a stage
+  # before it left in hand (`took`).
+  anew: false
+
+steps:
+  # A card here is due its turn. With nobody in the role it is left where
+  # it is. Cards are taken up one after another, in the order they became
+  # due, which is the order their places are asked for in. Nothing here
+  # waits; what does (`go`) takes its turn by the card.
+  begun:
+    description: A stage that begins with agents has the cards already in its column to take up, once it is listening (`first`), and what was left in hand by one that was here before it (`took`).
+    do: set
+    with: { catch_up: "${ params.row.agents > 0 }", anew: true }
+
+# Taken where it is when its row changes, and never begun again: what it
+# was in the middle of is finished first.
+on_update:
+  # A role that had nobody has somebody: the cards waiting in the column
+  # are its to take up (`first`). And so are those of another column.
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.agents == 0 }
+    with: { catch_up: true }
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.column != params.row.column }
+    with: { catch_up: true }
+  # What is pressed on a card here changed: a card it no longer holds is due.
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.actions != params.row.actions }
+    with: { catch_up: true }
+
+on:
+  # Each time the stage is as its row now says, its row is looked at.
+  looked:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && params.channel != "" }
+    steps:
+      wrong:
+        description: This stage's row is checked, and what in it would leave a card stuck is said where the fleet reports (`std/looked`). It is said for as long as it is so.
+        call: std/looked
+        as: looked
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          channel: "${params.channel}"
+          row: ${params.row}
+          works: true
+          segments: ${params.segments}
+          usual:
+            - { order: 10, does: std/work }
+            - { order: 20, does: std/keep }
+            - { order: 30, does: std/send }
+
+  # A card arrived in this stage's column. It is due what the stage does,
+  # and that is said as an event of the stage's own, so that a card added
+  # here, the cards that were here before anyone was there for them, and a
+  # review that is to begin again, all ask the same way.
+  arrived:
+    event: board.item.moved
+    for: { project: "${params.project}", to: "${params.row.column}" }
+    do: emit
+    with:
+      topic: stage.due
+      card: "${event.data.id}"
+      project: "${params.project}"
+      stage: "${params.row.column}"
+      note: "${ event.data.note ?? '' }"
+
+  # So is a card that is added there, as the cards of a plan may be:
+  # nobody moved it.
+  added:
+    event: board.item.created
+    for: { project: "${params.project}", status: "${params.row.column}" }
+    do: emit
+    with:
+      topic: stage.due
+      card: "${event.data.id}"
+      project: "${params.project}"
+      stage: "${params.row.column}"
+      note: ""
+
+  # When the stage is first listening with somebody in its role, and each
+  # time it becomes so again with somebody where there was nobody.
+  first:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && state.catch_up }
+    steps:
+      taken:
+        description: Marked as looked at, so that the column is looked at once each time there is reason to.
+        do: set
+        with: { catch_up: false }
+
+      look:
+        description: The cards that were in the column before anyone was there for them are looked at, and each is due what the stage does (`std/due`).
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
+
+  # And when the fleet has been arranged again, where that is said later.
+  staffed:
+    event: fleet.arranged
+    for: { project: "${params.project}" }
+    when: ${state.catch_up}
+    steps:
+      taken:
+        do: set
+        with: { catch_up: false }
+
+      look:
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
+
+  # The pool the cards here take turns in says that it is listening. A
+  # stage and its pool are started side by side, and a place asked for
+  # before the pool could hear was asked of nobody: so each card here is
+  # due again, and asks again. One the pool had heard waits as it did; one
+  # that has its place by now is given a second turn, which its row gives
+  # back (`go`).
+  listening:
+    event: pool.listening
+    for: { pool: "${params.pool}" }
+    when: ${ params.row.agents != 0 }
+    steps:
+      look:
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
+
+  # The stage is newly there, and a stage that had this column before it
+  # may have been stopped with cards in hand (a fleet stopped and applied
+  # again, a row told another kind): a round under way is called off with
+  # the stage that asked for it. Its agent is given such a card in the
+  # conversation it had, told to take it up where it was left. Nobody sent
+  # it back, and it is not counted as sent back.
+  took:
+    event: instance.active
+    scope: own
+    when: ${ event.source.instance == instance.id && state.anew }
+    steps:
+      seen:
+        description: Done once, when the stage is newly there.
+        do: set
+        with: { anew: false }
+
+      again:
+        description: Each card a stage before this one was stopped with in hand is taken up again (`std/resumed`).
+        when: ${ params.row.agents != 0 }
+        call: std/resumed
+        as: resumed
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          column: "${params.row.column}"
+          pool: "${params.pool}"
+
+  # A card here is due what the stage does with one.
+  # With nobody in the role the card is left where it is, to be taken up
+  # when there is somebody. Cards are taken up one after another, in the
+  # order they became due, and not each in a turn of its own: that is the
+  # order their places are asked for in, and so the order they are worked
+  # in, unless the row says its cards are taken another way (`next`),
+  # which its pool goes by: each asks with the card's `priority`. Nothing
+  # here waits; what does (`go`) takes its turn by the card.
+  begun:
+    event: stage.due
+    for: { project: "${params.project}", stage: "${params.row.column}" }
+    when: ${ params.row.agents != 0 }
+    steps:
+      card:
+        description: "The card as it now is: it may have been moved on since it was said to be due, or taken away."
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.card}" }
+
+      due:
+        description: "What the card is due, by its row: its turn; or, where it waits on others and they are not said to be done, to be asked whether they are; or nothing, it having been moved on or taken away. What was said as it was put here, and whether it was worked from here before, are on its row for the round that takes it (`go`)."
+        do: work.due
+        with:
+          found: ${steps.card.ok}
+          status: "${ steps.card.out.status ?? '' }"
+          here: "${params.row.column}"
+          after: ${ steps.card.out.more.after ?? [] }
+          clear: ${ event.data.clear ?? false }
+          # What this column offers to be pressed on it, and what was: a card something holds asks for no place.
+          item: "${event.data.card}"
+          actions: ${ params.row.actions ?? [] }
+          pressed: ${ steps.card.out.pressed ?? [] }
+          moved: ${ steps.card.out.moved ?? [] }
+
+      hold:
+        description: A card that waits for something this column offers to be pressed says so, on itself and to whoever is told what waits for a person, once for each time it comes here. When the last of it is pressed it is due again (`pressed`).
+        when: ${ steps.due.out.came == "held" }
+        do: board.hold
+        with: { id: "${event.data.card}" }
+
+      held:
+        description: A card that waits on others is asked whether they are done, and is taken up when they are (`cleared`). Its board answers, and the card says meanwhile what it waits for (`std/cards`). It asks for no place while it waits.
+        when: ${ steps.due.out.came == "waits" }
+        do: emit
+        with: { topic: after.asked, card: "${event.data.card}", project: "${params.project}" }
+
+      turn:
+        description: "Its turn is asked for by the card's id: one of the places there are (`std/pool`). When it has one its round begins (`go`); a card that has to wait is a row in this column that says so, and nothing is kept waiting for it."
+        when: ${ steps.due.out.came == "turn" && params.pool != "" }
+        do: emit
+        with:
+          topic: pool.asked
+          pool: "${params.pool}"
+          about: "${event.data.card}"
+          as: "${event.data.card}"
+          priority: ${ steps.card.out.ranked.priority ?? 0 }
+
+      at_once:
+        description: Where cards take no turns, a card's turn has come when it is due.
+        when: ${ steps.due.out.came == "turn" && params.pool == "" }
+        do: emit
+        with:
+          topic: pool.granted
+          pool: ""
+          to: "key:${event.data.card}"
+          as: "${event.data.card}"
+          waited: false
+
+  # The last of what held a card here was pressed: it is due.
+  pressed:
+    event: board.item.pressed
+    for: { project: "${params.project}", status: "${params.row.column}" }
+    when: ${event.data.released}
+    do: emit
+    with:
+      topic: stage.due
+      card: "${event.data.id}"
+      project: "${params.project}"
+      stage: "${params.row.column}"
+      note: ""
+
+  # The cards a card waited on are done: it is due, and is not asked again.
+  cleared:
+    event: after.clear
+    for: { project: "${params.project}" }
+    when: ${ params.row.agents != 0 }
+    do: emit
+    with:
+      topic: stage.due
+      card: "${event.data.card}"
+      project: "${params.project}"
+      stage: "${params.row.column}"
+      note: ""
+      clear: true
+
+  # A card's turn has come: it has one of the places, and a round of it
+  # begins (`std/lane-round`). This waits for the round, so what is said
+  # of the card meanwhile is taken up when the round is over; and where the
+  # daemon is stopped in the middle of one, this asks for it again.
+  go:
+    event: pool.granted
+    for: { pool: "${params.pool}" }
+    when: ${ (event.data.as ?? "") != "" }
+    turn: "${event.data.as}"
+    steps:
+      card:
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.as}" }
+
+      turn:
+        description: "What this turn comes to, by what the card's row says and nothing else. A round of it begins; or the turn is given back, because the card is gone or somewhere it is not worked from, or because it is in hand and owed no round. A card can be said to be due twice (the stage's look at its column and the saying of its move may both find it), each asks for its turn, and the second is given when the round has given the first back. And a card that was sent back has its turn come whether or not anything has yet heard of that: its row says where it was moved from and what was said, in the write that moved it, and which of its moves a round has been told of."
+        do: work.turn
+        with:
+          found: ${steps.card.ok}
+          status: "${ steps.card.out.status ?? '' }"
+          here: "${params.row.column}"
+          doing: doing
+          taken: "${ steps.card.out.more.taken ?? '' }"
+          again: ${ steps.card.out.more.again ?? [] }
+          moved: ${ steps.card.out.moved ?? [] }
+          most: ${params.row.rounds}
+          to: "${params.row.pass}"
+          else_to: review
+          at: ${event.seq}
+
+      gone:
+        description: A card that was taken out of the way while it waited its turn, or taken off the board, is not worked, and its place is given back; so is the place of one that is in hand and owed no round. Put in the column again it is taken up again.
+        when: ${ params.pool != "" && steps.turn.out.came != "round" }
+        do: emit
+        with: { topic: pool.released, pool: "${params.pool}", as: "${event.data.as}" }
+
+      taken:
+        description: Said of a card that had to wait, wherever it now is, so that what it waited for comes off it.
+        when: ${ steps.card.ok && (event.data.waited ?? false) }
+        do: emit
+        with: { topic: card.taken, card: "${event.data.as}", project: "${params.project}" }
+
+      mine:
+        description: "The card is this stage's from here, and says so on itself: the column it was taken from, and which of its moves this round is told of, which is what says a round has had it."
+        when: ${steps.turn.out.mine}
+        allow_failure: true
+        do: board.update
+        with:
+          id: "${event.data.as}"
+          fields: { taken: "${params.row.column}", again: "${steps.turn.out.again}" }
+
+      unkept:
+        description: A board that keeps no `taken` of its cards cannot say whose a card is while it is worked, and nothing here is kept anywhere else. The card is left where it is, and what to do is said where the fleet reports.
+        when: ${ steps.mine.failed && params.channel != "" }
+        do: channel.post
+        with:
+          channel: "${params.channel}"
+          body: "${event.data.as} was not begun: the project's board keeps no `taken` of its cards, which is where a stage says a card is its own while it is worked. Apply `std/board` to the project again, or give a board of the project's own the fields `taken` (text) and `again` (list); then put the card in ${params.row.column} again."
+          detail: "${ steps.mine.error ?? '' }"
+
+      told:
+        description: What whoever works it was to be told goes with this round, and the card's row says which of its moves a round has now been told of.
+        when: ${ steps.turn.out.came == "round" && !steps.turn.out.mine }
+        allow_failure: true
+        do: board.update
+        with: { id: "${event.data.as}", fields: { again: "${steps.turn.out.again}" } }
+
+      round:
+        description: The round. One that fails has said so itself, and is what is reported; the card then stays in doing, and made ready again is taken up again, with its worktree and its conversation where they were left.
+        when: ${ steps.turn.out.came == "round" && !steps.mine.failed }
+        call: std/lane-round
+        as: "round-${event.data.as}"
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          item: "${event.data.as}"
+          channel: "${params.channel}"
+          role: "${params.row.role}"
+          picks: "${params.row.picks}"
+          after_restart: "${params.row.after_restart}"
+          restarts: ${params.row.restarts}
+          refused_means: "${ params.row.refused_means ?? 'note' }"
+          finish: ${ params.row.finish ?? [] }
+          later: ${ params.row.later ?? [] }
+          lasts: "${ params.row.lasts ?? '' }"
+          from: "${params.row.column}"
+          push: ${params.row.push}
+          fetch: ${params.row.fetch}
+          base: "${params.row.base}"
+          remote: "${params.row.remote}"
+          key: "${params.row.key}"
+          # The place it has was asked for here, and is the round's to give back.
+          place: "${params.pool}"
+          # What the project's `segments` lays into a round here, and where in that list the card asked.
+          segments: ${params.segments}
+          of: { stage: "${params.row.title}" }
+          at: ${ steps.card.out.more.at ?? [] }
+          most_done: ${params.row.most}
+          most_of: "${params.row.id}"
+          # What the turn came to (`turn`): which round this is, so that asked for again here it is given the turn it had (`asking`); where the card goes on to; why it comes and what its agent is told; how often it has been given again and how often at most; and which of its moves the round is told of, to hand on only a card still as it has it.
+          ...: ${steps.turn.out.round}
+
+      unasked:
+        description: What its agent had in hand of the card when the daemon was last stopped, begun again as it started, is called off where the round asked for again did not ask for it (somebody moved the card away meanwhile), so that its agent does not work the card with nobody waiting for it.
+        when: ${ steps.turn.out.came == "round" }
+        do: agent.let_go
+        with: { under: "round-${event.data.as}" }
+
+      now:
+        description: The card as it is once its round is over, for whether somebody moved it away from the round while its agent was at it (`away`).
+        when: ${ steps.turn.out.came == "round" }
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.as}" }
+
+      ended:
+        description: What the round's ending comes to here. Where what its agent changed could not be committed, and that is the agent's to put right, the card is given to it again, told what git said, as one sent back is; a round that did not get as far as giving its place back, or that was never begun, has it given back. One stopped because somebody moved its card away has not failed, and leaves the card for nobody.
+        when: ${ steps.turn.out.came == "round" }
+        do: work.ended
+        with:
+          gave: ${steps.round.out}
+          failed: ${steps.round.failed}
+          untaken: ${steps.mine.failed}
+          tries: ${steps.turn.out.tries}
+          reason: "${ steps.round.reason ?? '' }"
+          status: "${ steps.now.out.status ?? '' }"
+          here: "${params.row.column}"
+          doing: doing
+          moved: ${ steps.now.out.moved ?? [] }
+          heard: ${steps.turn.out.heard}
+
+      asked:
+        description: What its agent asked instead of working is said of the card, for the card's own blueprint to put on it. Said here and not by the round, which keeps nothing and is begun again where the daemon stopped before it was over; said there, it was said a second time, and after somebody had answered it was back on the card. A round of a project's own that says its question itself gives no asker, and nothing is said for it here.
+        when: ${steps.ended.out.asks}
+        do: emit
+        with:
+          topic: card.asked
+          card: "${event.data.as}"
+          project: "${params.project}"
+          asker: "${steps.ended.out.asker}"
+          question: "${steps.ended.out.question}"
+
+      left:
+        description: A round that left its card for a person, or that failed, which leaves it too, is said of the card with why. Said here and not by the round, as what its agent asked is, so that it is said once.
+        when: ${steps.ended.out.left}
+        do: emit
+        with:
+          topic: card.left
+          card: "${event.data.as}"
+          project: "${params.project}"
+          why: "${steps.ended.out.leaves}"
+          as: "${ steps.round.out.left_as ?? '' }"
+
+      given_again:
+        description: What its agent changed could not be committed and is the agent's to put right, or something done with the card in its round sent it back. The card is given to its agent again, told what was said, as one sent back is; how often is kept on the card, and the round says when that is often enough.
+        when: ${ steps.ended.out.came == "again" }
+        allow_failure: true
+        do: board.update
+        with: { id: "${event.data.as}", fields: { again: "${steps.ended.out.again}" } }
+
+      once_more:
+        description: Its turn is asked for again (`once_more`, below).
+        when: ${steps.given_again.ok}
+        do: emit
+        with:
+          topic: stage.again
+          card: "${event.data.as}"
+          project: "${params.project}"
+          stage: "${params.row.column}"
+
+      freed:
+        description: A round that did not get as far as giving its place back, or that was never begun, has it given back here.
+        when: ${ params.pool != "" && steps.ended.out.came == "freed" }
+        do: emit
+        with: { topic: pool.released, pool: "${params.pool}", as: "${event.data.as}" }
+
+  # A card given to its agent again without having left where it is worked
+  # (not kept, sent back, answered) asks for its turn as it did when due.
+  once_more:
+    event: stage.again
+    for: { project: "${params.project}", stage: "${params.row.column}" }
+    turn: "${event.data.card}"
+    steps:
+      card:
+        description: "The card as it now is, for the priority its turn is asked with."
+        when: ${ params.pool != "" }
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.card}" }
+
+      turn:
+        when: ${ params.pool != "" }
+        do: emit
+        with:
+          topic: pool.asked
+          pool: "${params.pool}"
+          about: "${event.data.card}"
+          as: "${event.data.card}"
+          priority: ${ steps.card.out.ranked.priority ?? 0 }
+
+      at_once:
+        when: ${ params.pool == "" }
+        do: emit
+        with:
+          topic: pool.granted
+          pool: ""
+          to: "key:${event.data.card}"
+          as: "${event.data.card}"
+          waited: false
+
+  # Sent back, from review or whatever looked at it after, a card that was
+  # worked from here goes round again: the same agent, conversation,
+  # worktree and branch, told what was said. A card sent back to this
+  # stage's own column comes as any card does (`arrived`).
+  back:
+    event: board.item.moved
+    for: { project: "${params.project}", to: doing }
+    when: ${ event.data.from != params.row.column }
+    turn: "${event.data.id}"
+    steps:
+      card:
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.id}" }
+
+      again:
+        description: Its turn is asked for again (`once_more`), where it is this stage's and there is somebody to work it. What was said as it was sent back is on its row, written with the move, and is what its next round is told (`go`).
+        when: ${ steps.card.out.more.taken == params.row.column && params.row.agents != 0 }
+        do: emit
+        with:
+          topic: stage.again
+          card: "${event.data.id}"
+          project: "${params.project}"
+          stage: "${params.row.column}"
+
+  # What someone says on a card while it waits on what its agent asked is
+  # the answer, which the cards' own blueprint says (`card.answered`): the
+  # card is taken up again with it.
+  answered:
+    event: card.answered
+    for: { project: "${params.project}" }
+    when: ${ params.row.agents != 0 }
+    turn: "${event.data.card}"
+    steps:
+      card:
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.card}" }
+
+      kept:
+        description: The answer is kept on the card for its next round.
+        when: ${ steps.card.out.more.taken == params.row.column }
+        do: board.update
+        with: { id: "${event.data.card}", fields: { again: ["answer", "${event.data.body}"] } }
+
+      again:
+        description: Its turn is asked for again (`once_more`).
+        when: ${steps.kept.ok}
+        do: emit
+        with:
+          topic: stage.again
+          card: "${event.data.card}"
+          project: "${params.project}"
+          stage: "${params.row.column}"
+
+  # A card somebody moved out of doing while its agent was at it: its
+  # round is stopped, as the stage's row says (`moved_away`), its agent's
+  # turn called off and what it changed left where it was, and the card
+  # keeps that it was taken out of its agent's hands, so that brought
+  # back it is taken up where it was left (`go`). A move a blueprint
+  # made (a round handing its card on) is no card taken away, and is not
+  # heard. No turn is taken to
+  # stop a round that still has the card, since the turn is what the
+  # round is waited for in.
+  away:
+    event: board.item.moved
+    for: { project: "${params.project}", from: doing }
+    when: ${ event.data.through == null }
+    steps:
+      card:
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.id}" }
+
+      away:
+        description: "Whether the card was moved away from a round of this stage's by somebody, and what becomes of the round: stopped, or let finish, by the row."
+        when: ${steps.card.ok}
+        do: work.away
+        with:
+          from: "${event.data.from}"
+          to: "${event.data.to}"
+          here: "${params.row.column}"
+          doing: doing
+          taken: "${ steps.card.out.more.taken ?? '' }"
+          again: ${ steps.card.out.more.again ?? [] }
+          how: "${ params.row.moved_away ?? '' }"
+
+      kept:
+        description: The card keeps that it was taken out of its agent's hands, before its round is stopped, so that whatever hears the round end finds it so.
+        when: ${ steps.away.out.came == "stop" }
+        allow_failure: true
+        do: board.update
+        with: { id: "${event.data.id}", fields: { again: "${steps.away.out.again}" } }
+
+      stopped:
+        description: Its round is stopped where it is, and its agent's turn is called off.
+        when: ${ steps.away.out.came == "stop" }
+        do: stop
+        with: { instance: "round-${event.data.id}", missing_ok: true }
+
+  # A card that was worked from here is done. No turn is taken to end a
+  # round that still has it, since the turn is what the round is waited
+  # for in. And its place is to be tidied away: not where a person passed
+  # it from a column whose stage merges what is passed by hand, which says
+  # so itself when it has done.
+  done:
+    event: board.item.moved
+    for: { project: "${params.project}", to: done }
+    steps:
+      over:
+        description: A round that still has the card, somebody having moved it to done themselves, is ended where it is.
+        do: stop
+        with: { instance: "round-${event.data.id}", missing_ok: true }
+
+      tidy:
+        when: ${ event.data.through != null || !(event.data.from in params.merged_by_hand) }
+        do: emit
+        with: { topic: stage.tidy, card: "${event.data.id}", project: "${params.project}" }
+
+  # The daemon has started: a card moved as it went down, with nobody told,
+  # has its move said now (`std/owed`), and what would have heard it then
+  # hears it.
+  started:
+    event: system.started
+    steps:
+      owed:
+        call: std/owed
+        as: "owed-${params.project}-${params.row.column}"
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
+
+  # Its place is tidied away: only the conductor removes a card's worktree.
+  tidied:
+    event: stage.tidy
+    for: { project: "${params.project}" }
+    turn: "${event.data.card}"
+    steps:
+      card:
+        allow_failure: true
+        do: board.get
+        with: { id: "${event.data.card}" }
+
+      tidy:
+        description: The worktree of a card this stage took is removed, and its branch with it when nothing would be lost; the card is then nobody's to work (`std/cleared`). Whose the card is, is read here and kept, so that tidying begun again where the daemon stopped in the middle of it is of the same card and says what it said.
+        when: ${ steps.card.out.more.taken == params.row.column }
+        allow_failure: true
+        call: std/cleared
+        as: "cleared-${event.data.card}"
+        with:
+          project: "${params.project}"
+          item: "${event.data.card}"
+          remote: "${params.row.remote}"
+
+      said:
+        description: Said where the work was reported, when something was kept and why, or when git would not do what was asked.
+        when: ${ params.channel != "" && (steps.tidy.out.says ?? "") != "" }
+        do: channel.post
+        with: { channel: "${params.channel}", body: "${steps.tidy.out.says}" }

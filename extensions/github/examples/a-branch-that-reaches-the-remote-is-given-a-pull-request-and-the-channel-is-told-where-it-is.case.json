@@ -1,0 +1,16 @@
+{
+  "says": "When a lane says its branch reached the remote, the branch is given a pull request with the card's title, and the card's body and id under it; where it is, is said in the project's channel.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"given": {"pushed.bp": "blueprint: pushed\nsteps:\n  say: { do: emit, with: { topic: card.pushed, card: shop-1, project: shop, branch: \"lane/shop-1\", remote: origin, title: \"Add a cart\" } }\n"}},
+    {"apply": "pull-requests", "project": "shop"},
+    {"ran": ["auth status"]},
+    {"run": ["apply", "{here}/pushed.bp", "--force"], "sets_off": "pushed"},
+    {"ran": ["pr list --head=lane/shop-1 --state=open --json=number,url --limit=1", "pr create --head=lane/shop-1 --title=Add a cart --body=Customers need one.\\n\\nCard shop-1"]},
+    {"holds": {"pulls": {"lane-shop-1": "1"}}},
+    {"run": ["read", "shop"], "says": "shop-1: a pull request for its branch lane/shop-1 is open at https://github.example/acme/shop/pull/1"}
+  ]
+}

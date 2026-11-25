@@ -1,0 +1,48 @@
+# A snapshot: a copy of this factory, written to a folder, to start another
+# factory from.
+#
+# Factories share nothing, and nothing copies one into another by itself.
+# This is the one way to ask for it: the factory writes what it holds to a
+# folder, and a new factory is started from that folder,
+#
+#   mw --profile prod apply std/snapshot --param to=/somewhere/prod-copy
+#   mw up --profile dev2 --from /somewhere/prod-copy
+#
+# so that something can be tried against real content with no way of
+# touching the factory it came from. This factory is only read.
+#
+# The folder holds the database as it was at one moment, what was attached
+# to messages, the installed extensions, and the files of the projects kept
+# in the factory's own projects folder; and `snapshot.json`, which says
+# what it is, when and from which factory it was made, and what was left
+# out. Nothing in it is signed in and nothing in it is running: sessions,
+# credentials and invitations are not in it, and what was running is in it
+# as stopped. docs/profiles.md has the whole list.
+#
+# It does hold people's password hashes and everything said in every
+# channel. Keep the folder as you keep the factory's own data. It is not a
+# backup: a factory could not be put back from it as it was.
+#
+# Only the owner can apply this: it takes `admin`.
+blueprint: std/snapshot
+version: 1
+description: Write a copy of this factory to a folder, to start another factory from.
+permissions: [admin]
+
+params:
+  to:
+    type: string
+    description: "The folder to write it to, by its whole path: one that does not exist yet, or an empty one, outside the factory's data and its projects."
+
+steps:
+  snapshot:
+    description: The copy, written while the factory carries on. Nothing here is changed.
+    do: factory.snapshot
+    with: { to: "${params.to}" }
+
+outputs:
+  to: ${steps.snapshot.out.to}
+  snapshot: ${steps.snapshot.out.snapshot}
+  made: ${steps.snapshot.out.made}
+  files: ${steps.snapshot.out.files}
+  left_out: ${steps.snapshot.out.left_out}

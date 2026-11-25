@@ -1,0 +1,20 @@
+{
+  "says": "A row of `links` that names a card has an issue made for it, with the card's title and body and the card's mark under them, and the link then says which issue it is. Asked again what changed, nothing is made or changed.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"holds": {"issues/1": {"title": "Add a cart", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "t1"}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "issue: 1"},
+    {"run": ["record", "show", "shop-links-1"], "says": "url: https://github.example/acme/shop/issues/1"},
+    {"run": ["read", "shop"], "says": "shop-1 is linked with an issue on GitHub: https://github.example/acme/shop/issues/1"},
+    {"run": ["emit", "issues.look", "project=shop"], "sets_off": "look"},
+    {"ran": ["{issues-changed}"]},
+    {"holds": {"issues/1": {"title": "Add a cart", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "t1"}}}
+  ]
+}

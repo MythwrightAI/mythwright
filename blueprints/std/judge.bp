@@ -1,0 +1,161 @@
+# How the entries of a card's A/B test are judged where judges pick: one
+# judge (`seats: 1`), or a council of several who each pick for
+# themselves, side by side, and what their picks come to with `needed`
+# of them agreeing (`contest.tally`). A test names the judging it is
+# judged by, so a project's own takes this one's place as a segment does.
+#
+# Or a council that talks it over and concludes (`council: talks`): its
+# seats talk a stretch at a time, each shown what the others said so
+# far, until enough of them would take one entry or it may talk no more
+# (`std/judge-talk`, and `contest.talked` for what each stretch comes to).
+blueprint: std/judge
+version: 2
+description: "Have a card's A/B test judged by one judge or a council, each picking the entry that does best what the card asks."
+durable: false
+permissions: [board, agents, blueprints]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  entries: { type: list, description: "The entries to judge, as their rows say them." }
+
+  judge_slot:
+    type: string
+    default: ""
+    description: "The agent who judges, where one is named."
+
+  judge_role: { type: string, default: reviewer, description: "Else the role whose agents judge." }
+  seats: { type: int, default: 1, description: "How many judge, each for itself." }
+
+  stretches:
+    type: int
+    default: 3
+    description: "How many stretches a council that talks may take before nothing is decided."
+
+  needed:
+    type: int
+    default: 0
+    description: "How many have to agree on one entry; the one picked most, alone, if 0."
+
+  council:
+    type: string
+    default: votes
+    description: "How several come to one answer: `votes`, each for itself; or `talks`, talking it over a stretch at a time."
+
+  told:
+    type: string
+    default: ""
+    description: "What the test says to its judges, in its own words."
+
+  then:
+    type: string
+    default: person
+    description: "Taken by a judging that scores; not this one's."
+
+  scale: { type: int, default: 10, description: "Taken by a judging that scores; not this one's." }
+
+  blind:
+    type: bool
+    default: true
+    description: "Whether the judges know the entries by letters alone."
+
+  not:
+    type: list
+    default: []
+    description: "Agents that may not judge: those that worked an entry."
+
+  asking:
+    type: string
+    default: ""
+    description: "Which round of the card this is, for asking each judge once."
+
+steps:
+  shown:
+    description: What the judges are shown of each entry, by its letter, and who judges.
+    do: contest.shown
+    with: { entries: "${params.entries}", blind: "${params.blind}", seats: "${params.seats}" }
+
+  card:
+    do: board.get
+    with: { id: "${params.item}" }
+
+  talked:
+    description: A council that talks it over does so a stretch at a time, until enough of it agree or it may talk no more.
+    when: ${ params.council == "talks" }
+    needs: [shown, card]
+    call: std/judge-talk
+    as: "talk-${params.item}-1"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      entries: ${params.entries}
+      judge_slot: "${params.judge_slot}"
+      judge_role: "${params.judge_role}"
+      not: ${params.not}
+      seats: ${steps.shown.out.seated}
+      letters: ${steps.shown.out.letters}
+      title: "${steps.card.out.title}"
+      body: "${steps.card.out.body}"
+      told: "${params.told}"
+      shown: "${steps.shown.out.text}"
+      needed: ${params.needed}
+      most: ${params.stretches}
+      asking: "${params.asking}"
+
+  asks:
+    description: What each judge is asked, which is `prompts/judge.md` with how a judge that picks answers.
+    when: ${ params.council != "talks" }
+    needs: [shown, card]
+    do: text.put
+    with:
+      parts:
+        - from: judge.md
+          with:
+            item: "${params.item}"
+            title: "${steps.card.out.title}"
+            body: "${steps.card.out.body}"
+            told: "${params.told}"
+            how: [{ from: judge/pick.md }]
+            shown: "${steps.shown.out.text}"
+
+  seated:
+    description: Every judge looks at once, each for itself.
+    when: ${ params.council != "talks" }
+    needs: [asks]
+    for_each: ${steps.shown.out.seated}
+    spawn: std/judge-seat
+    as: "${item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      seat: "${item}"
+      judge_slot: "${params.judge_slot}"
+      judge_role: "${params.judge_role}"
+      not: ${params.not}
+      letters: ${steps.shown.out.letters}
+      prompt: "${steps.asks.out.text}"
+      asking: "${params.asking}"
+
+  all:
+    description: And is waited for, until every one of them has picked.
+    when: ${ params.council != "talks" }
+    needs: [seated]
+    do: wait
+    with: { ended: "${steps.shown.out.seated}" }
+
+  tally:
+    description: What their picks come to.
+    when: ${ params.council != "talks" }
+    needs: [all]
+    do: contest.tally
+    with:
+      entries: "${params.entries}"
+      picks: "${steps.all.out.gave}"
+      needed: "${params.needed}"
+
+outputs:
+  judged: "${ steps.tally.out.came ?? steps.talked.out.judged ?? '' }"
+  winner: "${ steps.tally.out.winner ?? steps.talked.out.winner ?? '' }"
+  why: "${ steps.tally.out.why ?? steps.talked.out.why ?? '' }"
+  said: ${ steps.tally.out.verdicts ?? steps.talked.out.said ?? [] }
+  by: "${ params.judge_slot ?? '' }"

@@ -1,0 +1,78 @@
+{
+  "says": "A project whose folder is a repository with a remote on GitHub has its Git page show the repository's open pull requests, its open issues and its workflow runs, each read by the program as it is now, as whoever runs the daemon is signed in.",
+  "steps": [
+    {
+      "repository": "shop",
+      "remote": "https://github.com/acme/shop.git"
+    },
+    {
+      "run": [
+        "project",
+        "create",
+        "--bare",
+        "Shop",
+        "--path",
+        "{here}/shop"
+      ]
+    },
+    {
+      "given": {
+        "listed/pulls": "[{\"number\": 12, \"title\": \"Fix the cart\", \"by\": \"bo\", \"branch\": \"lane/shop-4\", \"draft\": false, \"review\": \"approved\", \"checks\": \"2 success\", \"url\": \"https://github.com/acme/shop/pull/12\", \"updated\": \"2026-11-20T10:00:00Z\"}]",
+        "listed/issues": "[{\"number\": 3, \"title\": \"Prices are wrong\", \"by\": \"ada\", \"labels\": [\"bug\", \"shop\"], \"url\": \"https://github.com/acme/shop/issues/3\", \"updated\": \"2026-11-19T09:00:00Z\"}]",
+        "listed/runs": "[{\"name\": \"Gate\", \"title\": \"Fix the cart\", \"branch\": \"lane/shop-4\", \"state\": \"success\", \"url\": \"https://github.com/acme/shop/actions/runs/99\", \"at\": \"2026-11-20T10:05:00Z\"}]"
+      }
+    },
+    {
+      "run": [
+        "project",
+        "git",
+        "shop",
+        "--parts"
+      ],
+      "says": "Fix the cart"
+    },
+    {
+      "ran": [
+        "pr list {pulls-listed}",
+        "issue list {issues-listed}",
+        "run list {runs-listed}"
+      ]
+    },
+    {
+      "run": [
+        "project",
+        "git",
+        "shop",
+        "--parts"
+      ],
+      "says": "Prices are wrong"
+    },
+    {
+      "run": [
+        "project",
+        "git",
+        "shop",
+        "--parts"
+      ],
+      "says": "https://github.com/acme/shop/actions/runs/99"
+    },
+    {
+      "run": [
+        "project",
+        "git",
+        "shop"
+      ],
+      "says": "commits of HEAD"
+    },
+    {
+      "ran": [
+        "pr list {pulls-listed}",
+        "issue list {issues-listed}",
+        "run list {runs-listed}",
+        "pr list {pulls-listed}",
+        "issue list {issues-listed}",
+        "run list {runs-listed}"
+      ]
+    }
+  ]
+}

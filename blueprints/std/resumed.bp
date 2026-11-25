@@ -1,0 +1,66 @@
+# The cards a stage that was stopped left in hand are taken up again by
+# the stage that now has their column (`std/working`, as it is first
+# there).
+#
+# A fleet stopped and applied again has what it does with the cards of
+# each column started anew, and a round that was under way is called off
+# with the stage that asked for it. Such a card is in `doing`,
+# taken from the stage's column, and its row says that a round of it was
+# begun and nothing more (`work.left`). The place it holds in the pool is
+# given back: it holds one by name, which nothing else gives back. Its
+# row says that it is taken up again, which is what its agent is told in
+# the conversation it had: nobody sent the card back, and it is not
+# counted as sent back. And its turn is asked for.
+#
+# It keeps nothing as it goes: done twice, a card whose row already says
+# it is taken up again is no longer one that was left.
+blueprint: std/resumed
+version: 2
+description: "Take up again the cards that a stage which was stopped left in hand: each gives its place back, says so on itself, and has its turn asked for."
+durable: false
+permissions: [board, records]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  column: { type: string, description: "The column the cards were taken from." }
+  pool: { type: string, default: "", description: "The pool they take turns in." }
+
+steps:
+  cards:
+    description: The board's cards, each as its row stands.
+    allow_failure: true
+    do: rows.read
+    with: { project: "${params.project}", collection: board }
+
+  left:
+    description: Which of them were left in hand from this column, by their rows.
+    when: ${steps.cards.ok}
+    do: work.left
+    with: { items: "${steps.cards.out.rows}", doing: doing, worked: ["${params.column}"] }
+
+  freed:
+    description: The place each holds is given back.
+    when: ${ params.pool != "" }
+    for_each: ${ steps.left.out.given ?? [] }
+    do: emit
+    with: { topic: pool.released, pool: "${params.pool}", as: "${item}" }
+
+  marked:
+    description: Each says on itself that it is taken up again, which is what its next round is told.
+    for_each: ${ steps.left.out.given ?? [] }
+    allow_failure: true
+    do: board.update
+    with: { id: "${item}", fields: { again: [resumed, ""] } }
+
+  again:
+    description: And its turn is asked for.
+    for_each: ${ steps.left.out.given ?? [] }
+    do: emit
+    with:
+      topic: stage.again
+      card: "${item}"
+      project: "${params.project}"
+      stage: "${params.column}"
+
+outputs:
+  given: ${ steps.left.out.given ?? [] }

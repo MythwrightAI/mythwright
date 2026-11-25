@@ -1,0 +1,1 @@
+This card was sent back with nothing said. Look at the card, and at what you did and said before, to find what is wrong, and put it right. If you cannot tell what is wrong, do not hand it on as it is: ask, as is said below.

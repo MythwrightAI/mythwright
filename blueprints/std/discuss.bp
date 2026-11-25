@@ -1,0 +1,128 @@
+# A channel whose agents talk things over with each other in its threads,
+# and bring a person in only for what a person must decide.
+#
+#   mw apply std/discuss --key discuss-design --param channel=design \
+#       --param 'agents=["assistant: answers people", "architect: technical advice"]'
+#
+# A discussion is begun by an agent naming another that takes part, by an
+# agent saying what it answered is a plan, or by a person asking two or
+# more of them to discuss something (`on`). It goes a turn at a time in a
+# thread under what began it, up to `turns` turns, and ends agreed or
+# needing a person, who is told in their inbox; their answer in the thread
+# lets it go on. Whose turn it is and what is said as it ends are decided
+# by `discussion.next` and `discussion.ending`; each stretch is one
+# `std/discussion`.
+#
+# With a `lead`, a person in the channel talks to the lead alone, which
+# consults its `advisors` in a thread and then answers the person with
+# what was agreed.
+blueprint: std/discuss
+version: 1
+description: Have a channel's agents talk things over in its threads, and bring a person in only to decide.
+permissions: [channels, agents, inbox, blueprints]
+
+params:
+  channel: { type: string, description: "The channel, by its name or id." }
+
+  agents:
+    type: list
+    default: []
+    description: "Who talk things over as equals, each `name: what it is for`, which the others are told."
+
+  lead:
+    type: string
+    default: ""
+    description: "The agent a person talks to: what a person says naming no agent is its alone. None, if empty."
+
+  advisors:
+    type: list
+    default: []
+    description: "Whom the lead consults, each `name: what it is for`: technical advice, confirming a plan."
+
+  on:
+    type: list
+    default: [tagged, plans, asked]
+    description: "What begins a discussion: `tagged`, an agent names another; `plans`, an agent says what it answered is a plan; `asked`, a person asks two or more to discuss something."
+
+  turns:
+    type: int
+    default: 6
+    description: "How many turns agents take in one stretch before a person is asked: 1 to 20."
+
+  agreeing:
+    type: string
+    default: one
+    enum: [one, all]
+    description: "How a discussion is agreed: `one` agrees once everyone has spoken, or `all` agree."
+
+  tell_on:
+    type: list
+    default: [agree, needs, cap]
+    description: "Which endings the person is told of in their inbox: `agree`, `needs` a person, or the `cap` reached."
+
+state:
+  channel: ""  # the channel's id, once it is offered
+  settings: {}  # what it offers, as it is kept
+
+steps:
+  offer:
+    description: The channel offers its agents discussions, as these params say.
+    do: discussion.offer
+    with:
+      channel: "${params.channel}"
+      agents: ${params.agents}
+      lead: "${params.lead}"
+      advisors: ${params.advisors}
+      on: ${params.on}
+      turns: ${params.turns}
+      agreeing: "${params.agreeing}"
+      tell_on: ${params.tell_on}
+
+  remember:
+    do: set
+    with: { channel: "${steps.offer.out.channel}", settings: "${steps.offer.out.settings}" }
+
+on:
+  begun:
+    event: channel.discussion.begun
+    # A channel may be a project's or nobody's, whatever this was applied
+    # for: so it hears the whole factory, and `when` holds it to its own.
+    scope: fleet
+    when: ${ event.data.channel == state.channel }
+    steps:
+      stretch:
+        description: The discussion is held in its thread, a stretch at a time.
+        spawn: std/discussion
+        as: "discussion-${event.data.root}-${event.data.stretch}"
+        with:
+          channel: "${event.data.channel}"
+          channel_name: "${event.data.channel_name}"
+          root: "${event.data.root}"
+          stretch: ${event.data.stretch}
+          agents: ${event.data.agents}
+          spoken: ${event.data.spoken}
+          first: "${event.data.first}"
+          settings: "${state.settings}"
+
+  resumed:
+    event: channel.discussion.resumed
+    scope: fleet
+    when: ${ event.data.channel == state.channel }
+    steps:
+      stretch:
+        description: A person answered it, and it goes on in another stretch.
+        spawn: std/discussion
+        as: "discussion-${event.data.root}-${event.data.stretch}"
+        with:
+          channel: "${event.data.channel}"
+          channel_name: "${event.data.channel_name}"
+          root: "${event.data.root}"
+          stretch: ${event.data.stretch}
+          agents: ${event.data.agents}
+          spoken: ${event.data.spoken}
+          first: "${event.data.first}"
+          settings: "${state.settings}"
+
+on_stop:
+  - do: discussion.withdraw
+    with: { channel: "${state.channel}" }

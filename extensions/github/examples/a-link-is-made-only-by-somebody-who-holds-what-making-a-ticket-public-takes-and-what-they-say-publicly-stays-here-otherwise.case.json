@@ -1,0 +1,18 @@
+{
+  "says": "A row of `links` is added only by somebody who holds `extensions:github`, which is what running the program takes: a key that holds less is refused. And something such a key says publicly on a card somebody else linked is not said on the issue, which is said where the project reports.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"key": "narrow", "scopes": ["board", "records", "channels", "projects"]},
+    {"run": ["record", "add", "shop", "links", "card=shop-1", "--token", "{key:narrow}"], "refused": "extensions:github"},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"run": ["record", "comment", "shop-1", "--public", "Ship", "it.", "--token", "{key:narrow}"], "sets_off": "say"},
+    {"ran": []},
+    {"run": ["read", "shop"], "says": "was marked public and was not said on its issue on GitHub: whoever said it does not hold `extensions:github`"}
+  ]
+}

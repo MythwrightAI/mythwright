@@ -1,0 +1,16 @@
+{
+  "says": "A row of `links` that names a card and the number of an issue ties two tickets that were there already. Where they differ, having never agreed, the side that was said is taken: the card's unless this was told otherwise.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"given": {"issues/5/title": "Cart", "issues/5/body": "Old words.", "issues/5/state": "OPEN", "issues/5/stamp": "s1"}},
+    {"run": ["record", "add", "shop", "links", "card=shop-1", "issue=5"], "sets_off": "keep"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=5 {issue-whole}", "issue edit 5 --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->"]},
+    {"holds": {"issues/5": {"title": "Add a cart", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "t1"}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "agreed_title: Add a cart"}
+  ]
+}

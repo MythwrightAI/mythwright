@@ -1,0 +1,33 @@
+# Says something after a while: waits so long, then says `later.over`
+# with what it is about and what it is handed. Whatever is to hear when a while is over
+# spawns this and hears it from its own tree (`scope: own`): `std/chain`
+# does, for a rung that says how long a card may wait at it.
+#
+# It is kept as it goes, so a daemon stopped while it waits goes on
+# waiting for what was left of the while when it is back, by the clock.
+blueprint: std/later
+version: 1
+description: "Wait so long, then say that the while is over, with what it was handed."
+permissions: []
+
+params:
+  after: { type: string, description: "How long, as `4h`." }
+
+  about:
+    type: string
+    default: ""
+    description: "What the while is about: an id, said again with it."
+
+  says: { type: object, default: {}, description: "What else it says with it." }
+
+steps:
+  waited:
+    description: The while.
+    do: wait
+    with: { for: "${params.after}" }
+
+  said:
+    description: And that it is over, with what it was handed.
+    needs: [waited]
+    do: emit
+    with: { topic: later.over, about: "${params.about}", says: "${params.says}" }

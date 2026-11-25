@@ -1,0 +1,14 @@
+{
+  "says": "Applied to no project, told to take a side that is neither of the two, or told to take the changes of somebody it has no word for, it is refused in a sentence that says what to say instead; and with the program not signed in, it says how to sign in.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"apply": "issues", "fails": "so it is applied to a project: --project <project>"},
+    {"apply": "issues", "project": "shop", "params": {"prefer": "newest"}, "fails": "`prefer` is which side is taken where a ticket changed on both, `here` or `there`; it is `newest`."},
+    {"apply": "issues", "project": "shop", "params": {"takes_in": "friends"}, "fails": "`takes_in` is whose changes of an issue on GitHub are taken into its card, `everyone`, `trusted` or `nobody`; it is `friends`."},
+    {"given": {"signed-out": ""}},
+    {"apply": "issues", "project": "shop", "fails": "The program `gh` is not signed in on this device."},
+    {"ran": ["auth status"]}
+  ]
+}

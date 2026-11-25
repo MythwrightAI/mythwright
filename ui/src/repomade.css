@@ -1,0 +1,9 @@
+/* What names something new in a project's repo (`views/repomade.tsx`). */
+.repo-made-says, .repo-made-wrong { margin: 0; font-size: calc(12.5px * var(--size)); line-height: 1.4; overflow-wrap: anywhere; }
+.repo-made-wrong { color: var(--dim); }
+
+/* A folder's line in the side panel with its menu after it (`Fold` in `views/navtree.tsx`): the name gives way, and
+   the menu is shown as a row's is (`grouped.css`), where the line is pointed at or the keyboard is in it. */
+.nav-line { display: flex; align-items: center; min-width: 0; }
+.nav-line > .nav-item { min-width: 0; flex: 1; }
+.nav-line:hover .row-more, .nav-line:focus-within .row-more { opacity: 1; }

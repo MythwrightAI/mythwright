@@ -1,0 +1,65 @@
+
+
+# A header, set apart from what follows.
+
+blueprint:   hard   # what it is called
+description: "a # that is not a comment: nor is this colon"
+permissions: [ shell,fleet ]
+
+
+
+params:
+    port: 7379        # a default
+    # said before owner
+    owner:
+    profile: {type: string,   default: release, enum: [debug,release]}
+state:
+  builds: 0
+steps:
+  # the first step
+  build:
+      do: shell
+      when: ${params.port>0&&contains(params.owner, "{}")}
+      with:
+        run: |
+            cargo build
+              --profile ${params.profile}
+
+            echo "# not a comment"
+        env: { A: "${  params.owner  }", B: '${ params.port }', C: "$${ left }", D: "a \" ${ x }" }
+      # the end of build
+  folded:
+    do: log
+    with:
+      message: >-   # folded
+        one
+        two
+  wide:
+    do: emit
+    with: { topic: shop.said, first: "${params.owner}",   # the first
+            # before second
+            second: '${ params.port ? "a:b" : "c,d" }', third: [1, 2, 3], fourth: { deep: true } }
+  list:
+    do: shell
+    with:
+      cmd:
+      - git
+      -   status   # short
+      # before the last
+      - "--porcelain"
+    on_finish:
+    - do: log
+      with: { message: done }
+    -   emit: { topic: shop.built }
+  empty:
+    do: noop
+    with: {}
+    needs: []
+  # a step that was taken out
+  #   and its line
+on:
+  poke:
+    event: shop.poke
+    do: log
+    with: { message: "poked" }
+  # the very last word

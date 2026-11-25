@@ -1,0 +1,186 @@
+# One round of a proposal: a card is put to its agent, once, for a turn
+# (`std/turn`).
+#
+# The agent reads the card and either asks what it needs to know, says how
+# the card would be done, or leaves it as it is. What it asks is said of
+# the card for the board's cards to put on it (`std/cards`); what it
+# proposes is kept on the card as its plan and the card is moved on, where
+# its stage says to. Every round of one card is one conversation, so the
+# agent that began with it is the one that goes on.
+blueprint: std/proposal-round
+version: 7
+description: Put one card to an agent once, to ask what it needs to know or to say how the card would be done.
+permissions: [board, channels, agents, blueprints]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card's id." }
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+  agent: { type: string, default: "", description: "Which agent; the role's, if empty." }
+  role: { type: string, default: architect, description: "Whose agent plans it." }
+
+  picks:
+    type: string
+    default: first
+    enum: [first, turn, least, rank]
+    description: "How it is picked."
+
+  after_restart:
+    type: string
+    default: again
+    enum: [again, leave]
+    description: "After a stop in its turn."
+
+  restarts: { type: int, default: 3, description: "Turns begun again, at most." }
+  from: { type: string, default: backlog, description: "Where the card is planned." }
+  to: { type: string, default: "", description: "Where it goes planned; stays, if empty." }
+  told: { type: string, default: "", description: "What the agent is told besides." }
+
+  why:
+    type: string
+    default: new
+    enum: [new, changed, said, back, came]
+    description: "What brought the card to its agent: it is new here, what it asks was changed, something was said on it, or it was sent back. Or `came`: it came to where it is planned, new where nothing was said as it did and sent back where something was."
+
+  note: { type: string, default: "", description: "What was said, for `said` and `back`." }
+
+  asking:
+    type: string
+    default: ""
+    description: "Which round of the card this is, in a word of whatever asks for it that it says for this round and for no other (`std/proposal` says the event that brought the card to its agent). A round the daemon was stopped in as it asked its agent then finds the turn it asked for, and the agent is not asked twice or left unasked. Left empty, a round stopped at that moment fails, and the card is left for a person."
+
+  hands:
+    type: bool
+    default: true
+    description: "With a plan, the card is handed on from here, to `to`. Not where its stage has more to do with a planned card first: then the card stays, and that it has a plan is said for its stage (`stage.came`), which does that and hands the card on."
+
+steps:
+  card:
+    do: board.get
+    with: { id: "${params.item}" }
+
+  asks:
+    description: What it is asked, which is `prompts/proposal-round.md`. Its blanks are what brought the card to it; what was said, where anything was; the card; and what it last said of it, where it said anything.
+    when: ${ steps.card.out.status == params.from }
+    do: text.put
+    with:
+      parts:
+        - from: proposal-round.md
+          with:
+            why:
+              - { if: "${ params.why == 'new' }", from: proposal-round/new.md }
+              - { if: "${ params.why == 'changed' }", from: proposal-round/changed.md }
+              - if: "${ params.why == 'back' && params.note != '' }"
+                from: proposal-round/back-said.md
+              - if: "${ params.why == 'back' && params.note == '' }"
+                from: proposal-round/back.md
+              - if: "${ params.why == 'came' && params.note == '' }"
+                from: proposal-round/new.md
+              - if: "${ params.why == 'came' && params.note != '' }"
+                from: proposal-round/back-said.md
+              - if: "${ !(params.why in ['new', 'changed', 'back', 'came']) }"
+                from: proposal-round/said.md
+            note: "${params.note}"
+            item: "${params.item}"
+            title: "${steps.card.out.title}"
+            body: "${steps.card.out.body}"
+            planned:
+              - { if: "${steps.card.out.more.plan}", from: proposal-round/planned.md }
+            plan: "${ steps.card.out.more.plan ?? '' }"
+            told: "${params.told}"
+        - "\n"
+
+  put:
+    description: "The card is put to its agent for one turn, if it is still here to be planned. It may end with a plan, which is taken where it chooses none of these, with a question, or with the card left as it is."
+    when: ${ steps.card.out.status == params.from }
+    call: std/turn
+    as: "turn-${params.item}"
+    with:
+      project: "${params.project}"
+      item: "${params.item}"
+      channel: "${params.channel}"
+      # Whoever this was told, or else whoever the card is given to, where
+      # that is an agent: a person who gives a card to one of the fleet
+      # has said who has it.
+      agent: "${params.agent}"
+      role: "${params.role}"
+      picks: "${params.picks}"
+      after_restart: "${params.after_restart}"
+      restarts: ${params.restarts}
+      asking: "${params.asking}"
+      thread: plan
+      ends: [propose=on, ask=asks, leave=left]
+      prompt: "${steps.asks.out.text}"
+      stays: "in ${params.from}"
+
+  nobody:
+    description: Said where the work is reported, when there was no agent to put the card to.
+    when: ${ params.channel != "" && steps.put.ok && !steps.put.out.there }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: no ${params.role} is free to say how it would be done; it stays in ${params.from}"
+
+  asked:
+    description: What it asked is said of the card, for the card's own blueprint to put on it; what is wanted, where it chose to ask and said nothing.
+    when: ${ steps.put.out.came == "asks" }
+    do: emit
+    with:
+      topic: card.asked
+      card: "${params.item}"
+      project: "${params.project}"
+      asker: "${steps.put.out.slot}"
+      question: "${steps.put.out.question}"
+
+  planned:
+    description: What it proposed is kept on the card as its plan.
+    when: ${ steps.put.out.came == "on" && steps.put.out.reply != "" }
+    do: board.update
+    with:
+      id: "${params.item}"
+      fields: { plan: "${steps.put.out.reply}" }
+
+  said:
+    description: Said of the card, so that its history names who planned it.
+    when: ${steps.planned.ok}
+    do: emit
+    with:
+      topic: card.planned
+      card: "${params.item}"
+      project: "${params.project}"
+      agent: "${steps.put.out.slot}"
+      waits: ${ params.to == "" }
+
+  on:
+    description: With a plan, the card goes where its stage says, if it says.
+    when: ${ steps.planned.ok && params.to != "" && params.hands }
+    do: board.move
+    with:
+      id: "${params.item}"
+      to: "${params.to}"
+      note: "planned by ${steps.put.out.slot}"
+
+  waits:
+    description: Where its stage says nowhere, it stays, and that it waits to be accepted is said where the work is reported.
+    when: ${ steps.planned.ok && params.to == "" && params.channel != "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: ${steps.put.out.slot} has said how it would be done; the plan is on the card. Move the card on to accept it, or say on the card what should be otherwise."
+
+  planned_here:
+    description: Where its stage hands the card on (`hands`), that the card has a plan is said for the stage to hear, with what is said as the card goes on.
+    when: ${ steps.planned.ok && !params.hands }
+    do: emit
+    with:
+      topic: stage.came
+      card: "${params.item}"
+      project: "${params.project}"
+      stage: "${params.from}"
+      came: on
+      says: "planned by ${steps.put.out.slot}"
+      hands: true
+
+outputs:
+  agent: "${ steps.put.out.slot ?? '' }"
+  decision: "${ steps.put.out.decision ?? '' }"

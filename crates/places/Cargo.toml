@@ -1,0 +1,27 @@
+[package]
+name = "places"
+description = "A place of its own for a piece of work in a project's repository: made, kept, sent, merged and cleared, each by an action that asks git what is there first; and the repository as it stands, for whoever looks at it."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# Its tests are the agents' suite's, which plays these actions as a
+# blueprint's steps ask them.
+test = false
+doctest = false
+
+[dependencies]
+blueprint = { workspace = true }
+conductor = { workspace = true }
+hosting = { workspace = true }
+journal = { workspace = true }
+kernel = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }

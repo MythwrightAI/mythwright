@@ -1,0 +1,22 @@
+[package]
+name = "link"
+description = "What a link between two installations is made of: each one's secret and keys, the handshake, and sealed frames."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# Its tests are the gateway's, which is what makes links of it.
+test = false
+doctest = false
+
+[dependencies]
+snow = { workspace = true }
+chacha20poly1305 = { workspace = true }
+sha2 = { workspace = true }
+getrandom = { workspace = true }

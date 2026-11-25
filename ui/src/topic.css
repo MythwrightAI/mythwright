@@ -1,0 +1,20 @@
+/* What a channel is for, under what it is called (views/topic.tsx). A line of the head of its own, after everything on the
+   head's first line, so that nothing at the head's right moves for it: each line of a head that wraps is as tall as what is
+   on it. It stands close under the title, smaller and fainter, and is cut to two lines; the whole of it is in its tip. */
+.view-head > .channel-topic {
+  order: 1; flex: 1 0 100%; min-width: 0; margin: -6px 0 0;
+  color: var(--faint); font-size: calc(13px * var(--size)); line-height: 1.35;
+}
+.channel-topic > .topic-words {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+}
+/* Where it is cut it is a button that opens it whole and cuts it back, drawn as the words it is and not as a button: only
+   how it is pointed at, and where the keyboard is on it, say that it is pressed. Opened, its words are all there, and the
+   head is as much taller as they are, which moves only what is under the head. */
+.channel > .split > .view-head > button.channel-topic {
+  display: block; flex: 1 0 100%; width: 100%; height: auto; min-height: 0; padding: 0; border: 0; border-radius: calc(3px * var(--round));
+  background: none; white-space: normal; text-align: left; cursor: pointer;
+}
+.channel > .split > .view-head > button.channel-topic:hover { background: none; color: var(--dim); }
+.channel > .split > .view-head > button.channel-topic:focus-visible { outline: 2px solid var(--dim); outline-offset: 1px; }
+.channel > .split > .view-head > button.channel-topic[data-open] > .topic-words { display: block; -webkit-line-clamp: none; line-clamp: none; overflow: visible; }

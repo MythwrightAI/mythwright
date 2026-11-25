@@ -1,0 +1,99 @@
+# What an agent changed is kept: one of the things done with a card where
+# it is worked (`std/lane-round`), after the agent has finished
+# (`std/work`).
+#
+# What was left uncommitted in the card's place is committed on the
+# card's branch, as the agent's. A commit that cannot be made is said of
+# the card and where the work is reported, with what git said; and the
+# card does not go on. Where that is the agent's to put right, and it has
+# not been given the card again too often for it, the card goes back to
+# it (`back`), told what git said; otherwise it is left for a person
+# (`left`).
+blueprint: std/keep
+version: 2
+description: "Commit what an agent left uncommitted in a card's place, as the agent's; a card whose work cannot be kept goes back to its agent or is left for a person."
+# It keeps nothing as it goes: called again where the daemon was stopped
+# in the middle of it, it commits what is still uncommitted.
+durable: false
+permissions: [board, channels, shell, projects]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card." }
+  channel: { type: string, default: "", description: "Where it reports; nowhere if empty." }
+
+  title:
+    type: string
+    default: ""
+    description: "What the card is called: what the commit says after the card's id."
+
+  by: { type: string, default: "", description: "The agent whose work it is: the commit's author." }
+
+  tries:
+    type: int
+    default: 0
+    description: "How many times the card has been given again because its work could not be kept."
+
+  most:
+    type: int
+    default: 2
+    description: "How many times it is given again for that, before it is left for a person."
+
+steps:
+  where:
+    description: Where the card was worked.
+    allow_failure: true
+    do: place.changed
+    with: { item: "${params.item}" }
+
+  keep:
+    description: What the agent changed is kept as a commit on the card's branch, if it left any of it uncommitted. The commit is the agent's; whoever git is configured as committed it.
+    allow_failure: true
+    do: place.keep
+    with:
+      item: "${params.item}"
+      dir: "${ steps.where.out.dir ?? '' }"
+      by: "${params.by}"
+      message: "${params.item}: ${params.title}"
+      # A commit that cannot be made is answered, with what git said and
+      # whether it is the agent's to put right, and the card does not go on.
+      unkept_ok: true
+
+  unkept:
+    description: Said of the card, for its history, when what was changed could not be committed.
+    when: ${ steps.keep.failed || (steps.keep.out.unkept ?? "") != "" }
+    do: emit
+    with:
+      topic: card.unkept
+      card: "${params.item}"
+      project: "${params.project}"
+      why: "${ steps.keep.error ?? steps.keep.out.unkept ?? 'the commit failed' }"
+
+  next:
+    description: What becomes of work that could not be kept. Where that is the agent's to put right and it has not been given the card again too often, it goes back to it; otherwise the card is left where it is for a person.
+    when: ${ steps.keep.failed || (steps.keep.out.unkept ?? "") != "" }
+    do: place.unkept
+    with:
+      unkept: "${ steps.keep.out.unkept ?? '' }"
+      named: ${ steps.keep.out.named ?? true }
+      tries: ${params.tries}
+      most: ${params.most}
+      by: "${params.by}"
+
+  uncommitted:
+    description: Said where the work was reported, when it could not be kept, with what becomes of it.
+    when: ${ params.channel != "" && steps.next.ok }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "${params.item}: what was changed could not be committed, so it has not gone on and nothing was sent anywhere; it is still in .lanes/${params.item}: ${ steps.keep.error ?? steps.keep.out.unkept ?? 'the commit failed' }. ${steps.next.out.says}"
+      # All that git said, for whoever opens the message.
+      detail: "${ steps.keep.out.said ?? steps.keep.error ?? '' }"
+
+outputs:
+  came: "${ steps.next.out.ends ?? 'on' }"
+  # All that git said, where what was changed could not be committed: what
+  # its agent is told as the card goes back to it.
+  why: "${ steps.keep.out.said ?? steps.keep.error ?? '' }"
+  # Handed on: the card goes back because its work could not be kept.
+  unkept: ${ steps.next.out.again ?? false }

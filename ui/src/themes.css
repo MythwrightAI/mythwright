@@ -1,0 +1,180 @@
+/* The client's colours, and the few sizes everything shares.
+ *
+ * The colours are a theme, and there are three (`themes.ts` names them; the
+ * one chosen is `data-theme` on the page). Each is dark, and light where the
+ * page is (`data-light`): where the system asks for it, or where whoever reads
+ * chose light (`appearance.ts`, put on the page by `wearing.ts` and, before
+ * anything is drawn, by `index.html`). Nothing outside this file names a colour of a theme:
+ * it uses what these lists define, so a theme is its list and nothing else.
+ * A sample of a theme in Settings is given the same list, to be drawn in it. */
+
+:root {
+  /* Yellow (`--card`) is a piece of work, and an agent that is idle. */
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  /* What a dialog lays over the page. The desktop window dims by the same. */
+  --scrim: rgba(0, 0, 0, 0.5);
+  /* The height of the window's bar where the client draws it; none in a browser. */
+  --bar: 0px;
+  /* Each ends with the systems' emoji (`EMOJI` in `looks.ts`), so that what the letters lack is drawn and not an empty box. */
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", emoji;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", emoji;
+  /* What a theme may say beyond its colours (`looks.ts`), each as it usually is: how big text is, how close things
+     stand, and how round corners are. Every size of text goes by the first, the heights of rows and controls by
+     the first two together (`--tall`), the room within and between the things that are most of a page by the
+     second (`--density`), and every corner by the last. The letters are `--sans`. */
+  --size: 1;
+  --density: 1;
+  --round: 1;
+  --tall: calc(var(--size) * var(--density));
+  --radius: calc(7px * var(--round));
+}
+
+/* Grid Iron: greys and blacks, and orange for what is live. The one the
+   client has until another is chosen. The orange is a burnt one: a bright
+   orange on these blacks shouts, most of all as the ground of a button. */
+:root, .theme-sample[data-theme="grid-iron"] {
+  --bg0: #0c0c0c;
+  --bg1: #141414;
+  --bg2: #1b1b1b;
+  --bg3: #262626;
+  --line: #252525;
+  --line-strong: #3a3a3a;
+  --text: #e9e9e9;
+  --dim: #a5a5a5;
+  --faint: #6f6f6f;
+  --accent: #dc7b32;
+  --accent-ink: #1a0d02;
+  --ok: #58c08a;
+  --bad: #f0585c;
+  --info: #6aaaf0;
+  --agent: #8fa8c4;
+  --card: #f2c230;
+  --accent-soft: rgba(220, 123, 50, 0.13);
+  --ok-soft: rgba(88, 192, 138, 0.14);
+  --bad-soft: rgba(240, 88, 92, 0.14);
+  --info-soft: rgba(106, 170, 240, 0.14);
+  color-scheme: dark;
+}
+
+/* Rosé Pine, and its Dawn where the system asks for light. */
+:root[data-theme="rose-pine"], .theme-sample[data-theme="rose-pine"] {
+  --bg0: #191724;
+  --bg1: #1f1d2e;
+  --bg2: #26233a;
+  --bg3: #34314c;
+  --line: #2a273f;
+  --line-strong: #403d52;
+  --text: #e0def4;
+  --dim: #908caa;
+  --faint: #6e6a86;
+  --accent: #ebbcba;
+  --accent-ink: #191724;
+  --ok: #9ccfd8;
+  --bad: #eb6f92;
+  --info: #3e8fb0;
+  --agent: #c4a7e7;
+  --card: #f6c177;
+  --accent-soft: rgba(235, 188, 186, 0.14);
+  --ok-soft: rgba(156, 207, 216, 0.14);
+  --bad-soft: rgba(235, 111, 146, 0.14);
+  --info-soft: rgba(62, 143, 176, 0.14);
+  color-scheme: dark;
+}
+
+/* Tokyo Midnight: Tokyo Night's colours on its darkest ground, and its Day
+   where the system asks for light. */
+:root[data-theme="tokyo-midnight"], .theme-sample[data-theme="tokyo-midnight"] {
+  --bg0: #16161e;
+  --bg1: #1a1b26;
+  --bg2: #1f2231;
+  --bg3: #292e42;
+  --line: #232536;
+  --line-strong: #3b4261;
+  --text: #c0caf5;
+  --dim: #a9b1d6;
+  --faint: #737aa2;
+  --accent: #7aa2f7;
+  --accent-ink: #16161e;
+  --ok: #9ece6a;
+  --bad: #f7768e;
+  --info: #7dcfff;
+  --agent: #bb9af7;
+  --card: #e0af68;
+  --accent-soft: rgba(122, 162, 247, 0.14);
+  --ok-soft: rgba(158, 206, 106, 0.14);
+  --bad-soft: rgba(247, 118, 142, 0.14);
+  --info-soft: rgba(125, 207, 255, 0.14);
+  color-scheme: dark;
+}
+
+/* The light lists, where the page is light. */
+:root[data-light] { --shadow: 0 12px 40px rgba(40, 30, 10, 0.16); }
+:root[data-light], :root[data-light] .theme-sample[data-theme="grid-iron"] {
+  --bg0: #f1f1f1;
+  --bg1: #fbfbfb;
+  --bg2: #e9e9e9;
+  --bg3: #dddddd;
+  --line: #dadada;
+  --line-strong: #c2c2c2;
+  --text: #161616;
+  --dim: #525252;
+  --faint: #878787;
+  --accent: #c4540a;
+  --accent-ink: #ffffff;
+  --ok: #1f8f5f;
+  --bad: #d0343a;
+  --info: #1f6fd0;
+  --agent: #4a637d;
+  --card: #e0a800;
+  --accent-soft: rgba(196, 84, 10, 0.1);
+  --ok-soft: rgba(31, 143, 95, 0.1);
+  --bad-soft: rgba(208, 52, 58, 0.1);
+  --info-soft: rgba(31, 111, 208, 0.1);
+  color-scheme: light;
+}
+:root[data-light][data-theme="rose-pine"], :root[data-light] .theme-sample[data-theme="rose-pine"] {
+  --bg0: #faf4ed;
+  --bg1: #fffaf3;
+  --bg2: #f2e9e1;
+  --bg3: #e9dfd6;
+  --line: #ebe3db;
+  --line-strong: #cecacd;
+  --text: #575279;
+  --dim: #797593;
+  --faint: #9893a5;
+  --accent: #b4637a;
+  --accent-ink: #fffaf3;
+  --ok: #286983;
+  --bad: #a8324a;
+  --info: #56949f;
+  --agent: #907aa9;
+  --card: #ea9d34;
+  --accent-soft: rgba(180, 99, 122, 0.1);
+  --ok-soft: rgba(40, 105, 131, 0.1);
+  --bad-soft: rgba(168, 50, 74, 0.1);
+  --info-soft: rgba(86, 148, 159, 0.1);
+  color-scheme: light;
+}
+:root[data-light][data-theme="tokyo-midnight"], :root[data-light] .theme-sample[data-theme="tokyo-midnight"] {
+  --bg0: #e1e2e7;
+  --bg1: #ecedf1;
+  --bg2: #d6d8e0;
+  --bg3: #c8cbd8;
+  --line: #cfd1da;
+  --line-strong: #a8aecb;
+  --text: #343b58;
+  --dim: #5a607f;
+  --faint: #7b82a6;
+  --accent: #2e7de9;
+  --accent-ink: #ffffff;
+  --ok: #587539;
+  --bad: #d6365f;
+  --info: #007197;
+  --agent: #7847bd;
+  --card: #c98f00;
+  --accent-soft: rgba(46, 125, 233, 0.1);
+  --ok-soft: rgba(88, 117, 57, 0.1);
+  --bad-soft: rgba(214, 54, 95, 0.1);
+  --info-soft: rgba(0, 113, 151, 0.1);
+  color-scheme: light;
+}

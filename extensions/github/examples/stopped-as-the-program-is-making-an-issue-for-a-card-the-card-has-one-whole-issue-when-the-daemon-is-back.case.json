@@ -1,0 +1,16 @@
+{
+  "says": "A daemon stopped while the program is making an issue for a card, before the service has made it, ends the program with it: the service makes an issue whole or not at all, so there is none. Back, the step is not done twice; the issue is looked for by the card's mark, found not to be there, and made, and the card has one whole issue.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"given": {"hold-making": ""}},
+    {"stopped_inside": "issue making", "by": {"run": ["record", "add", "shop", "links", "card=shop-1"]}, "sets_off": "keep"},
+    {"holds": {"issues/1": {"title": "Add a cart", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "t1"}, "issues/2": {}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "issue: 1"},
+    {"run": ["record", "show", "shop-links-1"], "says": "agreed_title: Add a cart"}
+  ]
+}

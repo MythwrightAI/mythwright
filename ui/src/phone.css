@@ -1,0 +1,364 @@
+/* The client on a phone.
+ *
+ * Two things are different there. What points at the page is a finger: it
+ * hovers over nothing, and needs more to land on than a pointer does. And
+ * the screen is narrow: nothing fits beside the page, so what is beside it
+ * on a desk (the side panel, a channel's tools panel, a card) lies over
+ * it instead, each with a way back.
+ *
+ * Everything here is inside one of those two questions and changes nothing
+ * for a pointer on a wide screen. `phone.ts` asks the second in the same
+ * words, for the little that is not looks. Colours are the theme's. */
+
+/* ---- under a finger ------------------------------------------------------- */
+
+/* A finger is as big whatever a theme says: what is touched is never less tall than it usually is, however close
+   things stand or however small the text is, and closer only the room between things is less. That is so wherever
+   the page is laid out for a phone, a window as narrow as one included, which is laid out to be touched. */
+@media (pointer: coarse), (max-width: 760px) {
+  html:root { --tall: max(1, calc(var(--size) * var(--density))); }
+}
+
+@media (pointer: coarse) {
+  /* A phone's browser moves in on a field whose letters are smaller than this
+     when it is touched, and does not move out again. */
+  :root input, :root textarea, :root select { font-size: max(16px, calc(16px * var(--size))); }
+
+  /* What a pointer is shown by hovering stays where a finger left it: the
+     rail's own tooltips would lie over the panel beside them. */
+  .rail-button[data-tip]:hover::after, .rail-button[data-tip]:focus-visible::after { content: none; }
+
+  /* What can be done with a message is shown for the one that was touched,
+     at its head, where it lies on no message's words but the end of its own
+     first line. */
+  .message-actions, .message-actions.unnamed { display: none; }
+  .message.picked { background: var(--bg1); }
+  .message.picked .message-actions, .message.picked .message-actions.unnamed { position: absolute; z-index: 2; display: flex; visibility: visible; margin: 0; left: auto; right: 6px; top: 3px; bottom: auto; }
+  .message-actions button.icon { width: 44px; height: calc(36px * var(--tall)); }
+  .message-actions svg { width: calc(18px * var(--tall)); height: calc(18px * var(--tall)); }
+
+  /* What opens a row of a table is there without the row being pointed at. */
+  .grid-open { display: inline-flex; height: calc(26px * var(--tall)); }
+
+  .select-option { height: calc(40px * var(--tall)); }
+  .tag-x { width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); font-size: calc(16px * var(--size)); }
+  .mentions button { height: auto; min-height: calc(42px * var(--tall)); }
+  /* The keys something answers to are not on a phone to be pressed. */
+  .kbd { display: none; }
+}
+
+/* ---- on a narrow screen --------------------------------------------------- */
+
+@media (max-width: 760px), (pointer: coarse) and (max-height: 520px) {
+  /* As tall as what is left of the screen between the browser's bars just
+     now, not as tall as it would be without them: the composer is at the
+     foot of this. Nothing rubber-bands, and pulling a list down at its top
+     does not reload the page. */
+  /* Where the page starts: clear of the notch, and of the line across the
+     top that says which factory this is, when the factory says. Everything
+     that lies over the page starts there too, so the line is never covered. */
+  :root { --top: calc(env(safe-area-inset-top, 0px) + var(--where-h, 0px) + var(--across-h, 0px)); }
+  :root:has(.where-band) { --where-h: 24px; }
+  /* What a copy says across the top of every page is over the rail and the side panel, which lie over the page
+     here: under the line of which factory this is, as tall as it is drawn (`--across-h`, which it says of itself). */
+  .across-line { position: fixed; z-index: 25; top: calc(env(safe-area-inset-top, 0px) + var(--where-h, 0px)); left: 0; right: 0; }
+  .shell:has(> .across-line) { grid-template-rows: minmax(0, 1fr); }
+  .where-band {
+    display: flex; align-items: center; justify-content: center; position: fixed; z-index: 25; top: 0; left: 0; right: 0;
+    height: calc(24px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 16px 0; border: 0; border-radius: 0; font-size: calc(12px * var(--size));
+  }
+
+  html, body, #app { height: 100dvh; }
+  html, body { overscroll-behavior: none; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+  body { font-size: calc(14px * var(--size)); -webkit-tap-highlight-color: transparent; }
+  h1 { font-size: calc(17px * var(--size)); }
+
+  button { height: calc(34px * var(--tall)); }
+  button.icon { width: 34px; }
+  .sandbox-go > button { min-height: calc(34px * var(--tall)); }
+  input, select { padding: 8px 10px; }
+
+  /* The frame: the page has the whole screen, clear of the notch and of the
+     bar at the foot of the phone. */
+  .shell, .shell.side-closed {
+    grid-template-columns: minmax(0, 1fr);
+    padding: calc(var(--bar) + var(--top)) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+
+  /* The rail and the side panel lie over the page from its left, and are
+     away together. What is left of the page beside them is dimmed, and is
+     pressed to put them away. */
+  .rail {
+    position: fixed; z-index: 16; left: 0; top: 0; bottom: 0; width: calc(56px + env(safe-area-inset-left, 0px));
+    padding: calc(10px + var(--top)) 0 calc(10px + env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px);
+    gap: 6px;
+  }
+  .shell.side-closed .rail { display: none; }
+  .rail-button { width: calc(44px * var(--tall)); height: calc(44px * var(--tall)); }
+  .rail-button svg { width: calc(24px * var(--tall)); height: calc(24px * var(--tall)); }
+  .rail-button[aria-pressed="true"]::before { left: -6px; top: 10px; bottom: 10px; }
+  .rail-me .avatar { width: calc(32px * var(--tall)); height: calc(32px * var(--tall)); font-size: calc(11.5px * var(--size)); }
+  .sidebar {
+    position: fixed; z-index: 16; top: 0; bottom: 0; left: calc(56px + env(safe-area-inset-left, 0px));
+    width: min(300px, calc(100vw - 104px - env(safe-area-inset-left, 0px)));
+    padding: var(--top) 0 env(safe-area-inset-bottom, 0px);
+    box-shadow: var(--shadow);
+  }
+  .side-under { position: fixed; z-index: 15; inset: 0; background: var(--scrim); }
+  /* A finger's buttons take more room than the panel's own title leaves them: where the two do not fit on one line, what
+     is pressed goes under the title, together and at the right, and the title is whole (Channels, beside five buttons). */
+  .brand { flex-wrap: wrap; padding: 8px 10px 6px 14px; font-size: calc(16px * var(--size)); }
+  .sidebar .brand > span:first-child { flex: none; max-width: 100%; }
+  .brand .side-fold { width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); margin: 0 -4px 0 0; }
+  .brand .brand-act { width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); margin: 0 -8px 0 0; font-size: calc(18px * var(--size)); }
+  .panel-seek input { height: calc(40px * var(--tall)); font-size: calc(16px * var(--size)); }
+  /* As tall as a finger needs and taller where what was typed wraps onto a second line. */
+  .panel-seek .panel-everywhere { height: auto; min-height: calc(40px * var(--tall)); }
+  .space-pick { min-height: calc(44px * var(--tall)); }
+  .space-said > strong { font-size: calc(16px * var(--size)); }
+  .space-face { width: calc(26px * var(--tall)); height: calc(26px * var(--tall)); font-size: calc(14px * var(--size)); }
+  .foot-help { width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); }
+  .space-out { min-width: 24px; height: calc(22px * var(--tall)); border-radius: calc(11px * var(--round)); font-size: calc(12.5px * var(--size)); line-height: calc(22px * var(--tall)); }
+  .space-out-press { min-width: 40px; height: calc(40px * var(--tall)); }
+  .space-foot { padding: 6px 8px; }
+  /* A menu's lines are a finger's height where a finger chooses. */
+  .row-menu button { height: calc(40px * var(--tall)); font-size: calc(15px * var(--size)); }
+  .nav { padding: 4px 8px 16px; overscroll-behavior: contain; }
+  .nav h3 { padding: 12px 4px 4px 8px; min-height: calc(36px * var(--tall)); }
+  /* As tall as its heading and drawn back into its room on both sides, so that it ends where the heading does: drawn
+     back by more than the room under the heading, it lay over the first row under it. Its mark is put down by what
+     the heading has more above it than below, so that it stands level with the heading's words. */
+  .nav h3 button { width: calc(36px * var(--tall)); height: calc(36px * var(--tall)); margin: -12px 0 -4px auto; padding-top: 8px; font-size: calc(18px * var(--size)); }
+  .nav-item { height: calc(40px * var(--tall)); font-size: calc(15px * var(--size)); }
+  .nav-twist, .nav-twist:hover { width: calc(var(--mark-in, 8px) + 26px); height: calc(40px * var(--tall)); }
+  /* As wide as a finger wants, and drawn back so that its arrow and its name stand where those of the lines beside it do.
+     The arrow is put where it stands by the room before it, and the name begins where the arrow's button ends, not
+     under it: the name drawn back over the arrow's button lay over it by as much. */
+  .nav-row.inner .nav-twist { width: calc(var(--mark-in, 8px) + 25px); margin-left: -4px; padding-left: calc(var(--mark-in, 8px) + 4px); }
+  .nav-row.inner .nav-item { margin-left: 0; }
+  .nav-who { min-height: calc(40px * var(--tall)); font-size: calc(14px * var(--size)); }
+  .nav-note { padding: 10px 8px; }
+  /* The tree's lines meet its rows at their middles, which are lower in a taller row. */
+  .sidebar { --row-half: calc(20px * var(--tall)); }
+  .ext-open { padding: 9px 8px; }
+
+  /* One row of tabs, scrolled with a finger. Each is wide enough to be read
+     and to be closed, however many there are. */
+  .panes { --strip: 44px !important; }
+  .tabs { overscroll-behavior-x: contain; }
+  .tab { flex: 0 0 auto; min-width: 104px; max-width: 190px; padding: 0 4px 0 12px; font-size: calc(14px * var(--size)); touch-action: pan-x; }
+  .tab .close { width: calc(32px * var(--tall)); height: calc(32px * var(--tall)); font-size: calc(13px * var(--size)); }
+  .tabs-side { position: sticky; z-index: 1; left: 0; width: 48px; background: var(--bg1); }
+  .tabs-side svg { width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); }
+  .tabs-side-waiting::after { content: ""; position: absolute; right: 9px; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .tabs-end { flex-basis: 12px; }
+
+  /* A view is one column, as wide as the screen: what is in it that is wider scrolls within itself. */
+  .split { grid-template-columns: minmax(0, 1fr); }
+  .view-head { padding: calc(10px * var(--density)) 12px calc(8px * var(--density)); gap: 8px; }
+  .view-head > * { max-width: 100%; }
+  .view-tabs { min-width: 0; }
+  .view-body { padding: 4px 12px 20px; }
+  .empty { padding: 32px 16px; }
+
+  /* What floats under a button is as wide as the screen, where the button is, and never off an edge of it. */
+  .menu, .menu.people, .layout-menu {
+    position: fixed; top: auto; left: calc(8px + env(safe-area-inset-left, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); width: auto;
+    margin-top: 4px; max-height: 70dvh; overflow-y: auto; z-index: 14;
+  }
+  .menu button { padding: 10px 12px; }
+  .person { padding: 9px 10px; }
+  .menu.people > button.people-add { min-height: calc(44px * var(--tall)); }
+  .layout-tile { padding: 12px 4px 10px; }
+  .layout-option, .flag-field { min-height: calc(40px * var(--tall)); }
+
+  /* A dialog fits the screen, and what is in it scrolls when it does not fit the dialog: its buttons are always reached. */
+  .scrim { place-items: center; overflow-y: auto; padding: calc(10px + var(--top)) 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .scrim.plain { padding: calc(var(--bar) + 10px + var(--top)) 10px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .modal, .modal.wide, .modal.setting-up { width: min(480px, 100%); max-height: calc(100dvh - 20px - var(--top) - env(safe-area-inset-bottom, 0px)); }
+  .modal { overflow-y: auto; padding: 18px 16px; }
+  /* Its foot reaches the dialog's edges, which are nearer here. */
+  .modal-foot { bottom: -18px; margin: 0 -16px -18px; padding: 12px 16px 18px; }
+  .modal.wide { overflow: hidden; display: flex; flex-direction: column; }
+  .modal.wide > * { min-height: 0; }
+  .palette-results, .shortcuts { max-height: none; flex: 1; overflow: auto; }
+  .picture-opened { overflow: auto; padding-top: 48px; }
+  /* What closes one that has no button of its own, at its corner, with room kept for it. */
+  .modal.wide { position: relative; }
+  button.modal-away { position: absolute; top: 4px; right: 4px; width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); font-size: calc(16px * var(--size)); }
+  .palette-input, .shortcuts-head { padding-right: 52px; }
+
+  /* A card, or whatever else is in the drawer, has the screen. */
+  .drawer, .drawer-leaving {
+    position: fixed; z-index: 12; inset: 0; width: auto; border: 0; border-radius: 0;
+    padding: var(--top) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  .drawer-head { padding: 6px 8px 6px 14px; }
+  .drawer-head button.icon { width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); font-size: calc(16px * var(--size)); }
+  .drawer-body { overscroll-behavior: contain; }
+
+  .toasts { left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  .toast { max-width: none; }
+
+  /* ---- a channel ---------------------------------------------------------- */
+
+  /* Its head is one line: what it is called gives way to what is done there. */
+  .channel, .doc-with { grid-template-columns: minmax(0, 1fr) !important; }
+  .channel > .split { min-width: 0; }
+  /* What the channel is for is a line of its own under that one (`topic.css`), so the head wraps; what it is called
+     is held to nothing as lines are made (`flex-basis: 0`), so it never pushes what is done there onto a line of its own. */
+  .channel > .split > .view-head { flex-wrap: wrap; gap: 4px; padding: 5px 8px 5px 12px; border-bottom: 1px solid var(--line); }
+  .channel > .split > .view-head h1 { flex: 1 1 0; min-width: 0; font-size: calc(16px * var(--size)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .channel > .split > .view-head > .channel-topic { margin: -2px 0 2px; font-size: calc(12px * var(--size)); }
+  .channel > .split > .view-head > .grow { display: none; }
+  .channel > .split > .view-head button { height: calc(38px * var(--tall)); flex: none; }
+  .roomy { display: none; }
+  .participants { padding: 0 8px; }
+
+  /* The measures what a message says begins by (`--said-side` and the rest, in `style.css`), closer here. */
+  :root { --said-side: 4px; --said-gap: 9px; }
+  .messages { padding: calc(6px * var(--density)) var(--said-side) calc(10px * var(--density)); overscroll-behavior: contain; }
+  .messages > * + * { margin-top: calc(4px * var(--density)); }
+  .message { grid-template-columns: var(--said-face) minmax(0, 1fr); gap: var(--said-gap); padding: calc(6px * var(--density)) var(--said-pad); }
+  .message .body { font-size: calc(15px * var(--size)); }
+  .message .replies { min-height: calc(32px * var(--tall)); font-size: calc(13px * var(--size)); }
+  .attached-file, .attaching-one { max-width: 100%; height: calc(38px * var(--tall)); }
+
+  /* The agents and bots are one line over the box, scrolled when there are more than fit. */
+  .members { flex-wrap: nowrap; width: auto; margin: 4px 0 2px; padding: 2px 12px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .members .badge { flex: none; height: calc(30px * var(--tall)); padding: 0 12px; font-size: calc(12.5px * var(--size)); }
+
+  /* The box is as wide as the screen, and has an edge: there is nothing else to say where it is. */
+  .composer { width: auto; margin: 2px 8px 8px; }
+  .thread .composer { margin: 4px 8px 8px; }
+  .composer-box { padding: 6px 4px 2px 6px; border: 1px solid var(--line-strong); background: var(--bg1); box-shadow: none; }
+  .composer > .composer-box { width: auto; }
+  .composer > .composer-box textarea, .thread .composer > .composer-box textarea { min-height: calc(40px * var(--tall)); max-height: 32dvh; padding: 4px 6px; }
+  /* What the empty box says is one line of it, cut short: two would be cut through the middle. */
+  .composer-box textarea::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Flush with what is written, which starts further in here. */
+  .composer-box > .typing-line { padding-left: 6px; }
+  /* Its tools are one line, scrolled, with what attaches before them and what
+     sends after them, both always there. */
+  .composer-foot { align-items: center; gap: 2px; }
+  .composer-box .attach { flex: none; width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); }
+  .composer-box .send { flex: none; width: 46px; height: calc(40px * var(--tall)); }
+  .composer-box .send svg { width: calc(22px * var(--tall)); height: calc(22px * var(--tall)); }
+  .composer-foot > .format-rule { align-self: center; flex: none; margin: 0 2px; }
+  .format { flex: 1 1 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; min-height: calc(40px * var(--tall)); }
+  .format button.icon { flex: none; width: calc(38px * var(--tall)); height: calc(38px * var(--tall)); font-size: calc(16px * var(--size)); opacity: 0.75; }
+  .format button.icon.wide { width: 46px; }
+  /* Who can be asked, and what moves the box into the panel: as big to touch as the tools beside them. */
+  .asking { flex: none; }
+  .composer-foot .asking-button, .composer-foot .widen { flex: none; width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); font-size: calc(17px * var(--size)); }
+  .asking-menu button { height: auto; min-height: calc(44px * var(--tall)); padding: 7px 8px; }
+  .format-rule { flex: none; }
+  /* The menu of the tools is over the box, not in the line that scrolls, which would cut it off. */
+  .format-lines { position: static; flex: none; }
+  .format-menu { left: 8px; min-width: 190px; }
+  .format-menu button { height: calc(42px * var(--tall)); }
+  .mentions { max-width: 100%; }
+  /* The box has an edge here, and what stands over it begins where the edge does. */
+  .composer-over { left: -1px; right: -1px; }
+  .messages:not(.thread > .messages):has(~ .typing-edge + .composer .composer-over > .attaching) { padding-bottom: calc(10px * var(--density) + var(--waiting, 74px)); }
+  /* Under the box is the screen's edge: what a paste could not attach is said over it, over what waits to go. */
+  .composer-note { top: auto; bottom: calc(100% + 4px); background: var(--bg0); }
+  .typing-edge + .composer .composer-note { bottom: calc(100% + 16px * var(--tall) + 8px); }
+  .composer-box:has(.composer-over > .attaching) > .composer-note { bottom: calc(100% + 16px * var(--tall) + 8px + var(--waiting, 74px)); }
+
+  /* The tools panel, and a thread read in it, have the screen; the way back is at their head. */
+  .context, .doc-tools {
+    position: fixed; z-index: 12; inset: 0; border-left: 0;
+    padding: var(--top) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  /* Its copy going out has the screen as it had. */
+  .context-leaving, .doc-tools-leaving { position: fixed; z-index: 12; inset: 0; width: auto; }
+  .panel-edge { display: none; }
+  .context-tabs { gap: 4px; padding: 6px 8px 0; }
+  .context-tabs .view-tabs-list { flex: 1; overscroll-behavior-x: contain; }
+  .context-tabs .view-tab { flex: none; min-height: calc(40px * var(--tall)); padding: 0 6px 0 12px; }
+  .context-tabs button.icon { flex: none; width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); font-size: calc(18px * var(--size)); }
+  .context-tabs .context-away { margin-right: 2px; color: var(--text); }
+  .context-drop { width: calc(28px * var(--tall)); height: calc(28px * var(--tall)); margin-right: 0; font-size: calc(17px * var(--size)); }
+  /* A button is as wide as what it says unless it is told otherwise, and a long name was wider than the panel. */
+  .context-row { max-width: 100%; min-height: calc(42px * var(--tall)); padding: 4px 8px; }
+  button.context-back { width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); font-size: calc(24px * var(--size)); }
+  .context-page .row { flex-wrap: wrap; }
+  .thread .view-head { padding: 8px 12px; }
+
+  /* ---- a board, and the other ways it is laid out ---------------------------- */
+
+  /* A column is most of the screen, with the edge of the next showing that there is one. */
+  .board { grid-auto-columns: min(78vw, 300px); gap: 10px; padding: 4px 12px 12px; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding: 0 12px; }
+  .board > .column { scroll-snap-align: start; }
+  .card { padding: 11px 12px; }
+  .column-head { padding: 8px 8px 4px 12px; }
+  .column-head button.icon { width: calc(38px * var(--tall)); height: calc(38px * var(--tall)); font-size: calc(18px * var(--size)); }
+  .column-head button.column-set { width: calc(38px * var(--tall)); height: calc(38px * var(--tall)); margin: -8px 0; }
+  .view-tab { height: calc(40px * var(--tall)); padding: 0 12px; }
+  .view-tabs .menu-anchor > button.icon { width: calc(40px * var(--tall)); height: calc(40px * var(--tall)); font-size: calc(18px * var(--size)); }
+
+  .grid-scroll, .rows-page { --side: 12px; --foot: 16px; padding: 0 12px 16px; overscroll-behavior: contain; }
+  .grid th, .grid td { min-width: 112px; height: calc(40px * var(--tall)); }
+  /* What a row is called is cut short enough that what opens it is on the screen beside it. */
+  .grid .grid-title { min-width: 210px; max-width: 250px; }
+  /* Room for what opens it, which is as much wider as its words are larger: the cell stops short of it, so that the
+     two are side by side and not one over the other (a cell's box under it was pressed for it, by a finger's width). */
+  .grid td.grid-title .cell { width: calc(100% - 62px * var(--size)); }
+  .cell { min-height: calc(39px * var(--tall)); }
+  .grid-head { height: calc(39px * var(--tall)); }
+  .grid-new { height: calc(40px * var(--tall)); }
+  /* A line is as tall as it needs: what it is called first, in full, and the rest of it under that. */
+  .rows-line { flex-wrap: wrap; height: auto; min-height: calc(46px * var(--tall)); padding: 8px 6px; gap: 4px 6px; }
+  .rows-line > .truncate { flex: 1 1 100%; white-space: normal; font-size: calc(15px * var(--size)); }
+  .rows-line .id { margin-left: auto; }
+  .rows-card { padding: 14px; }
+  /* A month is wider than the screen where a day is wide enough to read; it is scrolled across, under a head that stays. */
+  .cal { display: flex; flex-direction: column; padding: 0 12px 16px; overscroll-behavior: contain; }
+  .cal > * { flex: none; }
+  .cal-head { position: sticky; left: 0; flex-wrap: wrap; }
+  .cal-head .faint { flex: none; }
+  .cal-grid { min-width: 644px; }
+  /* What is on a day is two lines of what it is called: one is three letters of it. */
+  .cal-card { height: auto; min-height: calc(30px * var(--tall)); padding: 3px 6px; white-space: normal; text-align: left; }
+  .cal-day .cal-card .truncate { white-space: normal; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .cal-nowhere { position: sticky; left: 0; }
+
+  /* ---- measurements, settings, and the rest ---------------------------------- */
+
+  /* A table that is wider than the screen is scrolled inside its own box, under a head that stays. */
+  .panel { overflow-x: auto; overscroll-behavior-x: contain; }
+  .panel-head { position: sticky; left: 0; flex-wrap: wrap; padding: 10px 12px; }
+  .panel-head .muted { white-space: normal; }
+  /* One of many columns is given the room to be read in, and is scrolled across, rather than squeezed into the screen a word to a line. */
+  .panel > table:has(th:nth-child(4)) { min-width: 600px; }
+  .charts { grid-template-columns: minmax(0, 1fr); }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  /* An odd one out at the end has the row to itself, and is not half a row beside nothing. */
+  .tiles > .tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .tile { padding: 10px 12px; }
+  .theme-samples { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 12px; }
+  select.narrow { height: calc(38px * var(--tall)); max-width: 100%; }
+  .pills button { height: calc(32px * var(--tall)); padding: 0 12px; }
+  /* Each of these is one column as wide as it is given, so that what is in it is cut short or wraps and is not cut off. */
+  .tile, .hit, .glance-column { grid-template-columns: minmax(0, 1fr); }
+  .tile > * { overflow: hidden; text-overflow: ellipsis; }
+  button.tile { white-space: normal; }
+  .glance-card { min-height: calc(38px * var(--tall)); white-space: normal; }
+  .hit { padding: 10px; }
+  .log { max-height: 50dvh; }
+
+  /* The versions of something, and under them the one that is chosen; and the same for its runs,
+     which say how they are laid out where they are drawn, so are told more firmly. */
+  .history { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(120px, 32%) minmax(0, 1fr); }
+  .history-list { border-right: 0; border-bottom: 1px solid var(--line); }
+  .nav-item.history-row { height: auto; }
+  .runs-beside { grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: minmax(120px, 32%) minmax(0, 1fr); }
+  .runs-beside > :first-child { border-right: 0 !important; border-bottom: 1px solid var(--line); }
+  .runs-beside > :last-child { padding: 12px 12px 20px !important; }
+
+
+  /* A document is read to the edges of the screen. */
+  .page { padding: 24px 16px 72px; }
+}

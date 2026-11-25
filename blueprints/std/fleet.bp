@@ -1,0 +1,791 @@
+# A fleet: the agents that work a project's board, and the way work goes
+# through them.
+#
+# Both are tables of the project, which this makes and keeps:
+#
+# - **`agents`**, who is in it. A row is so many agents of one role: what
+#   they are called, the role (a word, such as `worker`), how many, what
+#   runs them and on which model, what they may do and what they are
+#   told. A role with a count and one agent with a program and a model of
+#   its own are both rows, and a role may be made of several.
+# - **`stages`**, what is done with a card. A row is a column of the
+#   board, the role whose agents have the cards there, and whether they
+#   work them or look them over (`std/working`, `std/reviewing`): where
+#   a card goes when it is worked or passed, and where when it is sent back.
+#
+# And a third, which starts empty:
+#
+# - **`segments`**, what more is done with a card where it is. A row is
+#   one small thing done for each card of a stage, beside what the stage
+#   usually does: a blueprint (`std/run`, or the project's own), the
+#   stage whose list it is in and where in that list. The project's
+#   tests, run before anybody looks at a card, are a row.
+# - **`actions`**, what is pressed on a card in a column, as a button: a
+#   row is what it is called, its column, who may press it, and whether
+#   the column's stage waits for it before it takes a card up (`Signed`,
+#   which a person presses before a card in ready is worked).
+#
+# The least it can be is what it is first made as: someone to talk a
+# change over with, one who works cards, and nobody to review, so that a
+# worked card waits in review for a person. Give the row of reviewers a
+# count and their agents look work over; there are then as many to a card
+# as there are of them, a council, of one where there is one.
+#
+# A fleet is changed by changing a row, in the client or from the
+# terminal, while work is under way or not:
+#
+#   mw record list shop agents
+#   mw record set shop-agents-3 count=3      # three who review: a council of three
+#   mw record add shop agents title=second-opinion role=reviewer model=...
+#
+# Each change is an event (`record.created`, `record.updated`,
+# `record.removed`), which this hears: it brings the fleet to what the
+# tables now say (`std/arrangement`) and then says so (`fleet.arranged`).
+# Anything else that is to follow a fleet being changed listens for either.
+#
+# Nothing the factory is built from knows an architect, a worker or a
+# reviewer. An agent is a slot; what makes one any of the three is all in
+# these rows and in the texts that read them: the role it is brought up
+# in, what that role is told and allowed, and which stage gives the role
+# its work.
+#
+#   mw fleet init shop          # writes fleet.bp, which says where the fleet is and calls this
+#   mw apply fleet --project shop
+#
+# What happens, as the tables are first made:
+#
+# - **A change is talked over with the architect**, in the project's
+#   channel, where it is the one agent that listens. Asked for the plan,
+#   it writes it as a document in the project (`docs/plans/`), ending
+#   with its tickets and which of them wait on which. Each ticket is then
+#   added to the board as a card (`std/plan`): the architect writes a
+#   file and runs nothing. Cards that wait on nothing of each other are
+#   worked side by side. `planned` says where they end up: `backlog`,
+#   where they wait for someone to say go, or `ready`. A plan a person
+#   writes there is taken the same way.
+# - **A card made ready waits its turn**, a row and nothing more, and a
+#   worker takes it (a round, `std/lane-round`) when the cards it waits
+#   on are done and one of the places is free; meanwhile the card says
+#   what it waits for. It is worked on a branch of its own: cut here, or
+#   with `fetch` pulled down from the remote where the remote has one for
+#   it, and with `push` sent there when the worker has finished.
+# - **Worked, it goes to review.** With no reviewers it waits there for a
+#   person. With some it is reviewed by them, each for itself, and passes
+#   when more than half approve (`std/review`).
+# - **Sent back**, the worker that did it takes it up again, in the
+#   conversation it was worked in, and is told what was said. That goes
+#   round as often as the stage's `rounds` allows; after that the card is
+#   left in review for a person, and the channel is told.
+# - **Passed**, its branch is merged into the project's and the card is
+#   done. A branch that no longer merges goes back to its worker, who is
+#   told so.
+#
+# A row that is changed is taken while work is under way. What is asked
+# for from then on is done the new way; nobody's work is cut off because
+# there are to be fewer of them (an agent no longer counted takes no more
+# work and leaves when it has finished what it has in hand); and what
+# becomes of a review in session is its stage's to say (`in_flight`).
+blueprint: std/fleet
+version: 28
+description: The agents that work a project's board and the way work goes through them, kept as two tables of the project and changed by changing a row.
+permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
+
+params:
+  project: { type: string, description: "The project whose board this works." }
+
+  channel:
+    type: string
+    default: ""
+    description: "Where changes are talked over and work is reported; the project's own name, if empty."
+
+  planned:
+    type: string
+    default: backlog
+    enum: [backlog, ready]
+    description: "Where the cards of a plan end up: `backlog`, the board's first column, where they wait until someone moves them to ready; or `ready`, where each is begun as soon as the cards it waits on are done."
+
+  review:
+    type: string
+    default: std/review
+    description: "The blueprint that reviews one card. One of your own takes the params `std/review` does and says `review.passed`, `review.failed` or `review.undecided`."
+
+  proposal:
+    type: string
+    default: std/proposal
+    description: "The blueprint that plans one card, where a stage plans. One of your own takes the params `std/proposal` does."
+
+  push:
+    type: bool
+    default: false
+    description: "Send each card's branch to the repository's remote when its worker has finished. Nothing is sent anywhere unless this is said; the project's own branch is never sent from here."
+
+  fetch:
+    type: bool
+    default: false
+    description: "Ask the remote first when a card is begun: a branch it already has for the card is pulled down and taken up, and a new one is cut from the remote's `base` when that has everything the project's folder has. Nothing is asked of a remote unless this is said."
+
+  base:
+    type: string
+    default: ""
+    description: "With `fetch`: the branch on the remote that new work is cut from; the one the project's folder has checked out, if empty."
+
+  remote:
+    type: string
+    default: origin
+    description: "The remote that is asked and sent to, by the name the repository knows it by."
+
+  key:
+    type: string
+    default: ""
+    description: "A secret the factory keeps (`mw secret set <name>`) that the remote is asked and sent to with: a key of the service's own, such as a bot's, which says what may be done there. Left empty, the remote is reached as whoever runs the daemon. The key is given only to the remote's own address, which has to be one reached over https."
+
+  agents:
+    type: list
+    description: "Who is in the fleet when it is first made: the rows the project's `agents` starts with. After that the table says, and this is not read again."
+    default:
+      - title: architect
+        role: architect
+        count: 1
+        wall: on
+        listens: true
+        plans: true
+        told: "You are an architect of this project. People talk changes over with you in its channel, and you plan them; you do not make them yourself. Ask what you need to know before you plan. Asked to put cards that are on the board already in order, add a feature that gathers them and say that you have: `mw record add <project> features title=<what they come to> status=backlog gathers=<card>,<card>`, or `labelled=<label>` in place of `gathers` for every card that carries a label. It is then put to whoever plans features, and its plan is a person's to accept: do not move it on yourself."
+      - title: worker
+        role: worker
+        count: 1
+        wall: on
+        permission: edit
+        told: "You work the cards of this project's board, one at a time. Do what the card asks and no more, and say plainly what you did and what is left."
+      - title: reviewer
+        role: reviewer
+        count: 0
+        wall: on
+        permission: read
+        told: "You look over work others did on the cards of this project's board. You change nothing yourself. You say what is wrong exactly enough for whoever did the work to put it right, or that nothing is."
+
+  stages:
+    type: list
+    description: "What is done with a card when the fleet is first made: the rows the project's `stages` starts with. After that the table says, and this is not read again."
+    default:
+      - title: work
+        column: ready
+        does: work
+        role: worker
+        pass: review
+      - title: review
+        column: review
+        does: review
+        role: reviewer
+        pass: done
+        fail: doing
+        rounds: 2
+        merge: true
+        in_flight: finish
+
+# What waits for a person is told to whoever the project's `tells` says
+# (`std/told`), and to each rung of its `chain` in turn (`std/chain`).
+uses:
+  told:
+    blueprint: std/told
+    with: { project: "${params.project}", channel: "${params.channel}" }
+
+  chain:
+    blueprint: std/chain
+    with: { project: "${params.project}" }
+
+state:
+  # Whether the tables have been given what they start with: once, so
+  # that a table someone emptied stays empty.
+  seeded: false
+  # The channel, for what the handlers start to be told.
+  channel: ""
+
+steps:
+  check:
+    description: Look before leaping; say so if this device is short on room.
+    do: system.check
+    with: { min_free_mem_mb: 256, min_free_disk_mb: 512 }
+
+  channel:
+    do: channel.ensure
+    with:
+      name: "${params.channel}"
+      otherwise: "${params.project}"
+      project: "${params.project}"
+
+  warn:
+    when: ${ !steps.check.out.ok }
+    do: channel.post
+    with:
+      channel: "${steps.channel.out.id}"
+      body: "This device is short on resources: ${steps.check.out.says}"
+
+  agents:
+    description: Who is in the fleet. A row is so many agents of one role.
+    do: collection.ensure
+    with:
+      name: agents
+      project: "${params.project}"
+      # Whoever changes a row changes the agents: what brings them up,
+      # what they are told and how much each may do. So a row is changed
+      # by whoever may change agents, and not by whoever may write a record.
+      takes: agents:write
+      # Reached from the board's page, as the two tables after it are.
+      beside: board
+      # Its columns under five headings, in this order: a row says three
+      # kinds of limit, which read as one where they stand side by side.
+      # What an agent may ask of the factory is its credential's; how its
+      # program works unasked is the program's own; and what the program
+      # can reach on the device is what the wall about it lets through.
+      groups:
+        - Who they are: [role, count, rank]
+        - What they are told: [prompt, told, listens, plans]
+        - What they may ask: [holds]
+        - How their program works: [permission, adapter, model, outlives, web]
+        - What their program can reach: [wall, reads, changes, git, secrets]
+      fields:
+        # What they are called: each has its project before it and its
+        # number after, `shop-worker-1`.
+        title: { type: text, required: true }
+        # The word their work is given by, which a stage names. A row that
+        # says none is of the role it is called after. Any word: these are
+        # the ones the fleet starts with, offered to whoever fills the cell.
+        role: { type: text, suggests: [architect, worker, reviewer] }
+        # How many of them there are; one, if it is not said. With 0 there
+        # are none, and the row is there for when there are to be some.
+        count: { type: number }
+        # How they are ranked among all of their role, the higher before
+        # the lower: read by a stage that picks by rank, and by nothing else.
+        rank: { type: number }
+        # What runs them, and on which model; the device's usual, if not said.
+        adapter: { type: text }
+        model: { type: text }
+        # How much one may do unasked: `read` looks and changes nothing,
+        # and `full` runs commands with nobody asked. That is letting a
+        # program at this device, as the agent's own route takes it to
+        # be: saying `full` takes `shell` of whoever changes the cell,
+        # beside what changing the row takes.
+        permission: { type: choice, of: [read, edit, full], takes: { full: shell } }
+        # What each one's credential holds, as scopes, which is what it
+        # may ask of the factory: what an agent usually holds, if not said
+        # (`unsaid`, which is that list). The fleet gives it as whoever
+        # applied the fleet, and what the agent is told, how many there
+        # are of it and what runs it are cells of the same row. So whoever
+        # adds a row, or changes anything of one, holds each scope the row
+        # then says here: nobody gives an agent what they do not hold
+        # themselves, or tells one that holds it what to do with it.
+        holds:
+          type: list
+          takes: each
+          unsaid:
+            - projects
+            - channels
+            - board
+            - records
+            - "blueprints:read"
+            - "agents:read"
+            - "fleet:read"
+            - search
+        # Whether each one's program works behind a wall: shown its work,
+        # a home of its own and what is added below, and nothing else of
+        # this device. It does unless this says `off`. Saying so, like
+        # showing it more below, is letting a program at this device: it
+        # takes `shell` of whoever changes the cell, beside what changing
+        # the row takes. Saying `on` again, or nothing, takes no more
+        # than changing the row does.
+        wall: { type: choice, of: [on, off], takes: { off: shell } }
+        # What else its program may read behind its wall, and what else it
+        # may change: folders or files, written from the top or from the
+        # home of whoever runs the daemon (`~/.cargo`). A toolchain it
+        # builds with goes here.
+        reads: { type: list, takes: shell }
+        changes: { type: list, takes: shell }
+        # What its program may do with the project's repository behind
+        # its wall: nothing, read it (if not said: what it changes is
+        # committed for it), commit its own work, or write to all of it.
+        # Whichever, the repository's settings and hooks are not its.
+        git: { type: choice, of: [off, read, commit, write] }
+        # The keys its program is handed: secrets the factory keeps, each
+        # under a variable of the program's environment, written
+        # `VARIABLE=name` (`REMOTE_TOKEN=remote-bot`). A key of another
+        # service's, which says what the agent may do there. Handing one
+        # takes `secrets:use` of whoever changes the cell.
+        secrets: { type: list, takes: "secrets:use" }
+        # Whether each one's program goes on without the daemon: started
+        # so that it does not end when the daemon does, and taken up where
+        # it is by the next one, still at work or finished, so that its
+        # agent is not asked again. It does not unless this says `on`: a
+        # program that goes on so works with nobody watching while the
+        # daemon is down, and nobody able to stop it through the daemon.
+        # So saying `on` is letting a program at this device, as taking a
+        # wall away is: it takes `shell` of whoever changes the cell,
+        # beside what changing the row takes. Saying `off` again, or
+        # nothing, takes no more than changing the row does.
+        outlives: { type: choice, of: [on, off], takes: { on: shell } }
+        # Whether each one's program may use the web unasked: look things
+        # up and fetch pages with what it has of its own for that, where
+        # its package says how. It may not unless this says `on`: a wall
+        # does not hold the network, a page may say anything to an agent,
+        # and what an agent looks for, or the address it asks for, carries
+        # whatever it puts in it. So saying `on` is of a kind with showing
+        # a program more of this device: it takes `shell` of whoever
+        # changes the cell, beside what changing the row takes. Saying
+        # `off` again, or nothing, takes no more than changing the row.
+        web: { type: choice, of: [on, off], takes: { on: shell } }
+        # Whether they listen in the project's channel, and whether they
+        # are told how a plan is written so that its tickets become cards.
+        listens: { type: flag }
+        plans: { type: flag }
+        # What each is told on every turn: what it is for, and how it is to work.
+        told: { type: text }
+        # A file of the project's own words that each is told first, before
+        # `told`: a name in the `prompts/` of the project's own blueprints
+        # (`reviewer.md`), read as it was vouched for, as a project's own
+        # blueprint is.
+        prompt: { type: text }
+      views:
+        agents: { kind: table }
+      history:
+        record.created: "{actor} added it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.asked: "{actor} asked to change its {cells}[: {why}]"
+        record.ask.declined: "{actor} declined a change of it[: {why}]"
+        record.removed: "{actor} took it away"
+
+  stages:
+    description: What is done with a card. A row is a column, and what the agents of a role do with the cards there.
+    do: collection.ensure
+    with:
+      name: stages
+      project: "${params.project}"
+      # And whoever changes a stage changes who looks at whose work.
+      takes: agents:write
+      # A stage gives the fleet's agents their work, as whoever applied
+      # the fleet: whichever of them its row comes to, by the role it
+      # says, by what it is called where it says none, or by a blueprint
+      # of its own that it has started. So whoever adds a stage, or
+      # changes anything of one, could have written each row of `agents`
+      # as it stands, and holds what each of them gives: nobody has an
+      # agent that holds more than they do given work by saying so here.
+      steers: agents
+      # A row is about a column of the board, which says so at its head.
+      beside: board
+      about: column
+      fields:
+        title: { type: text, required: true }
+        # The column whose cards are this stage's; the one it is called
+        # after, if it is not said.
+        column: { type: text }
+        # `plan`: an agent of the role says how the card would be done, or
+        # asks what it needs to know, and has the card while it is here.
+        # `work`: an agent of the role does what the card asks. `review`:
+        # the role's agents look the work over, and pass it or send it back.
+        # Any other word names a blueprint, which is started for each card
+        # there. The three are offered to whoever fills the cell.
+        does: { type: text, suggests: [plan, work, review] }
+        role: { type: text, suggests: [architect, worker, reviewer] }
+        # Which of the role's agents is given a card, or a seat at its
+        # review, of those with as little in hand as each other: the one
+        # brought up first (if it is not said), each in turn, the one given
+        # the least so far, or the one ranked highest.
+        picks: { type: choice, of: [first, turn, least, rank] }
+        # For a review: how many of the role look at each card (all of them,
+        # if 0 or not said), and how many have to approve (more than half).
+        seats: { type: number }
+        needed: { type: number }
+        # Which of the cards waiting here is taken next: the first to have
+        # come (if it is not said), the last, or the one whose `priority`
+        # is highest, and of those as high the first to have come. And how
+        # many are taken at once: as many as the role's agents can take
+        # (if 0 or not said), and never more than that.
+        next: { type: choice, of: [first, last, priority] }
+        at_once: { type: number }
+        # The blueprint that reviews one card here, where cards are
+        # reviewed, and the one that plans one, where they are planned:
+        # the fleet's (`review`, `proposal`), if it is not said. One of the
+        # project's own is run only as it was vouched for, as a blueprint
+        # `does` names is.
+        review: { type: text, suggests: [std/review] }
+        proposal: { type: text, suggests: [std/proposal] }
+        # Where a card goes when it is worked or passed, and when sent back.
+        pass: { type: text }
+        fail: { type: text }
+        # How often a card may be sent back from here before a person has it.
+        rounds: { type: number }
+        # How many things at most are done with a card here in one going
+        # through its list: 6 where cards are worked and 5 otherwise, if
+        # it is not said; no bound but the list's own length, for 0.
+        most: { type: number }
+        # Whether a card's branch is merged into the project's when it passes.
+        merge: { type: flag }
+        # What becomes of a card's branch when a person passes the card
+        # themselves, moving it on from here: left as it is, unless this
+        # says `merge`. Then it is merged into the project's as one that
+        # agents approved is, where whoever moved the card holds what
+        # changing the project's files takes (`projects:write`); one who
+        # does not has passed the card and merged nothing, and the
+        # channel says so and what to do.
+        by_hand: { type: choice, of: [leave, merge] }
+        # What becomes of a review in session when this row is changed.
+        in_flight: { type: choice, of: [finish, restart] }
+        # What the stage says where the fleet reports, beyond what goes
+        # wrong: no more, unless this says `verdicts`. Then what a review
+        # of a card came to is said there too, with who looked and what
+        # each of them said, whoever did the looking: the fleet's own
+        # agents, or a blueprint of the project's or of a package's that
+        # has cards reviewed some other way.
+        reports: { type: choice, of: [trouble, verdicts] }
+        # What becomes of what an agent had in hand here when the daemon is
+        # stopped and started again: begun again unless this says `leave`,
+        # which leaves it where it is for a person and says so in the
+        # channel. An agent whose program outlives the daemon (`outlives`,
+        # of its row in `agents`) is taken up where it is and is not what
+        # this is about, unless its program was killed outright with what
+        # kept it: that work was cut off after all, and is begun again or
+        # left as this says. And how many times at most the daemon is
+        # started in the middle of the same work before it is left for a
+        # person whatever is said here: 3, if not said.
+        after_restart: { type: choice, of: [again, leave] }
+        restarts: { type: number }
+        # Where an agent's program says it was refused something (a
+        # command, a tool) and the agent went on all the same: `note`, the
+        # card goes on as the agent said and what was refused is said of
+        # it, a line of its history; `blocked`, it is left for a person,
+        # as one whose agent said it could not do what it needed. `note`,
+        # if not said.
+        refused_means: { type: choice, of: [note, blocked] }
+        # What becomes of a card's round where cards are worked, when
+        # somebody moves the card out of doing while its agent is at it:
+        # `stop`, its round is stopped and its agent's turn called off,
+        # with what it changed left where it was, and the card put back
+        # is taken up where it was left; `finish`, the round goes on to
+        # its end and hands nothing on, and a card put back is worked
+        # again as new. `stop`, if not said.
+        moved_away: { type: choice, of: [stop, finish] }
+        # How a card is finished where it is worked: each step its agent
+        # sees to before it says it is done (`its tests pass`), told as a
+        # checklist; and what somebody else checks after it, never its to
+        # wait on (`the whole gate, run when the work lands`). What it
+        # says of each step is what its turn comes to: every step done
+        # goes on; nearly done is given again once and then left for a
+        # person; none done is left. And how long one turn may take
+        # (`45m`): past it its program is stopped and it is asked once
+        # what is done and what is left. Nothing said, and no bound.
+        finish: { type: list }
+        later: { type: list }
+        lasts: { type: text }
+      views:
+        stages: { kind: table }
+      history:
+        record.created: "{actor} added it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.asked: "{actor} asked to change its {cells}[: {why}]"
+        record.ask.declined: "{actor} declined a change of it[: {why}]"
+        record.removed: "{actor} took it away"
+
+  segments:
+    description: What more is done with a card where it is, beside what its stage usually does. A row is one small thing (a segment), the stage whose list it is in, and where in that list.
+    do: collection.ensure
+    with:
+      name: segments
+      project: "${params.project}"
+      # Whoever changes what is done with a card changes what the fleet's
+      # agents are given, and what is run as whoever applied the fleet.
+      takes: agents:write
+      # A segment is run by a stage, for the fleet's agents and as whoever
+      # applied the fleet: so a row is written only by whoever could have
+      # written each row of `agents` as it stands, as a stage's row is.
+      steers: agents
+      beside: board
+      fields:
+        title: { type: text, required: true }
+        # The stage whose list it is in, by what that row of `stages` is
+        # called. A row that names none is run nowhere.
+        stage: { type: text }
+        # Where in the list. What a stage usually does is at 10, 20 and so
+        # on: a row at 5 comes before the first of them, a row at the
+        # order of a usual one stands in for it, and one there that names
+        # nothing to do takes it out.
+        order: { type: number }
+        # The blueprint that does it, the project's own or one that ships.
+        # It is handed `project`, `item` and whatever else it declares of
+        # what this row and its stage say, and ends in a word (`came`):
+        # `on`, `back`, `asks`, `again` or `left`.
+        does: { type: text, suggests: [std/run] }
+        # For a segment that asks agents: whose, which of them, how many
+        # look, how many have to approve, what each word they may end
+        # with comes to (`ends`), and where several look the two words
+        # each is counted by (`yes`, `no`); the stage's, where not said.
+        role: { type: text }
+        picks: { type: choice, of: [first, turn, least, rank] }
+        seats: { type: number }
+        needed: { type: number }
+        ends: { type: list }
+        "yes": { type: text }
+        "no": { type: text }
+        # How often it is given again at most before its card is left for
+        # a person: 2, if not said.
+        rounds: { type: number }
+        # A command of the project's own, for `std/run`; anything else its
+        # blueprint has a param for, each `name=value`. Either is run as
+        # whoever applied the fleet (`shell`), and a param may name a secret.
+        command: { type: text, takes: shell }
+        with: { type: list, takes: [shell, secrets:use] }
+        # A table each run of `command` is kept in as a row (`std/run`),
+        # made the first time. What the command printed is written there
+        # as whoever applied the fleet, so saying where takes what saying
+        # the command does.
+        record_to: { type: text, takes: shell, suggests: [test-runs] }
+        # How long `command` may run before whoever `tells` names for
+        # `slow` is told, once (`std/run`), as `20m`. It is not stopped.
+        warn_after: { type: text, suggests: [20m] }
+        # Held to one card, to cards with a label, or to the cards of one
+        # feature. Of two rows at one order the one held to more stands.
+        item: { type: text }
+        labelled: { type: text }
+        part_of: { type: text }
+      views:
+        segments: { kind: table }
+      history:
+        record.created: "{actor} added it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.asked: "{actor} asked to change its {cells}[: {why}]"
+        record.ask.declined: "{actor} declined a change of it[: {why}]"
+        record.removed: "{actor} took it away"
+
+  actions:
+    description: What is pressed on a card in a column, as a button. A row is what it is called, its column, who may press it, and whether the column's stage waits for it.
+    do: collection.ensure
+    with:
+      name: actions
+      project: "${params.project}"
+      # What the board itself reads of a row: who may press it, and what
+      # holds a card where it is (`kernel::pressed`).
+      model: action
+      # Whoever changes what holds a card changes what the fleet's agents
+      # are given, as a stage's row does: an agent takes no approval away.
+      takes: agents:write
+      beside: board
+      about: column
+      fields:
+        title: { type: text, required: true }
+        # What it is pressed by on a command line and in a text
+        # (`mw board press <card> <name>`); what it is called, written as
+        # a name is, where it says none.
+        name: { type: text }
+        # The column a card is in to be offered it.
+        column: { type: text }
+        # Who may press it: anyone who may change cards (if it is not
+        # said), or a person and not an agent; and a scope they hold
+        # beside, where one is said.
+        who: { type: choice, of: [anyone, person] }
+        scope: { type: text }
+        # Whether the column's stage waits for it before it takes a card
+        # up; and whether a press is for this time the card came there
+        # only, so that one sent back is pressed again.
+        holds: { type: flag }
+        again: { type: flag }
+        # What pressing it says in the card's history; that it was pressed, if not said.
+        says: { type: text }
+      views:
+        actions: { kind: table }
+      history:
+        record.created: "{actor} added it"
+        record.updated: "{actor} changed its {changed}"
+        record.asked: "{actor} asked to change its {cells}[: {why}]"
+        record.ask.declined: "{actor} declined a change of it[: {why}]"
+        record.removed: "{actor} took it away"
+
+  first_agents:
+    description: The table starts with these, once. Each is added unless a row is called what it is called already, so that a daemon stopped as they were being added goes on from the row it had got to, and adds none twice.
+    when: ${ !state.seeded && steps.agents.out.records == 0 }
+    do: rows.start
+    with: { project: "${params.project}", collection: agents, rows: "${params.agents}" }
+
+  first_stages:
+    description: And what is done with a card starts with these, added the same way.
+    when: ${ !state.seeded && steps.stages.out.records == 0 }
+    do: rows.start
+    with: { project: "${params.project}", collection: stages, rows: "${params.stages}" }
+
+  # Called and not spawned: applying this is done when the fleet is as its
+  # tables say, and not while its agents are being brought up.
+  arranged:
+    description: The fleet, brought to what the two tables say.
+    needs: [first_agents, first_stages, segments, actions, channel]
+    call: std/arrangement
+    as: arrangement
+    with:
+      project: "${params.project}"
+      channel: "${steps.channel.out.id}"
+      asked: apply
+      review: "${params.review}"
+      proposal: "${params.proposal}"
+      push: ${params.push}
+      fetch: ${params.fetch}
+      base: "${params.base}"
+      remote: "${params.remote}"
+      key: "${params.key}"
+
+  there:
+    description: Who is there to be told of, when the fleet is first there. Of those who are asked for a plan, whoever takes part in the channel, by name; and how many work cards.
+    when: ${ !state.seeded }
+    do: agent.present
+    with:
+      project: "${params.project}"
+      channel: "${steps.channel.out.id}"
+      here: ${steps.arranged.out.planning}
+      counted: ${steps.arranged.out.working}
+
+  greeting:
+    description: What is said once, when the fleet is first there. Who is in it and what each is for; what to do next; where it is changed; and how the factory's bot is asked what it takes here, by whatever it is called.
+    when: ${ !state.seeded }
+    do: text.put
+    with:
+      parts:
+        - "The fleet for ${params.project} is up"
+        - if: "${ steps.there.out.came == 'both' }"
+          say: ". ${steps.there.out.first} is here to talk a change over with, and "
+        - if: "${ steps.there.out.came == 'heard' }"
+          say: ". ${steps.there.out.first} is here to talk a change over with, and nobody works cards yet."
+        - { if: "${ steps.there.out.came == 'counted' }", say: ": " }
+        - { if: "${ steps.there.out.came == 'nobody' }", say: ", and nobody is in it yet." }
+        - if: "${ steps.there.out.count == 1 }"
+          say: "one agent works cards."
+        - if: "${ steps.there.out.count > 1 }"
+          say: "${steps.there.out.count} agents work cards."
+        - if: "${ steps.there.out.came in ['both', 'heard'] }"
+          say:
+            - "\n\n"
+            - if: "${steps.there.out.alone}"
+              say: "Say what you want changed in this channel and ${steps.there.out.first} answers"
+              else: "Begin what you write here with `@` and its name, and ${steps.there.out.first} answers"
+            - "; asked for the plan of a change, it writes one whose tickets become cards."
+        - if: "${ steps.there.out.came == 'both' }"
+          say: " Or add a card to the board yourself and move it to ready: it is worked when its turn comes."
+        - if: "${ steps.there.out.came == 'counted' }"
+          say: "\n\nAdd a card to the board and move it to ready: it is worked when its turn comes."
+        - "\n\nWho is in the fleet and what they do with a card are two tables of the project, `agents` and `stages`: change a row of either and the fleet follows."
+        - "\n\nWrite `@${steps.channel.out.speaker} help` here for what I take as a command."
+
+  up:
+    description: Said once.
+    needs: [greeting]
+    when: ${ !state.seeded }
+    do: channel.post
+    with:
+      channel: "${steps.channel.out.id}"
+      body: "${steps.greeting.out.text}"
+
+  kept:
+    do: set
+    with: { seeded: true, channel: "${steps.channel.out.id}" }
+
+on:
+  # A row of its tables was added, changed or taken away. One at a time.
+  changed:
+    event: record.*
+    for: { project: "${params.project}" }
+    when: ${ event.data.collection in ["agents", "stages", "segments", "actions"] }
+    steps:
+      again:
+        description: The fleet is brought to what its tables now say.
+        call: std/arrangement
+        as: arrangement
+        # A row the fleet cannot take is not this handler failing (`refused`).
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          channel: "${state.channel}"
+          asked: "row ${event.seq}"
+          review: "${params.review}"
+          proposal: "${params.proposal}"
+          push: ${params.push}
+          fetch: ${params.fetch}
+          base: "${params.base}"
+          remote: "${params.remote}"
+          key: "${params.key}"
+
+      row:
+        description: "Which change it was that was not taken, in words: the new row, the change to it or its taking away, which row, and which of its cells."
+        needs: [again]
+        when: ${steps.again.failed}
+        do: record.change
+        with:
+          topic: "${event.topic}"
+          id: "${event.data.id}"
+          collection: "${event.data.collection}"
+          changed: ${ event.data.changed ?? [] }
+
+      refused:
+        description: A row the fleet could not take is said where it reports, once, with the row it was. The rest of the fleet is as it was.
+        needs: [row]
+        when: ${steps.again.failed}
+        do: channel.post
+        with:
+          channel: "${state.channel}"
+          body: "The fleet did not take ${steps.row.out.says}: ${steps.again.reason}. The rest of the fleet is as it was. Put the row right and the fleet follows."
+          detail: "${steps.again.error}"
+
+  # A plan was written, or written again: the tickets it lists are added
+  # to the board as cards (`std/plan`). Whoever wrote it, an architect or
+  # a person, had only to write the file.
+  planned:
+    event: project.file.changed
+    for: { project: "${params.project}" }
+    when: ${ "docs/plans" in event.data.folders && event.data.kind == "md" && event.data.change != "removed" }
+    steps:
+      tickets:
+        call: std/plan
+        # What goes wrong with a plan it says itself, where the work is reported.
+        allow_failure: true
+        with:
+          project: "${params.project}"
+          path: "${event.data.path}"
+          ready: ${ params.planned == "ready" }
+          channel: "${state.channel}"
+          # Who wrote it, where it was written through the factory.
+          wrote: "${ event.source.actor ?? '' }"
+
+  # What fails is said once, by its reason, where it stops: an instance
+  # nobody called, a handler's run (below), or a call that lets it be; what
+  # the fleet called and let be it says itself, or leaves unsaid. Opened, the
+  # message says each step it came up through and opens the run that failed.
+  trouble:
+    # An instance nobody called.
+    event: instance.failed
+    scope: own
+    when: ${ (event.data.called_by ?? '') == '' }
+    do: channel.post
+    with:
+      channel: "${state.channel}"
+      body: "Something in the fleet failed: ${ event.data.reason ?? event.data.error }"
+      detail: "${event.data.error}"
+      about_run: "${ event.data.run ?? '' }"
+
+  let_be:
+    # One that something other than the fleet called, and let fail.
+    event: instance.failed
+    scope: own
+    when: ${ (event.data.called_by ?? '') != '' && (event.data.let_be ?? false) && event.data.called_by != instance.id }
+    do: channel.post
+    with:
+      channel: "${state.channel}"
+      body: "Something in the fleet failed: ${ event.data.reason ?? event.data.error }"
+      detail: "${event.data.error}"
+      about_run: "${ event.data.run ?? '' }"
+
+  slipped:
+    # A handler that failed has not failed its instance: said here, or never.
+    event: run.failed
+    scope: own
+    when: ${ event.data.flow != "main" }
+    do: channel.post
+    with:
+      channel: "${state.channel}"
+      body: "Something in the fleet failed: ${ event.data.reason ?? event.data.error }"
+      detail: "${event.data.flow} of ${event.data.blueprint}: ${event.data.error}"
+      about_run: "${ event.source.run ?? '' }"

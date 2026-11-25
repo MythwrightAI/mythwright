@@ -1,0 +1,61 @@
+/* A private channel: the lock before what it is called, the switch in the dialog that makes one, what its door asks first, and adding to a channel from where its members are listed. */
+/* The lock stands where an open channel has its `#`, in the same room and the same faint colour, so that no name begins further in. */
+.nav-item .glyph.kept-lock { display: inline-flex; align-items: center; justify-content: center; }
+.tab .kept-lock { display: inline-flex; align-items: center; flex: none; }
+.view-head h1 .kept-lock { display: inline-flex; vertical-align: -2px; margin-right: 6px; color: var(--dim); }
+/* In the dialog: the switch and what it means, then, only once it is on, what is said of its agents under it. */
+.kept-choice { gap: 10px; }
+/* What the daemon refused, in its own sentence, where it was asked. */
+.kept-wrong { margin: 0; font-size: calc(12.5px * var(--size)); color: var(--dim); overflow-wrap: anywhere; }
+/* Adding to a channel: a line each, the name giving way, the kind and the button whole; a refusal under its own line. */
+.kept-adding { gap: 6px; max-height: 50vh; overflow: auto; }
+.kept-add { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; column-gap: 10px; }
+.kept-add p { grid-column: 1 / -1; margin: 2px 0 6px; font-size: calc(12.5px * var(--size)); color: var(--dim); overflow-wrap: anywhere; }
+.kept-note { margin: 0; font-size: calc(12px * var(--size)); }
+/* Under the members in the tools panel. */
+.kept-members { display: grid; gap: 8px; margin-top: 10px; justify-items: start; min-width: 0; }
+.kept-members p { margin: 0; font-size: calc(12px * var(--size)); min-width: 0; overflow-wrap: anywhere; }
+.kept-said { display: flex; gap: 6px; align-items: flex-start; }
+.kept-said .sign { flex: none; margin-top: 2px; }
+.kept-remove { display: grid; gap: 6px; justify-items: start; margin: 4px 0 8px; min-width: 0; }
+.kept-remove p { margin: 0; font-size: calc(12.5px * var(--size)); color: var(--dim); overflow-wrap: anywhere; }
+
+/* The parts of a channel's tab of the Tools panel, each under a heading drawn the same way: Details (`views/channeldetails.tsx`),
+   Members, Settings (`views/channelset.tsx`) and Running here (`views/runsin.tsx`). The first stands at the top with no line over it. */
+.channel-details, .channel-members, .channel-settings { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }
+.channel-details { margin-top: 0; padding-top: 0; border-top: 0; gap: 8px; }
+.channel-details h3, .channel-members h3, .channel-settings h3 { margin: 0 0 4px; }
+.channel-details h3 { margin-bottom: 0; }
+.channel-detail { display: grid; gap: 3px; min-width: 0; }
+.channel-detail label { font-size: calc(12px * var(--size)); color: var(--dim); }
+.channel-detail input { width: 100%; min-width: 0; box-sizing: border-box; }
+.channel-detail-says { margin: 0; font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+.channel-details-words { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; margin: 0; min-width: 0; }
+.channel-details-words dt { color: var(--dim); font-size: calc(12px * var(--size)); padding-top: 1px; }
+.channel-details-words dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.channel-managed { margin: 0; font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+.channel-manager { display: grid; gap: 6px; justify-items: start; margin: 4px 0 8px; min-width: 0; }
+.channel-manager p { margin: 0; font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; }
+@media (hover: none) {
+  .channel-detail input, .channel-manager-act { min-height: calc(40px * var(--tall)); }
+}
+.channel-setting { display: flex; align-items: center; gap: 8px; min-height: calc(28px * var(--tall)); height: auto; padding: 3px 6px; border: 0; border-radius: calc(6px * var(--round)); background: transparent; color: var(--text); text-align: left; }
+.channel-setting:hover { background: var(--bg2); }
+/* As wide as the widest drawing, each centred in it, so that the names begin together whatever size each drawing is (the lock is smaller). */
+.channel-setting-mark { flex: none; display: inline-flex; justify-content: center; width: 16px; color: var(--faint); }
+@media (hover: none) {
+  .channel-setting { min-height: calc(40px * var(--tall)); }
+}
+
+/* What runs in a channel, under its settings (`views/runsin.tsx`): a line each, its name giving way to what is pressed beside it, which stays whole. */
+.runsin { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.runsin h3 { margin: 0 0 4px; }
+.runsin-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.runsin-name { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0; height: auto; min-height: calc(28px * var(--tall)); padding: 3px 6px; border: 0; border-radius: calc(6px * var(--round)); background: transparent; color: var(--text); text-align: left; }
+.runsin-name > span { max-width: 100%; }
+.runsin-name:hover { background: var(--bg2); }
+.runsin-said { font-size: calc(12px * var(--size)); }
+.runsin-acts { flex: none; display: flex; gap: 2px; }
+@media (hover: none) {
+  .runsin-name, .runsin-acts button { min-height: calc(40px * var(--tall)); }
+}

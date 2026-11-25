@@ -1,0 +1,645 @@
+The words of a step, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== step.again
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        again:   true
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    again: true
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        again: maybe
+--- refused 5:16
+`again` must be true or false
+
+=== step.allow_failure
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        allow_failure: true
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    allow_failure: true
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        allow_failure: maybe
+--- refused 5:24
+`allow_failure` must be true or false
+
+=== step.as
+--- written
+blueprint: w
+steps:
+    a:
+        spawn: other
+        as: kid
+--- laid
+blueprint: w
+
+steps:
+  a:
+    spawn: other
+    as: kid
+--- wrong
+blueprint: w
+steps:
+    a:
+        spawn: other
+        as: [x]
+--- refused 5:13
+`as` must be text, found a list
+
+=== step.environment
+--- written
+blueprint: w
+steps:
+    a:
+        call: deploy
+        environment: prod
+--- laid
+blueprint: w
+
+steps:
+  a:
+    call: deploy
+    environment: prod
+--- wrong
+blueprint: w
+steps:
+    a:
+        call: deploy
+        environment: Prod Two
+--- refused 5:22
+`environment` names one of the project's environments: lowercase letters, digits and `-`, such as `prod`
+
+=== step.call
+--- written
+blueprint: w
+steps:
+    a:
+        call: other
+--- laid
+blueprint: w
+
+steps:
+  a:
+    call: other
+--- wrong
+blueprint: w
+steps:
+    a:
+        call: [x]
+--- refused 4:15
+`call` must be text, found a list
+
+=== step.description
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        description:   What it does.
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    description: What it does.
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        description: [a]
+--- refused 5:22
+`description` must be text, found a list
+
+=== step.device
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        device: laptop
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    device: laptop
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        device: [a]
+--- refused 5:17
+`device` must be text, found a list
+
+=== step.do
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: nothing.like.it
+--- refused 3:5
+there is no action called `nothing.like.it`
+
+=== step.else
+--- written
+blueprint: w
+permissions: [agents]
+steps:
+    a:
+        do: fail
+        if_fail_ask_agent: "@builder"
+        else: broken
+--- laid
+blueprint: w
+permissions: [agents]
+
+steps:
+  a:
+    do: fail
+    if_fail_ask_agent: "@builder"
+    else: broken
+--- wrong
+blueprint: w
+permissions: [agents]
+steps:
+    a:
+        do: fail
+        if_fail_ask_agent: "@builder"
+        else: [a]
+--- refused 7:15
+`else` must be text, found a list
+
+=== step.env
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        env: {A: b}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    env: { A: b }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        env: [a]
+--- refused 5:14
+`env` must be a mapping, found a list
+
+=== step.for_each
+--- written
+blueprint: w
+params:
+    all: {type: list, default: [1]}
+steps:
+    a:
+        do: noop
+        for_each: ${ params.all }
+--- laid
+blueprint: w
+
+params:
+  all: { type: list, default: [1] }
+
+steps:
+  a:
+    do: noop
+    for_each: ${params.all}
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        for_each: ${ 1 + }
+--- refused 5:19
+`for_each`: the expression ends too soon
+
+=== step.if_fail_ask_agent
+--- written
+blueprint: w
+permissions: [agents]
+steps:
+    a:
+        do: fail
+        if_fail_ask_agent: "@builder"
+--- laid
+blueprint: w
+permissions: [agents]
+
+steps:
+  a:
+    do: fail
+    if_fail_ask_agent: "@builder"
+--- wrong
+blueprint: w
+permissions: [agents]
+steps:
+    a:
+        do: fail
+        if_fail_ask_agent: [x]
+--- refused 6:28
+`if_fail_ask_agent` must be text, found a list
+
+=== step.labels
+--- written
+blueprint: w
+steps:
+    a:
+        call: other
+        labels: {sort: plain}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    call: other
+    labels: { sort: plain }
+--- wrong
+blueprint: w
+steps:
+    a:
+        call: other
+        labels: {kind: plain}
+--- refused 5:18
+`kind` cannot be a label: measurements already say that of themselves, and asked for `kind` could not say which was meant. Taken are: action, adapter, backend, blueprint, caller, collection, db, decision, device, extension, flow, handler, kind, method, name, op, project, route, router, service, slot, status, step, topic. Call it something else, such as `variant` or `experiment`
+
+=== step.measure
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        measure: w.build
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    measure: w.build
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        measure: [a]
+--- refused 5:18
+`measure` must be text, found a list
+
+=== step.needs
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        needs: []
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    needs: []
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        needs: [nobody]
+--- refused 3:5
+step `a` needs `nobody`, which is not a step here
+
+=== step.on_fail
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        on_fail:
+            - {do: noop}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    on_fail:
+      - { do: noop }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        on_fail: 3
+--- refused 5:18
+a hook must be a mapping, found a number
+
+=== step.on_finish
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        on_finish:
+            - {do: noop}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    on_finish:
+      - { do: noop }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        on_finish: 3
+--- refused 5:20
+a hook must be a mapping, found a number
+
+=== step.on_start
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        on_start:
+            - {do: noop}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    on_start:
+      - { do: noop }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        on_start: 3
+--- refused 5:19
+a hook must be a mapping, found a number
+
+=== step.on_success
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        on_success:
+            - {do: noop}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    on_success:
+      - { do: noop }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        on_success: 3
+--- refused 5:21
+a hook must be a mapping, found a number
+
+=== step.on_timeout
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        timeout: 1m
+        on_timeout:
+            - {do: noop}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    timeout: 1m
+    on_timeout:
+      - { do: noop }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        timeout: 1m
+        on_timeout: 3
+--- refused 6:21
+a hook must be a mapping, found a number
+
+=== step.retry
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry: {max: 2}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    retry: { max: 2 }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        retry: lots
+--- refused 5:16
+`retry` must be a count or a mapping with `max` and `backoff`
+
+=== step.spawn
+--- written
+blueprint: w
+steps:
+    a:
+        spawn: other
+--- laid
+blueprint: w
+
+steps:
+  a:
+    spawn: other
+--- wrong
+blueprint: w
+steps:
+    a:
+        spawn: [x]
+--- refused 4:16
+`spawn` must be text, found a list
+
+=== step.task
+--- written
+blueprint: w
+steps:
+    a:
+        task:
+            b: {do: noop}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    task:
+      b: { do: noop }
+--- wrong
+blueprint: w
+steps:
+    a:
+        task: 3
+--- refused 4:15
+`task` must be a mapping of step name to step
+
+=== step.timeout
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        timeout: 1m
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    timeout: 1m
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        timeout: soon
+--- refused 5:18
+`timeout`: `soon` is not a duration; write it like `30s` or `1h30m`
+
+=== step.watch
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch:
+            - {after: 1m, do: noop}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    watch:
+      - { after: 1m, do: noop }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        watch: 3
+--- refused 5:16
+`watch` must be a list of rules
+
+=== step.when
+--- written
+blueprint: w
+steps:
+    a:
+        do: noop
+        when: ${ 1 == 1 }
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: noop
+    when: ${ 1 == 1 }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        when: ${ 1 + }
+--- refused 5:15
+`when`: the expression ends too soon
+
+=== step.with
+--- written
+blueprint: w
+steps:
+    a:
+        do: log
+        with: {message: hi}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: log
+    with: { message: hi }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: noop
+        with: [a]
+--- refused 5:15
+`with` must be a mapping, found a list

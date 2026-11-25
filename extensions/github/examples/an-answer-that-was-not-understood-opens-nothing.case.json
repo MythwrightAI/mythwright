@@ -1,0 +1,15 @@
+{
+  "says": "A pull request is not opened on the strength of an answer that was not understood: if the program does not say which pull requests a branch has, none is opened and the channel is told.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"given": {"pushed.bp": "blueprint: pushed\nsteps:\n  say: { do: emit, with: { topic: card.pushed, card: shop-1, project: shop, branch: \"lane/shop-1\", remote: origin, title: \"Add a cart\" } }\n"}},
+    {"apply": "pull-requests", "project": "shop"},
+    {"given": {"garbled": "no pull requests match your search in acme/shop\n"}},
+    {"run": ["apply", "{here}/pushed.bp", "--force"], "sets_off": "pushed"},
+    {"ran": ["auth status", "pr list --head=lane/shop-1 --state=open --json=number,url --limit=1"]},
+    {"run": ["read", "shop"], "says": "shop-1: no pull request was opened for its branch lane/shop-1: The program did not say which pull requests lane/shop-1 has in a way this understands, so none was opened."}
+  ]
+}

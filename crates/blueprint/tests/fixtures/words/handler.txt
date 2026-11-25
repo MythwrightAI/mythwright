@@ -1,0 +1,354 @@
+The words of a handler, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== handler.at
+--- written
+blueprint: w
+on:
+    poke:
+        at:   "mon 02:00 Europe/Zagreb"
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    at: "mon 02:00 Europe/Zagreb"
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        at: 02:00
+        do: noop
+--- refused 4:13
+`02:00` says no zone: write the zone the time is in after it, as `02:00 Europe/Zagreb` or `02:00 UTC`
+
+=== handler.call
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        call: other
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    call: other
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        call: [x]
+--- refused 5:15
+`call` must be text, found a list
+
+=== handler.debounce
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        debounce: 30s
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    debounce: 30s
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        debounce: soon
+        do: noop
+--- refused 5:19
+`debounce`: `soon` is not a duration; write it like `30s` or `1h30m`
+
+=== handler.do
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        do: nothing.like.it
+--- refused 3:5
+there is no action called `nothing.like.it`
+
+=== handler.event
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: Not A Topic
+        do: noop
+--- refused 3:5
+`Not A Topic` is not a topic pattern; use dotted words where `*` matches one word and `**` any number, like `board.item.*`
+
+=== handler.every
+--- written
+blueprint: w
+on:
+    poke:
+        every: 1m
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    every: 1m
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        every: often
+        do: noop
+--- refused 4:16
+`every`: `often` is not a duration; write it like `30s` or `1h30m`
+
+=== handler.for
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        for: {id: a}
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    for: { id: a }
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        for: [a]
+        do: noop
+--- refused 5:14
+`for` must be a mapping from a field of the event's data to the value it must have, such as `{ id: "${params.item}" }`; found a list
+
+=== handler.outside
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        outside: true
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    outside: true
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        outside: maybe
+        do: noop
+--- refused 5:18
+`outside` must be true or false
+
+=== handler.poll
+--- written
+blueprint: w
+on:
+    poke:
+        poll:
+            every: 1m
+            do: noop
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    poll:
+      every: 1m
+      do: noop
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        poll: 3
+        do: noop
+--- refused 4:15
+`poll` must be a mapping, found a number
+
+=== handler.scope
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        scope: own
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    scope: own
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        scope: everyone
+        do: noop
+--- refused 5:16
+unknown scope `everyone`; expected project, fleet, own or target
+
+=== handler.steps
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        steps:
+            s: {do: noop}
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    steps:
+      s: { do: noop }
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        steps: 3
+--- refused 5:16
+`steps` must be a mapping of step name to step
+
+=== handler.turn
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        turn: "${ event.data.row }"
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    turn: "${event.data.row}"
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        turn: [a]
+        do: noop
+--- refused 5:15
+`turn` must be text, found a list
+
+=== handler.when
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        when: ${ event.data.n > 0 }
+        do: noop
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    when: ${ event.data.n > 0 }
+    do: noop
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        when: ${ 1 + }
+        do: noop
+--- refused 5:15
+`when`: the expression ends too soon
+
+=== handler.with
+--- written
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        do: log
+        with: {message: hi}
+--- laid
+blueprint: w
+
+on:
+  poke:
+    event: w.poke
+    do: log
+    with: { message: hi }
+--- wrong
+blueprint: w
+on:
+    poke:
+        event: w.poke
+        do: noop
+        with: [a]
+--- refused 6:15
+`with` must be a mapping, found a list

@@ -1,0 +1,61 @@
+# A project's mockups: pages made to try an idea with.
+#
+# A project has none until this is applied to it. A mockup is a folder of
+# plain web files in the folder said (`mockups`, unless another is said):
+# it is one for holding a file called `index.html`, and whatever that page
+# uses (styles, scripts, pictures) is beside it. One written by hand, by an
+# agent or arriving with a change to the project is a mockup the next time
+# the folder is read; nothing is added to the page for it to be one.
+#
+# What is kept about a mockup beyond its files is in a small file beside
+# its page, `mockup.yaml`, a line a thing: what it is called, what it is a
+# variant of (by that one's folder: `of: pricing`), how far it has got,
+# and what is noted of it.
+#
+# A mockup is known by where it is (`shop-mockups:pricing` is
+# `mockups/pricing/`). What happens to one is kept as its history, as a
+# card's is: that it was made, changed or taken away through the factory,
+# and what was said on it. It is shown in the client, and at an address of
+# its own (`/mockups/shop-mockups:pricing`) to whoever is signed in and
+# may read the project. Its scripts run, in a place of their own where
+# they can reach nothing but the mockup's own files.
+#
+#   mw apply std/mockups --project shop
+#   mw apply std/mockups --project shop --param folder=design/mockups
+blueprint: std/mockups
+version: 1
+description: "Give a project its mockups: pages to try an idea with, each a folder of plain web files."
+permissions: [projects]
+
+params:
+  folder:
+    type: string
+    default: mockups
+    description: "The folder of the project the mockups are in, from the top of the project. Each folder in it that holds an `index.html` is one."
+
+steps:
+  mockups:
+    description: The mockups, and what is kept of each.
+    do: collection.ensure
+    with:
+      name: mockups
+      store: mockups
+      at: "${params.folder}"
+      fields:
+        title: { type: text, required: true }
+        path: { type: text }
+        # The mockup this is another way of doing, where it is one.
+        of: { type: record, of: mockups }
+        status: { type: choice, of: [draft, review, chosen, dropped] }
+        notes: { type: text }
+      views:
+        mockups: { kind: gallery }
+      history:
+        record.created: "{actor} made it"
+        record.updated: "{actor} changed its {changed}"
+        record.commented: "{actor} said: {body}"
+        record.removed: "{actor} took it away"
+
+outputs:
+  folder: ${steps.mockups.out.at}
+  mockups: ${steps.mockups.out.records}

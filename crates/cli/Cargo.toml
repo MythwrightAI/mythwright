@@ -1,0 +1,57 @@
+[package]
+name = "cli"
+description = "The one binary: the daemon, its supervisor, and the command-line client people and agents use."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+# The binary has a neutral name; the product's command name comes from
+# brand.toml and is given to it when it is installed or linked.
+[[bin]]
+name = "factory"
+path = "src/main.rs"
+test = false
+
+[dependencies]
+brand = { workspace = true }
+blueprint = { workspace = true }
+kernel = { workspace = true }
+api = { workspace = true }
+hosting = { workspace = true }
+agents = { workspace = true }
+manual = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+
+[dev-dependencies]
+journal = { workspace = true }
+base64 = { workspace = true }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+
+# A test takes a copy of what a daemon listens with, as a program the
+# daemon was starting has one (`pidfd_getfd`), which the standard library
+# cannot: `daemon.rs`.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+rustix = { workspace = true }
+notify = { workspace = true }
+
+# The stand-in for a program that the tests start: `hosting`'s, the one
+# source file, as a program of this crate, so that cargo builds it with
+# this suite and tells the suite where it is. Nothing in `src/` starts
+# it, and nothing that packages or installs copies it.
+[[bin]]
+name = "cli-standin"
+path = "../hosting/standin/main.rs"
+test = false
+doctest = false
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

@@ -1,0 +1,41 @@
+{
+ "about": "The figure at the foot of a table's column, case by case, as the client works it out of the rows it holds (figure in ui/src/figures.ts) and as the daemon works it out of a table of any size (kernel::window::figures): the rows, then each case a column (its name and kind), a figure and what it comes to, null where there is none. A row says nothing where it holds nothing, an empty text or an empty list; nought is a number that was said; the mean, the least and the greatest of no numbers are no figure, and what no numbers add up to is nought.",
+ "rows": [
+  {"title": "Shelving", "points": 3, "done": true, "status": "doing", "labels": ["urgent", "soon"], "note": ""},
+  {"title": "Crates", "points": 0, "done": false, "status": "doing", "labels": ["soon"], "note": "  "},
+  {"title": "Baskets", "points": null, "status": "todo", "labels": []},
+  {"title": "Bins", "points": 4.5, "done": true, "status": "", "note": "by the door"},
+  {"title": "Lids", "points": "2", "status": "todo", "labels": ["soon", " urgent "], "note": "by the door"}
+ ],
+ "cases": [
+  ["title", "text", "filled", 5],
+  ["title", "text", "empty", 0],
+  ["note", "text", "filled", 2],
+  ["note", "text", "empty", 3],
+  ["note", "text", "different", 1],
+  ["labels", "list", "filled", 3],
+  ["labels", "list", "empty", 2],
+  ["labels", "list", "different", 2],
+  ["points", "number", "filled", 4],
+  ["points", "number", "empty", 1],
+  ["points", "number", "sum", 9.5],
+  ["points", "number", "mean", 2.375],
+  ["points", "number", "least", 0],
+  ["points", "number", "greatest", 4.5],
+  ["points", "number", "ticked", null],
+  ["points", "number", "different", null],
+  ["done", "flag", "ticked", 2],
+  ["done", "flag", "filled", 2],
+  ["done", "flag", "empty", 3],
+  ["done", "flag", "sum", null],
+  ["status", "choice", "different", 2],
+  ["status", "choice", "empty", 1],
+  ["title", "text", "different", 5],
+  ["title", "text", "sum", null],
+  ["missing", "number", "sum", 0],
+  ["missing", "number", "mean", null],
+  ["missing", "number", "least", null],
+  ["missing", "number", "greatest", null],
+  ["points", "number", "median", null]
+ ]
+}

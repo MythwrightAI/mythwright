@@ -1,0 +1,30 @@
+/* A project's Git page: what git says of its repository, a panel each, and the parts its packages show. */
+.git-body { gap: 16px; }
+.git-pad { padding: 12px 14px; margin: 0; overflow-wrap: anywhere; }
+.git-failed { margin: 0; }
+.git-head-said { min-width: 0; }
+.git-panel { min-width: 0; }
+.git-list { list-style: none; margin: 0; padding: 4px 0; }
+/* A line: what it is, then what is said of it, which go under it where there is no room. */
+.git-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: calc(4px * var(--density)) 14px; min-width: 0; }
+.git-line + .git-line { border-top: 1px solid var(--line); }
+.git-path { overflow-wrap: anywhere; min-width: 0; }
+.git-subject { flex: 1 1 14em; min-width: 0; overflow-wrap: anywhere; }
+.git-by { flex: none; max-width: 100%; overflow-wrap: anywhere; }
+.git-group > h3 { margin: 8px 14px 0; font-size: calc(12px * var(--size)); font-weight: 600; }
+.git-commits-head { flex-wrap: wrap; gap: 8px; }
+.git-of { display: inline-flex; align-items: center; min-width: 0; margin-left: auto; }
+.git-of > select { min-width: 0; max-width: 100%; }
+/* A part a package shows is a table, which scrolls in its own box where the page is narrower than its columns. */
+.git-scroll { overflow-x: auto; min-width: 0; }
+.git-table { width: 100%; }
+.git-table th { white-space: nowrap; text-align: left; }
+.git-table td { overflow-wrap: break-word; vertical-align: top; }
+/* A word is never broken inside: a number, a name and Open are whole, and the table is wider than the page and scrolled in its box before one is. */
+.git-table td:first-child, .git-table td:last-child { white-space: nowrap; }
+/* The page's tabs, in its head: git's own, then each part a package shows. The row scrolls sideways in itself where it has more than fits, with Read again kept whole at its end. */
+.git-tabs { min-width: 0; }
+.git-tabs > button:not(.view-tab) { flex: none; }
+.git-tab { flex: none; white-space: nowrap; }
+.git-count { font-weight: 400; font-variant-numeric: tabular-nums; }
+.git-tab-panel { min-width: 0; }

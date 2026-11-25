@@ -1,0 +1,41 @@
+blueprint: shop/may
+description: What somebody deciding to apply this most needs to know.
+permissions: [shell, things, secrets, blueprints, post]
+
+params:
+  command: { type: string, description: A command of your own. }
+  key: { type: string, default: "", description: The secret the tool is handed. }
+  spec: { type: object, description: Everything the last tool is handed. }
+
+env:
+  SHOP_TOKEN: { secret: shop }
+
+steps:
+  listed:
+    do: tool.run
+    with: { cmd: [git, status, "--short"] }
+  yours:
+    do: tool.run
+    with: { run: "${params.command}" }
+    env:
+      TOOL_KEY: { secret: "${params.key}" }
+  whole:
+    do: tool.run
+    with: "${params.spec}"
+  made:
+    do: thing.make
+    with: { name: shelf }
+    on_fail:
+      - do: letter.send
+        with: { to: someone }
+  other:
+    call: shop/other
+  script:
+    do: tool.run
+    with:
+      run: |
+        make ready
+        make "${params.command}"
+  mixed:
+    do: tool.run
+    with: { cmd: [make, "${params.command}", "-j${params.key}"] }

@@ -1,0 +1,15 @@
+{
+  "says": "Applied, it looks once at the issues GitHub lists, as it does each time the daemon comes back: an issue that carried the label that links before anything was listening is given a card then, and one that did not is left.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"issues/1/title": "Refunds", "issues/1/body": "People ask for them.", "issues/1/state": "OPEN", "issues/1/stamp": "s1", "issues/1/labels": "factory"}},
+    {"given": {"issues/2/title": "Typos", "issues/2/body": "In the footer.", "issues/2/state": "OPEN", "issues/2/stamp": "s1", "issues/2/labels": "bug"}},
+    {"apply": "issues", "project": "shop", "sets_off": "keep", "params": {"in_label": "factory", "timer": "true"}},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}", "{issues-changed}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Refunds"},
+    {"run": ["record", "show", "shop-links-1"], "says": "issue: 1"},
+    {"run": ["board", "add", "shop", "Next"], "says": "shop-2"}
+  ]
+}

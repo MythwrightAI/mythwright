@@ -1,0 +1,143 @@
+# What a project is set up with: each of its rows a blueprint applied
+# for the project as whoever sets it up, exactly as they could apply it
+# by hand, so that what they could not apply themselves they do not get
+# by adding a project.
+#
+# It is applied as a project is added, with the rows whoever added it
+# chose (the dialog that adds a project, `mw project create`), and again
+# for a project that is there when it is given something more (a switch
+# on the page of its board). The rows it is applied with unless somebody
+# says are what ships as the usual: what a new project may start with. A
+# factory may keep others of its own, saved from the dialog as its
+# default for new projects or as a setup with a name (`/api/setups`).
+#
+# A row is one thing: what it is asked for by (`name`), what it is called
+# where a person chooses (`title`) and in a sentence (`said`), what it is
+# (`says`), the blueprint applied for it, whether it is given unless said
+# (`on`), what it cannot be given without (`needs`) and why (`why`), the
+# table it gives the project (`table`), which of its blueprint's params
+# are told the project (`told`), where a person is offered it (`offered`:
+# as a project is added, or on the page of what it needs) and what its
+# blueprint is handed beside (`with`). A row of `fleet` is the project's
+# own fleet text, written for it before it is applied.
+#
+# What each row comes to is a block's to say (`project.set_up`): what is
+# alive in the project already is there and not applied again, what lacks
+# what it needs is left out with why, and what could not be applied is
+# said with how it is given by hand. Nothing it is not given is an error:
+# the project was added, and what it lacks can be given it afterwards.
+#
+#   mw apply std/project --project shop
+blueprint: std/project
+version: 2
+description: "Set a project up with what it starts with: each row a blueprint applied for it as whoever sets it up."
+permissions: [blueprints]
+
+params:
+  rows:
+    type: list
+    description: "What the project is set up with, a row for each thing, given in order: each a blueprint applied for it, those that are on."
+    default:
+      - name: board
+        title: Board
+        said: a board
+        says: "Where work is written up: cards, in columns from backlog to done."
+        blueprint: std/board
+        table: board
+      - name: fleet
+        title: Fleet
+        said: a fleet
+        says: "Who works the board: an architect to talk to and one worker to begin with, each a row you can change."
+        blueprint: fleet
+        needs: [board]
+        why: a fleet works a board
+        # Its text says the project and its channel itself, as it is written for it: told so all the same,
+        # so that neither is asked of whoever adds it.
+        told: [project, channel]
+      - name: docs
+        title: Docs
+        said: docs
+        says: "A library of the project's documents: the Markdown files of its docs folder as pages, with two to begin with."
+        blueprint: std/docs
+        table: docs
+      - name: features
+        title: Features
+        said: features
+        says: "Work bigger than a card, and cards put in order together: an agent says how it would be done and which cards wait on which, and you accept it."
+        blueprint: std/features
+        on: false
+        needs: [board, fleet]
+        why: a feature is planned by one of the fleet and comes to cards of the board
+        table: features
+        told: [project, channel]
+        # Bigger work is wanted once there is work: it is turned on where the cards are.
+        offered: board
+      - name: timed
+        title: Card times
+        said: card times
+        says: "How long each card took: from being added to done, in each column, how often it was sent back and who worked it, a row for each card that is done."
+        blueprint: std/timed
+        on: false
+        needs: [board]
+        why: it is read from the board's cards
+        table: timed
+        told: [project]
+        offered: board
+      - name: ab
+        title: A/B testing
+        said: A/B testing
+        says: "A card worked several ways at once, each contender in a place of its own, judged as its test says, and the winner's work taken on to review."
+        blueprint: std/ab
+        on: false
+        needs: [board, fleet]
+        why: "a test's contenders are the fleet's agents, and what it comes to goes on to the board's review"
+        table: contests
+        told: [project]
+        offered: board
+      - name: pipelines
+        title: Pipelines
+        said: pipelines
+        says: "The project's own pipelines run as rows of its triggers say: by hand, as a branch moves, as a card comes to a column, so often, or at a time of day."
+        blueprint: std/pipeline
+        on: false
+        table: triggers
+        told: [project]
+      - name: environments
+        title: Environments
+        said: environments
+        says: "Where what the project deploys runs, each with variables and secrets of its own: dev and prod to begin with, empty. Once there are some, whatever is applied for the project says which it runs under."
+        blueprint: std/environments
+        # Off unless asked for: a project with environments has everything applied for it name one,
+        # which every command of the first run would then have to.
+        on: false
+      - name: flags
+        title: Flags
+        said: feature flags
+        says: "Feature flags: a row for each, what it says in each environment written into that environment's variables as FLAG_<NAME>, turned on where the environment's rule says who approves only once one of them lets it."
+        blueprint: std/flags
+        on: false
+        needs: [environments]
+        why: a flag says what it says in each of the project's environments
+        table: flags
+        told: [project]
+
+  later:
+    type: bool
+    default: false
+    description: "Whether the project was there before it is set up: what it has then counts, and what is alive in it already is not applied again."
+
+steps:
+  given:
+    description: Apply each row that is on for the project, as whoever sets it up, saying what each came to.
+    do: project.set_up
+    with:
+      rows: "${params.rows}"
+      later: "${params.later}"
+
+outputs:
+  # Each row given, by its name: the instance that is it.
+  given: ${steps.given.out.given}
+  # What the project had already, by name.
+  there: ${steps.given.out.there}
+  # What was left out, a sentence for each.
+  left: ${steps.given.out.left}

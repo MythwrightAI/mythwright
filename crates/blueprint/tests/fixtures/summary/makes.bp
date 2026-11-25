@@ -1,0 +1,48 @@
+# What a text brings into being, each by what its action says it makes.
+blueprint: shop/makes
+version: 3
+description: Give a project its things
+permissions: [things, blueprints]
+
+params:
+  name:
+    type: string
+    description: What the second thing is called
+  kinds:
+    type: list
+    default: [red, green]
+    description: "The kinds there are, each given a thing of its own."
+
+uses:
+  watcher:
+    blueprint: shop/watch
+
+steps:
+  first:
+    description: The thing everything else is kept in. It is made once.
+    do: thing.make
+    with: { name: shelf }
+  second:
+    do: thing.make
+    with: { name: "${params.name}" }
+  each:
+    for_each: ${params.kinds}
+    do: thing.make
+    with: { name: "bin-${item}" }
+  read:
+    do: thing.read
+    with: { id: shelf }
+  helper:
+    spawn: shop/helper
+    as: helper
+  counted:
+    call: "${params.name}"
+    as: "count-${params.name}"
+
+on:
+  made:
+    event: thing.made
+    steps:
+      again:
+        do: thing.make
+        with: { name: spare }

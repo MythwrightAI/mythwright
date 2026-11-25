@@ -1,0 +1,41 @@
+[package]
+name = "studio"
+description = "What people and agents work in: the board and the records of whatever else a blueprint declared; and, under the names they had here, projects and their files, accounts, channels, workspaces and search."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+# All tests live in tests/suite. Compiling the library a second time in test
+# mode was the single largest rustc invocation on the previous codebase.
+test = false
+doctest = false
+
+[dependencies]
+brand = { workspace = true }
+blueprint = { workspace = true }
+kernel = { workspace = true }
+journal = { workspace = true }
+people = { workspace = true }
+conductor = { workspace = true }
+projects = { workspace = true }
+pages = { workspace = true }
+windowed = { workspace = true }
+talk = { workspace = true }
+workspaces = { workspace = true }
+search = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+pulldown-cmark = { workspace = true }
+tokio = { workspace = true }
+rusqlite = { workspace = true }
+reqwest = { workspace = true }
+
+[[test]]
+name = "suite"
+path = "tests/suite/main.rs"

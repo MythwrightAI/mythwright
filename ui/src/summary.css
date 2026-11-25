@@ -1,0 +1,186 @@
+/* A blueprint in plain words (`views/summary.tsx`), read down a column of
+   a comfortable width. The head says what it is: where its text stands,
+   what it says it is at a size to be read first, and its facts in a few
+   words each, a label over each. Each part is under a heading. What it
+   does is a numbered list; what it hears is a card for each thing heard,
+   the event first, what holds it under that, quietly, how it takes what
+   it hears in a tag, and its steps behind one press. What the text calls
+   a line (a step's key, a handler's name) stands at its right, faint and
+   small; for a param, which is known by its name, before its words. A
+   line about a step or a handler is pressed to see where that is
+   written, and looks like its words until it is pointed at. A line that
+   says a command is run or a secret is reached is marked in a word, and
+   the head says so once. Nothing is wider than the column, at any width:
+   a long name breaks, and at a phone's width everything stacks. */
+.summary { overflow: auto; min-height: 0; min-width: 0; padding: calc(8px * var(--density)) 20px calc(48px * var(--density)); container-type: inline-size; }
+.summary-page { display: grid; gap: calc(30px * var(--density)); max-width: 780px; min-width: 0; }
+.summary-part { display: grid; gap: calc(10px * var(--density)); min-width: 0; align-content: start; }
+.summary-part > h2 { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: calc(12px * var(--size)); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+.summary-count { padding: 0 7px; border-radius: calc(9px * var(--round)); background: var(--bg2); color: var(--dim); font-size: calc(11px * var(--size)); letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.summary-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.summary-lines { display: grid; gap: calc(6px * var(--density)); margin: 0; padding: 0; min-width: 0; list-style: none; counter-reset: summary-step; }
+.summary-line { display: grid; gap: calc(4px * var(--density)); min-width: 0; counter-increment: summary-step; }
+.summary-said { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; font-size: calc(13.5px * var(--size)); line-height: 1.5; }
+ol.summary-lines > .summary-line > .summary-said::before { content: counter(summary-step) "."; flex: none; min-width: 1.5em; color: var(--faint); font-variant-numeric: tabular-nums; }
+.summary-words { flex: 1 1 14em; min-width: 0; max-width: 72ch; overflow-wrap: anywhere; color: var(--text); }
+button.summary-words { display: block; height: auto; padding: 0; border: 0; border-radius: calc(3px * var(--round)); background: transparent; font: inherit; line-height: inherit; text-align: left; white-space: normal; cursor: pointer; }
+button.summary-words:hover, button.summary-words:focus-visible { background: var(--bg2); box-shadow: 0 0 0 3px var(--bg2); }
+/* A line that leads somewhere (the default, a fork, a table, something the page does) says so by an arrow after it. */
+button.summary-goes::after { content: "\00a0\2192"; color: var(--faint); }
+/* A line that folds what is under it away says so by a mark that turns when it is opened. */
+button.summary-fold::after { content: "\25B8"; display: inline-block; margin-left: 6px; color: var(--faint); transition: none; }
+button.summary-fold[aria-expanded="true"]::after { transform: rotate(90deg); }
+.summary-words code, .summary-only code, .summary-from code, .summary-tag code, .summary-value code { padding: 0 3px; border-radius: calc(3px * var(--round)); background: var(--bg2); color: var(--text); overflow-wrap: anywhere; }
+code.summary-key { flex: none; margin-left: auto; max-width: 100%; font-size: calc(11px * var(--size)); color: var(--faint); overflow-wrap: anywhere; }
+.summary-part[data-part="is"] code.summary-key { margin-left: 0; color: var(--dim); font-size: calc(12px * var(--size)); }
+/* What is under a line: a task's steps, the things whoever applies it may tell it. */
+.summary-line > .summary-lines { padding-left: 18px; border-left: 1px solid var(--line); }
+.summary-line > .summary-lines .summary-said { font-size: calc(13px * var(--size)); }
+.summary-mark { flex: none; padding: 0 7px; border: 1px solid var(--accent); border-radius: calc(8px * var(--round)); color: var(--accent); font-size: calc(11px * var(--size)); line-height: 1.6; white-space: nowrap; }
+.summary-line[data-mark] > .summary-said { padding: calc(4px * var(--density)) 8px; border-radius: calc(6px * var(--round)); background: var(--accent-soft); }
+
+/* The head: where its text stands, what it is, and its facts. */
+.summary-head { gap: calc(14px * var(--density)); padding-bottom: calc(22px * var(--density)); border-bottom: 1px solid var(--line); }
+.summary-head > .summary-lines:first-of-type .summary-goes { color: var(--text); }
+.summary-head > .summary-lines:has(.summary-goes) > .summary-line > .summary-said { padding: calc(6px * var(--density)) 10px; border-left: 2px solid var(--accent); border-radius: calc(4px * var(--round)); background: var(--bg1); }
+.summary-lead > .summary-said { font-size: calc(17px * var(--size)); line-height: 1.45; }
+.summary-lead .summary-words { max-width: 60ch; }
+.summary-facts { display: flex; flex-wrap: wrap; gap: calc(10px * var(--density)) 26px; margin: 0; min-width: 0; }
+.summary-fact { display: grid; gap: 3px; align-content: start; min-width: 0; max-width: 100%; }
+.summary-label { font-size: calc(11px * var(--size)); color: var(--faint); }
+.summary-value { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; margin: 0; min-width: 0; font-size: calc(13px * var(--size)); color: var(--text); overflow-wrap: anywhere; }
+.summary-value button.summary-item { flex: none; max-width: 100%; }
+.summary-value .summary-item code { padding: 1px 6px; border: 1px solid var(--line); border-radius: calc(5px * var(--round)); font-size: calc(11.5px * var(--size)); }
+.summary-marked { align-content: end; }
+/* Facts in words of their own (the things it makes) are a list a line each, across the head. */
+.summary-fact.summary-wordy { flex-basis: 100%; }
+.summary-wordy > .summary-value { display: grid; justify-items: start; gap: 2px; }
+
+/* What is heard: a card each, and what most of them share said once over them. */
+.summary-notes { gap: 2px; }
+.summary-notes .summary-said, .summary-from { font-size: calc(12.5px * var(--size)); color: var(--dim); }
+.summary-notes .summary-words { color: var(--dim); }
+.summary-from { overflow-wrap: anywhere; }
+.summary-cards { display: grid; gap: calc(10px * var(--density)); margin: 0; padding: 0; min-width: 0; list-style: none; }
+.summary-card { gap: calc(6px * var(--density)); padding: calc(10px * var(--density)) 14px calc(10px * var(--density)); border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); }
+.summary-card > .summary-said { font-size: calc(14px * var(--size)); font-weight: 550; }
+/* The event a card hears is its first word: written as the text writes it, without the box a word of the text has elsewhere. */
+.summary-card .summary-heard code { padding: 0; background: none; font-size: calc(13px * var(--size)); font-weight: 600; color: var(--text); }
+.summary-only { display: grid; gap: 1px; margin: 0; padding: 0; min-width: 0; max-width: 72ch; list-style: none; font-size: calc(12.5px * var(--size)); line-height: 1.45; color: var(--dim); overflow-wrap: anywhere; }
+.summary-tags { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.summary-tag { min-width: 0; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: calc(10px * var(--round)); color: var(--dim); font-size: calc(11.5px * var(--size)); line-height: 1.7; overflow-wrap: anywhere; }
+button.summary-unfolds { justify-self: start; height: calc(24px * var(--tall)); padding: 0 6px; margin-left: -6px; font-size: calc(12px * var(--size)); }
+button.summary-unfolds::after { margin-left: 4px; }
+.summary-under { min-width: 0; padding-top: calc(4px * var(--density)); border-top: 1px solid var(--line); }
+
+/* Steps, one after another: the number, the words and the key on a line, and what holds a step under its words, quietly. */
+.summary-steps { gap: calc(8px * var(--density)); }
+.summary-step { grid-template-columns: 1.6em minmax(0, 1fr); column-gap: 4px; row-gap: 1px; }
+.summary-step::before { content: counter(summary-step) "."; grid-row: 1; color: var(--faint); font-size: calc(13px * var(--size)); line-height: 1.5; font-variant-numeric: tabular-nums; }
+ol.summary-steps > .summary-step > .summary-said::before { content: none; }
+.summary-step > * { grid-column: 2; min-width: 0; }
+.summary-step > .summary-said { grid-row: 1; font-size: calc(13px * var(--size)); }
+.summary-step > .summary-only { font-size: calc(12px * var(--size)); color: var(--faint); }
+.summary-step > .summary-steps { margin-top: calc(4px * var(--density)); padding-left: 12px; border-left: 1px solid var(--line); }
+.summary-endings { gap: calc(14px * var(--density)); }
+/* What it makes and starts, as a table: what it is, what it is called (pressed to open another
+   blueprint; a table's name pointed at shows its model in a card, pressed unfolds it under the row), as what
+   and how, faintly, how many fields a table has, and from where at the right, muted, each pressed to see where
+   it is written. Its rows are lines across, and under a phone's width its cells stand one under another. */
+.summary-made { width: 100%; border-collapse: collapse; table-layout: auto; font-size: calc(13px * var(--size)); }
+.summary-made th { padding: 0 10px calc(4px * var(--density)) 0; border-bottom: 1px solid var(--line); color: var(--faint); font-size: calc(11px * var(--size)); font-weight: 500; text-align: left; white-space: nowrap; }
+/* A row of it is a row of the table, whatever a line of a summary is laid out as. */
+.summary-made tr.summary-made-row, .summary-made tr.summary-model-row { display: table-row; }
+.summary-made td { padding: calc(6px * var(--density)) 10px calc(6px * var(--density)) 0; border-bottom: 1px solid var(--line); vertical-align: baseline; min-width: 0; overflow-wrap: anywhere; }
+.summary-made tbody tr:last-child > td { border-bottom: 0; }
+.summary-made th:last-child, .summary-made td:last-child { padding-right: 0; }
+.summary-made-what { color: var(--dim); white-space: nowrap; }
+.summary-made-row .summary-said { gap: 2px 8px; font-size: calc(13px * var(--size)); }
+.summary-made-row .summary-said > .summary-words { flex: 0 1 auto; }
+.summary-made-row .summary-only { font-size: calc(12px * var(--size)); color: var(--faint); }
+.summary-made-of { white-space: nowrap; }
+.summary-made-of > button.summary-unfolds { margin: 0; }
+.summary-made td.summary-by { display: table-cell; text-align: right; }
+.summary-made td.summary-by > .summary-step-of { display: inline-block; }
+button.summary-model-name { text-decoration: underline dotted var(--faint); text-underline-offset: 3px; }
+/* A table's model, unfolded under its row, in a card over the page, and in the part Data model. */
+.summary-model-row > td { padding: calc(4px * var(--density)) 0 calc(10px * var(--density)) 14px; }
+.summary-model { display: grid; gap: calc(6px * var(--density)); min-width: 0; font-size: calc(12.5px * var(--size)); }
+.summary-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: calc(3px * var(--density)) 12px; margin: 0; min-width: 0; }
+.summary-field { display: contents; }
+.summary-field > dt { min-width: 0; overflow-wrap: anywhere; }
+.summary-field > dt code { padding: 0 3px; border-radius: calc(3px * var(--round)); background: var(--bg2); color: var(--text); }
+.summary-field > dd { margin: 0; min-width: 0; color: var(--dim); overflow-wrap: anywhere; }
+.summary-field-kind { color: var(--text); }
+button.summary-field-kind { height: auto; padding: 0; border: 0; background: transparent; font: inherit; color: var(--accent); text-align: left; white-space: normal; cursor: pointer; }
+button.summary-field-kind:hover { text-decoration: underline; }
+.summary-model code, .summary-model-head code { padding: 0 3px; border-radius: calc(3px * var(--round)); background: var(--bg2); color: var(--text); overflow-wrap: anywhere; }
+.summary-model-said { margin: 0; color: var(--dim); }
+.summary-model-card { max-height: min(60vh, 520px); overflow: auto; padding: 0; border: 1px solid var(--line); border-radius: calc(8px * var(--round)); background: var(--bg1); box-shadow: 0 6px 24px rgb(0 0 0 / 0.25); z-index: 60; }
+.summary-model-card-in { display: grid; gap: calc(6px * var(--density)); padding: calc(10px * var(--density)) 12px; }
+.summary-model-card-head { font-weight: 600; font-size: calc(13px * var(--size)); }
+.summary-models { gap: calc(16px * var(--density)); }
+.summary-modelled { display: grid; gap: calc(6px * var(--density)); min-width: 0; outline: none; }
+.summary-modelled:focus-visible { box-shadow: 0 0 0 2px var(--line); border-radius: calc(4px * var(--round)); }
+.summary-model-head { margin: 0; font-size: calc(13.5px * var(--size)); font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--text); }
+.summary-named { min-width: 0; color: var(--faint); font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+.summary-named code { padding: 0; background: none; color: var(--dim); }
+.summary-by { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-end; gap: 2px 6px; min-width: 0; color: var(--faint); font-size: calc(12px * var(--size)); }
+.summary-from-word { color: var(--faint); }
+.summary-step-of { font-family: var(--mono); font-size: calc(11.5px * var(--size)); color: var(--dim); overflow-wrap: anywhere; }
+button.summary-step-of { height: auto; padding: 0 4px; border: 0; border-radius: calc(3px * var(--round)); background: transparent; }
+button.summary-step-of:hover, button.summary-step-of:focus-visible { background: var(--bg2); color: var(--text); }
+.summary-made + button.summary-more-rows { margin-top: calc(4px * var(--density)); margin-left: 0; justify-self: start; }
+
+/* How to change it: a list of what is done, each pressed where it leads, with what is said of it under it, quietly. */
+.summary-action { gap: 1px; }
+.summary-action > .summary-said .summary-act { flex: 0 1 auto; font-weight: 550; }
+.summary-detail { min-width: 0; max-width: 72ch; color: var(--dim); font-size: calc(12.5px * var(--size)); line-height: 1.45; overflow-wrap: anywhere; }
+.summary-detail code { padding: 0 3px; border-radius: calc(3px * var(--round)); background: var(--bg2); color: var(--text); overflow-wrap: anywhere; }
+ol.summary-lines > .summary-action > .summary-detail { padding-left: calc(1.5em + 10px); }
+.summary-action > .summary-lines { margin-left: calc(1.5em + 10px); }
+.summary-action + .summary-action { margin-top: calc(6px * var(--density)); }
+/* One under another (each table, each blueprint and its files): what it is and what is said of it on one line. */
+.summary-action .summary-action { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; margin-top: 0; }
+.summary-action .summary-action > .summary-said { flex: none; max-width: 100%; }
+.summary-action .summary-action > .summary-said .summary-act { font-weight: 500; }
+.summary-action .summary-action > .summary-detail { flex: 1 1 16em; }
+
+/* At a phone's width nothing stands beside anything: what the text calls a line goes under its words. */
+@container (max-width: 520px) {
+  .summary-said > code.summary-key { flex-basis: 100%; margin-left: 0; }
+  .summary-step > .summary-said > code.summary-key { order: 2; }
+  .summary-facts { gap: calc(10px * var(--density)) 18px; }
+  .summary-card { padding: calc(8px * var(--density)) 10px; }
+  .summary-made thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .summary-made, .summary-made tbody, .summary-made tr, .summary-made tr.summary-made-row, .summary-made tr.summary-model-row, .summary-made td { display: block; width: 100%; }
+  .summary-made td { padding: 0; border: 0; }
+  .summary-made tr.summary-made-row { padding: calc(6px * var(--density)) 0; border-bottom: 1px solid var(--line); }
+  .summary-made td.summary-by { text-align: left; }
+  .summary-made td.summary-by::before, .summary-made-what::before { content: attr(data-col) " "; color: var(--faint); font-size: calc(11px * var(--size)); }
+  .summary-model-row > td { padding: calc(4px * var(--density)) 0 calc(8px * var(--density)) 10px; }
+  .summary-fields { grid-template-columns: minmax(0, 1fr); }
+  .summary-field > dd { margin-bottom: calc(4px * var(--density)); }
+  ol.summary-lines > .summary-action > .summary-detail { padding-left: 0; }
+  .summary-action > .summary-lines { margin-left: 0; }
+}
+.summary-ending > .summary-said { color: var(--dim); }
+/* A text that does not check has no summary: that it has none, what is
+   wrong with it in the check's own words, and the way to where it is
+   written, one under the other at the top of the page. */
+.summary-none { display: grid; gap: 14px; justify-items: center; align-content: start; min-width: 0; padding: 48px 24px; overflow: auto; }
+.summary-none > strong { color: var(--dim); font-size: calc(14px * var(--size)); }
+.summary-wrong { display: grid; gap: 6px; margin: 0; padding: 0; max-width: 640px; min-width: 0; list-style: none; font-size: calc(12.5px * var(--size)); line-height: 1.45; color: var(--dim); overflow-wrap: anywhere; }
+.summary-wrong code { padding: 0 3px; border-radius: calc(3px * var(--round)); background: var(--bg2); }
+/* Forking one that ships, and going back from a fork (`views/forking.tsx`):
+   the dialog that asks which project, and the question asked before a
+   fork is taken away. A long name, a file's path and the daemon's own
+   sentence break where they must and are never wider than the dialog. */
+.forking, .forking > * { min-width: 0; }
+.forking .modal-foot { flex-wrap: wrap; }
+.forking h2 { margin: 0; overflow-wrap: anywhere; }
+.forking p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.forking-field > span { font-size: calc(12px * var(--size)); color: var(--dim); }
+.forking-field select { width: 100%; min-width: 0; }
+.forking-lost { margin: 0; padding-left: 18px; display: grid; gap: 4px; color: var(--dim); font-size: calc(13px * var(--size)); line-height: 1.45; }
+.forking-lost li { overflow-wrap: anywhere; }

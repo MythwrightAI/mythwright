@@ -1,0 +1,351 @@
+# One review of one card: so many agents look at what was done, side by
+# side and each for itself, and the card passes when enough of them
+# approve it.
+#
+# Those who look are a council, of one where one looks: three pass a card
+# that two approve, unless `needed` says otherwise. It is decided as soon
+# as enough have approved, or so many have not that enough no longer can;
+# those still looking are called off, and what was decided is said:
+#
+# - `review.passed`, with who approved and what they said;
+# - `review.failed`, with who sent it back and what each said is wrong;
+# - `review.undecided`, when it neither passed nor had anything said wrong.
+#
+# Nothing here moves the card or ends the review: each is its stage's,
+# which ends it once it has taken in what it said (`std/reviewing`).
+#
+# Those who look are one step (`agent.task` with `seats`), which the
+# review keeps: stopped while they look, it waits for the same again.
+#
+# Where reviews take turns (`pool`), a review asks for its place first,
+# its card saying meanwhile that it waits, and those who look are asked
+# when its turn has come, and not before.
+#
+# How cards are reviewed can be changed while reviews are under way
+# (`review.arranged`, said as a stage's row is changed to another
+# arrangement). A review whose session has not begun ends and has its card
+# asked for again, saying which review it was (`review`), to be reviewed as
+# now arranged; one in session does so when told to begin again
+# (`in_flight: restart`), and otherwise finishes as it began.
+#
+# To review another way, write a blueprint that takes these params and
+# says one of the three, and name it to the fleet, which hears it.
+blueprint: std/review
+version: 11
+description: "One review of one card: so many agents look at the work, and it passes when enough of them approve."
+permissions: [board, agents, blueprints, shell]
+
+params:
+  project: { type: string, description: "The project it works in." }
+  item: { type: string, description: "The card's id." }
+
+  stage:
+    type: string
+    default: review
+    description: "The column whose stage asked for this, and where the card is while it is reviewed."
+
+  role:
+    type: string
+    default: reviewer
+    description: "The role those who look are of (`std/role`)."
+
+  seats: { type: int, default: 1, description: "How many agents look at it, each for itself." }
+
+  agent:
+    type: string
+    default: ""
+    description: "One agent, by its name, who looks at it alone in place of those of the role: named by a rung of the project's chain (`std/chain`) where nobody of the role is there to."
+
+  after_restart:
+    type: string
+    default: again
+    enum: [again, leave]
+    description: "What becomes of what an agent had in hand here when the daemon is stopped and started again: `again`, it goes on (an agent whose program outlives the daemon is taken up where it is; another is asked again); `leave`, it is left where it is for a person, and the channel says why."
+
+  restarts:
+    type: int
+    default: 3
+    description: "How many times at most the daemon may be started again in the middle of the same piece of work before it is left for a person, whatever `after_restart` says."
+
+  picks:
+    type: string
+    default: first
+    enum: [first, turn, least, rank]
+    description: "Where there are more of the role than seats: which of them sit. `first`, the one brought up first; `turn`, each in turn; `least`, the one given the least so far; `rank`, the one ranked highest (`std/role`)."
+
+  needed:
+    type: int
+    default: 0
+    description: "How many of them have to approve for it to pass; more than half of them, if 0."
+
+  pool:
+    type: string
+    default: ""
+    description: "The pool a review takes a place in before its session begins (`std/pool`), where a limited number of cards are reviewed at once. With none it begins at once."
+
+  arranged:
+    type: string
+    default: ""
+    description: "What its stage calls the arrangement this review was begun under, so that it can tell one said later from its own."
+
+state:
+  # Whether those who look have been asked: the review is in session.
+  seated: false
+
+steps:
+  card:
+    description: The card as it is when its review is asked for.
+    do: board.get
+    with: { id: "${params.item}" }
+
+on:
+  # The session, begun once the review is listening: from the moment
+  # anyone is asked, it hears what they say and what becomes of the card.
+  begin:
+    event: instance.active
+    scope: own
+    steps:
+      ranked:
+        description: The card as it is when its turn is asked for, for the priority it asks with, which its stage's pool goes by where its row says so (`next`).
+        when: ${ params.pool != "" }
+        allow_failure: true
+        do: board.get
+        with: { id: "${params.item}" }
+
+      place:
+        description: Its turn, where reviews take turns. Asked for as the wait begins to listen; what it is about is the card, which is told if it has to wait.
+        when: ${ params.pool != "" }
+        do: wait
+        with:
+          event: pool.granted
+          where: event.data.to == instance.id
+          say:
+            topic: pool.asked
+            pool: "${params.pool}"
+            about: "${params.item}"
+            priority: ${ steps.ranked.out.ranked.priority ?? 0 }
+
+      taken:
+        description: Said of a card that had to wait, for its own blueprint to take what it waited for off it.
+        when: ${ steps.place.out.event.data.waited ?? false }
+        do: emit
+        with: { topic: card.taken, card: "${params.item}", project: "${params.project}" }
+
+      card:
+        needs: [place]
+        do: board.get
+        with: { id: "${params.item}" }
+
+      left:
+        description: A card that was taken out of its stage while it waited its turn is not reviewed.
+        when: ${ steps.card.out.status != params.stage }
+        do: stop
+
+      shown:
+        description: Where the card was worked, which is then where its work is looked at, and what was changed there as git has it against the project's own branch, for those who look to be shown. One held to reading may not be able to ask git itself.
+        needs: [left]
+        do: place.changed
+        allow_failure: true
+        with: { item: "${params.item}" }
+
+      session:
+        do: set
+        with: { seated: true }
+
+      asks:
+        description: What the card asks, and how it was to be done where that was planned, which is `prompts/review/asks.md`.
+        do: text.put
+        with:
+          parts:
+            - from: review/asks.md
+              with:
+                body: "${steps.card.out.body}"
+                planned:
+                  - { if: "${steps.card.out.more.plan}", from: review/planned.md }
+                plan: "${ steps.card.out.more.plan ?? '' }"
+            - "\n"
+
+      asked:
+        description: What each who looks is asked, which is `prompts/review-seat.md`. Its blanks are the card; what was changed, where that can be shown; where its work is; and that they are one of several, where they are.
+        do: text.put
+        with:
+          parts:
+            - from: review-seat.md
+              with:
+                item: "${params.item}"
+                title: "${steps.card.out.title}"
+                body: "${steps.asks.out.text}"
+                changed:
+                  - if: "${ steps.shown.out.changed ?? '' }"
+                    from: review-seat/changed.md
+                    with: { changed: "${steps.shown.out.changed}" }
+                where:
+                  - if: "${ steps.shown.out.dir ?? '' }"
+                    from: review-seat/in-worktree.md
+                    with: { item: "${params.item}" }
+                  - { if: "${ !steps.shown.out.dir }", from: review-seat/in-project.md }
+                among:
+                  - if: "${ params.seats > 1 }"
+                    say:
+                      - " "
+                      - { from: review-seat/among.md, with: { among: "${params.seats}" } }
+            - "\n"
+
+      looked:
+        description: "Those who look, side by side, each for itself and each a different agent of the role while there are enough: a seat each, in a conversation of its own on this card. Decided as soon as it can be: passed when enough approve, failed when enough no longer can and someone said what is wrong, undecided when all have spoken and neither is so; those still looking are then called off. A seat asks once: stopped as it asked, it finds the turn it had."
+        do: agent.task
+        with:
+          role: "${params.role}"
+          seats: ${params.seats}
+          needed: ${params.needed}
+          looker: "${params.agent}"
+          thread: "review:${params.item}"
+          pick: "${params.picks}"
+          after_restart: "${params.after_restart}"
+          restarts: ${params.restarts}
+          asking: "${instance.id}"
+          about: { card: "${params.item}", title: "${steps.card.out.title}" }
+          cwd: "${ steps.shown.out.dir ?? '' }"
+          prompt: "${steps.asked.out.text}"
+
+      went_on:
+        description: Said of the card for each who was looking where the daemon was stopped, so that its history says the looking went on from there.
+        for_each: ${steps.looked.out.went_on}
+        do: emit
+        with:
+          topic: card.went_on
+          card: "${params.item}"
+          project: "${params.project}"
+          agent: "${item.agent}"
+          times: ${item.times}
+
+      passed:
+        description: Where enough approve, the review says that the card passed, for the stage that began it.
+        when: ${ steps.looked.out.came == "passed" }
+        do: emit
+        with:
+          topic: review.passed
+          card: "${params.item}"
+          review: "${instance.key}"
+          project: "${params.project}"
+          by: "${steps.looked.out.by}"
+          words: "${steps.looked.out.words}"
+          approved: ${steps.looked.out.approved}
+          against: ${steps.looked.out.against}
+          seats: ${params.seats}
+
+      failed:
+        description: Where enough can no longer approve and somebody said what is wrong, the review says that the card did not pass.
+        when: ${ steps.looked.out.came == "failed" }
+        do: emit
+        with:
+          topic: review.failed
+          card: "${params.item}"
+          review: "${instance.key}"
+          project: "${params.project}"
+          by: "${steps.looked.out.by}"
+          words: "${steps.looked.out.words}"
+          approved: ${steps.looked.out.approved}
+          against: ${steps.looked.out.against}
+          seats: ${params.seats}
+
+      undecided:
+        description: Where all have spoken and it neither passed nor failed, the review says that nobody decided.
+        when: ${ steps.looked.out.came == "undecided" }
+        do: emit
+        with:
+          topic: review.undecided
+          card: "${params.item}"
+          review: "${instance.key}"
+          project: "${params.project}"
+          words: "${steps.looked.out.words}"
+          approved: ${steps.looked.out.approved}
+          seats: ${params.seats}
+
+  # Cards are reviewed another way from now. A review that has not begun
+  # its session is begun again as now arranged; one in session only when
+  # that is what was said, and otherwise it finishes as it began.
+  arranged:
+    event: review.arranged
+    # Said with reviews in session left to finish as they began: heard by
+    # one that has not begun its session.
+    for: { project: "${params.project}", in_flight: finish }
+    # Its own stage's arrangement, where the event says whose it is, and
+    # another than this one was begun under.
+    when: ${ (event.data.stage ?? params.stage) == params.stage && event.data.arranged != params.arranged && !state.seated }
+    steps:
+      again:
+        description: Its card is asked for again, for its stage to begin one as reviews now are. The review says so itself, of its own card (`again`), so its stage begins another though this one is still there.
+        do: emit
+        with:
+          topic: review.due
+          card: "${params.item}"
+          project: "${params.project}"
+          stage: "${params.stage}"
+          again: true
+          review: "${instance.key}"
+
+      close:
+        do: stop
+
+  restarted:
+    event: review.arranged
+    # Said with reviews to begin again wherever they are: heard by one in
+    # session as by one that is not.
+    for: { project: "${params.project}", in_flight: restart }
+    when: ${ (event.data.stage ?? params.stage) == params.stage && event.data.arranged != params.arranged }
+    steps:
+      again:
+        description: Its card is asked for again, as above.
+        do: emit
+        with:
+          topic: review.due
+          card: "${params.item}"
+          project: "${params.project}"
+          stage: "${params.stage}"
+          again: true
+          review: "${instance.key}"
+
+      close:
+        do: stop
+
+  # The pool it asks for its turn says that it is listening, and has not
+  # got this review: it asked before the pool could hear (a stage and its
+  # pool are started side by side, and a card may be waiting in the column
+  # already), or has not asked yet. One whose asking went unheard would
+  # wait for good, and it cannot ask a second time itself: the answer to
+  # that could come before its wait was there to hear it. So it ends and
+  # has its card asked for again, as it does when reviews are arranged
+  # another way, and the review begun in its place asks a pool that
+  # hears. One the pool has, waiting or with its place, goes on as it is.
+  unheard:
+    event: pool.listening
+    for: { pool: "${params.pool}" }
+    when: ${ !state.seated && !(instance.id in event.data.held) && !(instance.id in event.data.waiting) }
+    steps:
+      again:
+        description: Its card is asked for again, for its stage to begin a review that asks a pool that is listening. The review says so itself, of its own card (`again`), so its stage begins another though this one is still there.
+        do: emit
+        with:
+          topic: review.due
+          card: "${params.item}"
+          project: "${params.project}"
+          stage: "${params.stage}"
+          again: true
+          review: "${instance.key}"
+
+      close:
+        do: stop
+
+  # Taken out of its stage by someone while it was being looked at, the
+  # card is no longer this review's.
+  moved:
+    event: board.item.moved
+    for: { id: "${params.item}" }
+    when: ${ event.data.from == params.stage }
+    do: stop
+
+  removed:
+    event: board.item.removed
+    for: { id: "${params.item}" }
+    do: stop

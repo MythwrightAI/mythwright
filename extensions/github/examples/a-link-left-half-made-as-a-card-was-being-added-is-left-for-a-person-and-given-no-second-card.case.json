@@ -1,0 +1,19 @@
+{
+  "says": "A link that names an issue has a card made for it, and says while it does that it is bringing one. One found saying so with no card, as a daemon that stopped in that moment leaves it, is given no card: a card may have been added already, and that is said where the project reports.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"given": {"issues/7/title": "Refunds", "issues/7/body": "People ask for them.", "issues/7/state": "OPEN", "issues/7/stamp": "s1"}},
+    {"run": ["record", "add", "shop", "links", "issue=7", "state=bringing"], "sets_off": "bring"},
+    {"ran": []},
+    {"run": ["read", "shop"], "says": "The link shop-links-1 with issue 7 was left half made"},
+    {"run": ["record", "add", "shop", "links", "issue=7"], "sets_off": "keep"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=7 {issue-whole}", "api graphql -F owner={owner} -F repo={repo} -F number=7 {issue-whole}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Refunds"},
+    {"run": ["record", "show", "shop-links-2"], "says": "card: shop-1"},
+    {"run": ["board", "add", "shop", "Next"], "says": "shop-2"}
+  ]
+}

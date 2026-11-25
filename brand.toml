@@ -1,0 +1,35 @@
+# The one place the product name lives.
+#
+# Renaming the product is `cargo xtask rename --display "New Name"`, which edits
+# this file and rewrites the Markdown docs. Nothing else needs to change: Rust
+# reads these values through the `brand` crate at compile time, the UI asks the
+# server for them at runtime, and `cargo xtask check` refuses a build in which
+# the name appears anywhere outside this file and the docs.
+#
+# Format: flat `key = "value"` lines only. The `brand` build script and xtask
+# both parse this file by hand, so keep it boring.
+
+# The name as people read it.
+display = "Mythwright"
+
+# Lowercase token for directories, package ids and the URL scheme.
+id = "mythwright"
+
+# The command users and agents type.
+cli = "mw"
+
+# Prefix for environment variables (MW_URL, MW_TOKEN_FILE, ...).
+env_prefix = "MW"
+
+# Reverse-DNS identifier for the desktop bundle.
+app_id = "com.mythwright.app"
+
+# File extension for blueprint files, without the dot.
+blueprint_ext = "bp"
+
+# Where somebody is sent for support, or to report a problem: an address
+# the client opens in a new tab when its line under Help is pressed
+# (`https://...` or `mailto:...`). Left empty, no such line is drawn, and
+# nothing in the product names an address of anybody's. Nothing is ever
+# sent there by the product itself.
+support = ""

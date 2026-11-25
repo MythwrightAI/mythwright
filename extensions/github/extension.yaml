@@ -1,0 +1,1780 @@
+# Pull requests on GitHub for the branches a project's lanes send there,
+# and the cards of a project kept in step with the issues they are linked
+# with.
+#
+# Nothing in the application knows this service or its program. Everything
+# about them is in this file: the actions below say each way the program is
+# run, the blueprint after them does those actions, and the application is
+# told only that a package brought actions and a blueprint.
+#
+# The application's side is general. A lane that has sent its branch to the
+# repository's remote says so, as an event of its card (`card.pushed`, with
+# the card, the project, the branch, the remote and the card's title). The
+# blueprint here hears that for one project, and opens a pull request for
+# the branch unless it has one. A card that is sent back from review and
+# pushed again needs nothing done: what is pushed to a branch is in its
+# pull request already.
+extension: github
+title: GitHub
+description: Open a pull request on GitHub for each branch a project's lanes send there, and keep linked cards and issues in step.
+
+# The program its actions run: GitHub's own command-line tool. It has to be
+# installed on the daemon's device, and to act as somebody at GitHub: as
+# whoever runs the daemon, signed in there, or as a key the factory keeps
+# (`key` of the blueprint below), which is a bot's account or an
+# application's and says what it may do.
+program: gh
+install: "Get it from https://cli.github.com, and sign in with `gh auth login`, as whoever runs the daemon; or hand it a key the factory keeps (`key`)."
+
+# Each way the program is run. The application runs it itself, with these
+# arguments and no shell, in the project's folder: the program finds the
+# repository, and the service it is hosted on, from where it is run. What
+# is written on a card reaches it as one argument each, after the `=` of
+# the option it belongs to, so that none of it can be taken for an option.
+actions:
+  account:
+    description: See that the program is installed and signed in.
+    args: ["auth", "status"]
+    fails:
+      # Handed a key, the program goes by the key and by nothing it has
+      # kept, and says so when GitHub will not take it.
+      - when: ${ code != 0 && (contains(stderr, "GH_TOKEN") || contains(stdout, "GH_TOKEN")) }
+        says: "GitHub did not take the key the program `gh` was handed. See that the secret `key` names is a token of GitHub's that is still good, set it again, and do this again."
+      - when: ${ code != 0 }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon${ daemon.user != '' ? ' (' + daemon.user + ')' : '' }, and do this again."
+    repeatable: true
+
+  find:
+    description: Find the open pull request for a branch, if it has one.
+    with:
+      branch: { type: string, required: true, description: "The branch the pull request is from, as the repository's remote knows it." }
+    args: ["pr", "list", "--head=${ with.branch }", "--state=open", "--json=number,url", "--limit=1"]
+    answer: json
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to open pull requests in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      # A list, with one pull request in it or none. Anything else was not
+      # understood, and a pull request is not opened on the strength of it.
+      - when: ${ code == 0 && (answer == null || !starts_with(trim(stdout), "[")) }
+        says: "The program did not say which pull requests ${ with.branch } has in a way this understands, so none was opened. See what `gh pr list --head ${ with.branch }` says."
+    out:
+      found: ${ len(answer) > 0 }
+      url: ${ answer[0].url }
+      number: ${ answer[0].number }
+    repeatable: true
+
+  open:
+    description: Open a pull request for a branch that is on the repository's remote. It does not look whether the branch has one already; `find` does.
+    makes: { what: a pull request, named: title }
+    with:
+      branch: { type: string, required: true, description: "The branch the pull request is from, as the repository's remote knows it." }
+      title: { type: string, required: true, description: "The pull request's title." }
+      body: { type: string, default: "", description: "What it says under the title." }
+      base: { type: string, default: "", description: "The branch it asks to be merged into. Left out, the repository's default branch." }
+    refuse:
+      - when: ${ trim(with.title) == "" }
+        says: "A pull request needs a title."
+    args:
+      - ["pr", "create", "--head=${ with.branch }", "--title=${ trim(with.title) }", "--body=${ trim(with.body) }"]
+      - when: ${ with.base != "" }
+        args: ["--base=${ with.base }"]
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to open pull requests in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "No commits between") }
+        says: "${ with.branch } has nothing that the branch it would be merged into lacks, so there is nothing to ask for."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so there is nowhere to open a pull request."
+      # Where it is, is all the program prints when it has opened one.
+      - when: ${ code == 0 && !matches(trim(answer), "^https?://[^ ]+$") }
+        says: "The program did not say where the pull request it opened is. See what `gh pr list --head ${ with.branch }` says."
+    out:
+      url: ${ trim(answer) }
+
+  # Issues: what the blueprint `issues` below asks of the program, each a
+  # way it is run. What is read of an issue is read whole each time, as it
+  # is at that moment, and never taken from what a call said of it.
+  repository:
+    description: Say which repository on GitHub the project's folder is of, as its owner and its name.
+    args: ["repo", "view", "--json=nameWithOwner", "--jq=.nameWithOwner"]
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code == 0 && !matches(trim(answer), "^[^/ ]+/[^/ ]+$") }
+        says: "The program did not say which repository this is in a way this understands. See what `gh repo view` says."
+    out:
+      name: ${ trim(answer) }
+    repeatable: true
+
+  issue:
+    description: Read an issue as it is now, with what was said on it, and whether it and each thing said were written by somebody with standing in the repository. Its body comes without the mark of the card it was made for, and what was said from here is marked as ours.
+    with:
+      number: { type: int, required: true, description: "The issue's number." }
+    # Asked of GitHub's own API, since only that says what standing an
+    # author has in the repository (its owner, a member of its
+    # organisation, a collaborator) and who last changed a body or a
+    # title. An issue is trusted as it stands where its author has such
+    # standing, or where somebody other than its author last changed both
+    # its body and its title: only somebody with standing can change
+    # another's issue. The mark is the last line of a body made or changed
+    # from here; the ends of lines are GitHub's own where somebody wrote
+    # there in a browser, and are given as they are written here.
+    args:
+      - "api"
+      - "graphql"
+      - "-F"
+      - "owner={owner}"
+      - "-F"
+      - "repo={repo}"
+      - "-F"
+      - "number=${ with.number }"
+      - "-f"
+      - "query=query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){issue(number:$number){number url title body state updatedAt authorAssociation author{login} editor{login} labels(first:100){nodes{name}} timelineItems(last:1,itemTypes:[RENAMED_TITLE_EVENT]){nodes{... on RenamedTitleEvent{actor{login}}}} comments(last:100){nodes{id url body authorAssociation author{login} editor{login}}}}}}"
+      - '--jq=def standing: . == "OWNER" or . == "MEMBER" or . == "COLLABORATOR"; .data.repository.issue | (.author.login // "ghost") as $author | {number, url, title, body: ((.body // "") | gsub("\r\n"; "\n") | sub("\\s*<!-- card [^>]* -->\\s*$"; "")), closed: (.state == "CLOSED"), labels: [.labels.nodes[].name], stamp: .updatedAt, author: $author, trusted: ((.authorAssociation | standing) or (((.editor.login // $author) != $author) and ((.timelineItems.nodes[0].actor.login // $author) != $author))), said: [.comments.nodes[] | (.author.login // "ghost") as $by | ((.authorAssociation | standing) or ((.editor.login // $by) != $by)) as $known | {id, by: $by, who: (if $known then $by else $by + ", who has no standing in the repository," end), trusted: $known, body: (.body | gsub("\r\n"; "\n")), url, ours: (.body | contains("<!-- said "))}]}'
+    answer: json
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code != 0 && contains(stderr, "Could not resolve to an") }
+        says: "This repository has no issue ${ with.number } on GitHub."
+      - when: ${ code == 0 && (answer == null || answer.number == null) }
+        says: "The program did not say what issue ${ with.number } is in a way this understands, so nothing was done with it. See what `gh issue view ${ with.number }` says."
+    out:
+      number: ${ answer.number }
+      url: ${ answer.url }
+      title: ${ answer.title }
+      body: ${ answer.body }
+      closed: ${ answer.closed }
+      labels: ${ answer.labels }
+      stamp: ${ answer.stamp }
+      author: ${ answer.author }
+      trusted: ${ answer.trusted }
+      said: ${ answer.said }
+    repeatable: true
+
+  changed:
+    description: List the issues that changed last, each with its number, when it changed and its labels. What a factory that cannot be reached from outside asks on a timer.
+    args:
+      - "api"
+      - "repos/{owner}/{repo}/issues?state=all&sort=updated&direction=desc&per_page=30"
+      - '--jq=[.[] | select(has("pull_request") | not) | {number, stamp: .updated_at, labels: [.labels[].name]}]'
+    answer: json
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code == 0 && (answer == null || !starts_with(trim(stdout), "[")) }
+        says: "The program did not say which issues changed in a way this understands, so nothing was looked at. See what `gh issue list` says."
+    out:
+      issues: ${ answer }
+    repeatable: true
+
+  issue-find:
+    description: Find the issue that was made for a card, by the mark its body carries, among the hundred made last.
+    with:
+      card: { type: string, required: true, description: "The card." }
+    refuse:
+      - when: ${ !matches(with.card, "^[a-z0-9][a-z0-9:_-]*$") }
+        says: "`${ with.card }` is not a card's id, so no issue can carry its mark."
+    args:
+      - "issue"
+      - "list"
+      - "--state=all"
+      - "--limit=100"
+      - "--json=number,url,body"
+      - '--jq=[.[] | select(.body | contains("<!-- card ${ with.card } -->"))] | (.[0] // {}) | {number, url}'
+    answer: json
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code == 0 && (answer == null || !starts_with(trim(stdout), "{")) }
+        says: "The program did not say which issues there are in a way this understands, so none was made for ${ with.card }. See what `gh issue list` says."
+    out:
+      found: ${ answer.number != null }
+      number: ${ answer.number }
+      url: ${ answer.url }
+    repeatable: true
+
+  issue-open:
+    description: Make an issue for a card, with the card's title and body and a mark by which it is found again. It does not look whether the card has one already; `issue-find` does.
+    makes: { what: an issue, named: title }
+    with:
+      card: { type: string, required: true, description: "The card it is made for." }
+      title: { type: string, required: true, description: "The issue's title." }
+      body: { type: string, default: "", description: "What it says under the title." }
+    refuse:
+      - when: ${ trim(with.title) == "" }
+        says: "An issue needs a title."
+      - when: ${ !matches(with.card, "^[a-z0-9][a-z0-9:_-]*$") }
+        says: "`${ with.card }` is not a card's id, so no issue can carry its mark."
+    args: ["issue", "create", "--title=${ trim(with.title) }", "--body=${ with.body }\n\n<!-- card ${ with.card } -->"]
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code == 0 && !matches(trim(answer), "^https?://[^ ]+$") }
+        says: "The program did not say where the issue it made is. See what `gh issue list` says."
+    out:
+      url: ${ trim(answer) }
+
+  issue-edit:
+    description: Give an issue another title, another body, or both, with the mark of its card under the body. What is not sent is left as it is there.
+    with:
+      number: { type: int, required: true, description: "The issue's number." }
+      card: { type: string, required: true, description: "The card it is linked with." }
+      sends: { type: list, required: true, description: "Which of `title` and `body` are sent." }
+      title: { type: string, default: "", description: "Its title from now, where that is sent." }
+      body: { type: string, default: "", description: "What it says under the title from now, where that is sent." }
+    refuse:
+      - when: ${ "title" in with.sends && trim(with.title) == "" }
+        says: "An issue needs a title, and the card it is linked with has none."
+      - when: ${ !matches(with.card, "^[a-z0-9][a-z0-9:_-]*$") }
+        says: "`${ with.card }` is not a card's id, so no issue can carry its mark."
+    args:
+      - ["issue", "edit", "${ with.number }"]
+      - when: ${ "title" in with.sends }
+        args: ["--title=${ trim(with.title) }"]
+      - when: ${ "body" in with.sends }
+        args: ["--body=${ with.body }\n\n<!-- card ${ with.card } -->"]
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code != 0 && contains(stderr, "Could not resolve to an") }
+        says: "This repository has no issue ${ with.number } on GitHub."
+    repeatable: true
+
+  issue-close:
+    description: Close an issue. One that is closed stays closed.
+    with:
+      number: { type: int, required: true, description: "The issue's number." }
+    args: ["issue", "close", "${ with.number }"]
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code != 0 && contains(stderr, "Could not resolve to an") }
+        says: "This repository has no issue ${ with.number } on GitHub."
+    repeatable: true
+
+  issue-reopen:
+    description: Open an issue again. One that is open stays open.
+    with:
+      number: { type: int, required: true, description: "The issue's number." }
+    args: ["issue", "reopen", "${ with.number }"]
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code != 0 && contains(stderr, "Could not resolve to an") }
+        says: "This repository has no issue ${ with.number } on GitHub."
+    repeatable: true
+
+  said-find:
+    description: Find what was said on an issue from here, by the mark it carries.
+    with:
+      number: { type: int, required: true, description: "The issue's number." }
+      mark: { type: int, required: true, description: "What marks the thing said: the number of the event here that said it." }
+    args:
+      - "issue"
+      - "view"
+      - "${ with.number }"
+      - "--json=comments"
+      - '--jq=[.comments[] | select(.body | contains("<!-- said ${ with.mark } -->")) | {id}] | (.[0] // {})'
+    answer: json
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code != 0 && contains(stderr, "Could not resolve to an") }
+        says: "This repository has no issue ${ with.number } on GitHub."
+      - when: ${ code == 0 && (answer == null || !starts_with(trim(stdout), "{")) }
+        says: "The program did not say what was said on issue ${ with.number } in a way this understands, so nothing was said there. See what `gh issue view ${ with.number } --comments` says."
+    out:
+      found: ${ answer.id != null }
+      id: ${ answer.id }
+    repeatable: true
+
+  say:
+    description: Say something on an issue, with a mark by which it is found again. It does not look whether it was said already; `said-find` does.
+    with:
+      number: { type: int, required: true, description: "The issue's number." }
+      mark: { type: int, required: true, description: "What marks the thing said: the number of the event here that said it." }
+      body: { type: string, required: true, description: "What is said." }
+    refuse:
+      - when: ${ trim(with.body) == "" }
+        says: "There is nothing to say."
+    args: ["issue", "comment", "${ with.number }", "--body=${ with.body }\n\n<!-- said ${ with.mark } -->"]
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read and write issues in this repository, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon, and do this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows, so it has no issues to keep in step with."
+      - when: ${ code != 0 && contains(stderr, "Could not resolve to an") }
+        says: "This repository has no issue ${ with.number } on GitHub."
+      - when: ${ code == 0 && !matches(trim(answer), "^https?://[^ ]+$") }
+        says: "The program did not say where what it said on issue ${ with.number } is. See what `gh issue view ${ with.number } --comments` says."
+    out:
+      url: ${ trim(answer) }
+
+  # What a project's Git page shows of a repository on GitHub (`repository`,
+  # below): each a list, read as it is when the page asks, a row a thing
+  # with the address it is read at. Nothing is changed by any of them.
+  pulls:
+    description: List the repository's open pull requests, each with who opened it, its branch, what was decided of it and how its checks stand.
+    args:
+      - "pr"
+      - "list"
+      - "--state=open"
+      - "--limit=50"
+      - "--json=number,title,author,headRefName,isDraft,reviewDecision,statusCheckRollup,url,updatedAt"
+      - '--jq=[.[] | {number, title, by: (.author.login // ""), branch: .headRefName, draft: .isDraft, review: ((.reviewDecision // "") | ascii_downcase | gsub("_"; " ")), checks: ([.statusCheckRollup[]? | (if (.conclusion // "") != "" then .conclusion else (.state // .status // "pending") end) | ascii_downcase] | group_by(.) | map("\(length) \(.[0])") | join(", ")), url, updated: .updatedAt}]'
+    answer: json
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. Sign in again with `gh auth login`, as whoever runs the daemon, and read this again."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon${ daemon.user != '' ? ' (' + daemon.user + ')' : '' }, and read this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows. If it has more than one, `gh repo set-default` in the project's folder says which."
+      - when: ${ code == 0 && (answer == null || !starts_with(trim(stdout), "[")) }
+        says: "The program did not say what is there in a way this understands. See what `gh pr list` says."
+    out:
+      rows: ${ answer }
+    repeatable: true
+
+  issues-open:
+    description: List the repository's open issues, each with who opened it and its labels.
+    args:
+      - "issue"
+      - "list"
+      - "--state=open"
+      - "--limit=50"
+      - "--json=number,title,author,labels,url,updatedAt"
+      - '--jq=[.[] | {number, title, by: (.author.login // ""), labels: [.labels[].name], url, updated: .updatedAt}]'
+    answer: json
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. Sign in again with `gh auth login`, as whoever runs the daemon, and read this again."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon${ daemon.user != '' ? ' (' + daemon.user + ')' : '' }, and read this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows. If it has more than one, `gh repo set-default` in the project's folder says which."
+      - when: ${ code == 0 && (answer == null || !starts_with(trim(stdout), "[")) }
+        says: "The program did not say what is there in a way this understands. See what `gh issue list` says."
+    out:
+      rows: ${ answer }
+    repeatable: true
+
+  checks:
+    description: List the repository's last workflow runs, each with its branch and how it stands or ended.
+    args:
+      - "run"
+      - "list"
+      - "--limit=30"
+      - "--json=workflowName,displayTitle,headBranch,status,conclusion,url,createdAt"
+      - '--jq=[.[] | {name: .workflowName, title: .displayTitle, branch: .headBranch, state: (if .status == "completed" then .conclusion else .status end), url, at: .createdAt}]'
+    answer: json
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. Sign in again with `gh auth login`, as whoever runs the daemon, and read this again."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon${ daemon.user != '' ? ' (' + daemon.user + ')' : '' }, and read this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows. If it has more than one, `gh repo set-default` in the project's folder says which."
+      - when: ${ code == 0 && (answer == null || !starts_with(trim(stdout), "[")) }
+        says: "The program did not say what is there in a way this understands. See what `gh run list` says."
+    out:
+      rows: ${ answer }
+    repeatable: true
+
+  # What a project's Git table holds of a piece of work (the blueprint
+  # `work`, below): the pull request of one branch as it stands, with its
+  # commits, its checks, what was decided of it and the issues it closes.
+  # Nothing is changed by it.
+  work:
+    description: Read the pull request of one branch as it stands, with its commits, its checks, what was decided of it and the issues it closes; none where the branch has none.
+    with:
+      branch: { type: string, required: true, description: "The branch the pull request is from, as the repository's remote knows it." }
+    args:
+      - "pr"
+      - "list"
+      - "--head=${ with.branch }"
+      - "--state=all"
+      - "--limit=1"
+      - "--json=number,url,state,updatedAt,reviewDecision,statusCheckRollup,commits,closingIssuesReferences"
+      - '--jq=if length == 0 then {found: false} else .[0] | {found: true, url, state: (.state | ascii_downcase), changed: .updatedAt, reviews: ((.reviewDecision // "") | ascii_downcase | gsub("_"; " ")), checks: ([.statusCheckRollup[]? | (if (.conclusion // "") != "" then .conclusion else (.state // .status // "pending") end) | ascii_downcase] | group_by(.) | map("\(length) \(.[0])") | join(", ")), commits: (.commits | length), commit: ((.commits | last | .oid) // ""), committed: ((.commits | last | .committedDate) // ""), issues: [.closingIssuesReferences[]?.url]} end'
+    answer: json
+    fails:
+      - when: ${ code != 0 && contains(stderr, "Bad credentials") }
+        says: "GitHub did not take what the program `gh` acts as. If it was handed a key (`key`), see that the secret is a token of GitHub's that is still good, with leave to read this repository's pull requests, and set it again. If not, sign in again with `gh auth login`, as whoever runs the daemon."
+      - when: ${ code != 0 && contains(stderr, "gh auth login") }
+        says: "The program `gh` is not signed in on this device. Sign in with `gh auth login`, as whoever runs the daemon${ daemon.user != '' ? ' (' + daemon.user + ')' : '' }, and read this again."
+      - when: ${ code != 0 && contains(stderr, "known GitHub host") }
+        says: "None of this repository's remotes is on GitHub as far as `gh` knows. If it has more than one, `gh repo set-default` in the project's folder says which."
+      - when: ${ code == 0 && (answer == null || !starts_with(trim(stdout), "{")) }
+        says: "The program did not say what the pull request of ${ with.branch } is in a way this understands. See what `gh pr list --head ${ with.branch }` says."
+    out:
+      found: ${ answer.found == true }
+      url: ${ answer.url ?? "" }
+      state: ${ answer.state ?? "" }
+      changed: ${ answer.changed ?? "" }
+      reviews: ${ answer.reviews ?? "" }
+      checks: ${ answer.checks ?? "" }
+      commits: ${ answer.commits ?? 0 }
+      commit: ${ answer.commit ?? "" }
+      committed: ${ answer.committed ?? "" }
+      issues: ${ answer.issues ?? [] }
+    repeatable: true
+
+# What a project's Git page shows of a repository whose remote is on
+# GitHub, beside what git says of it: the application asks no service and
+# names none, and reads each part here when the page is opened, or read
+# again, with the action that is its, as whoever runs the daemon is
+# signed in to `gh`; and only for somebody who holds what using this
+# package takes (`extensions:github`).
+repository:
+  serves: ${ contains(remote.url, "github.com") }
+  parts:
+    - name: pulls
+      title: Pull requests
+      action: pulls
+      columns:
+        - { field: number, title: "#" }
+        - { field: title, title: Title }
+        - { field: by, title: By }
+        - { field: branch, title: Branch }
+        - { field: review, title: Review }
+        - { field: checks, title: Checks }
+        - { field: updated, title: Updated }
+      link: url
+    - name: issues
+      title: Issues
+      action: issues-open
+      columns:
+        - { field: number, title: "#" }
+        - { field: title, title: Title }
+        - { field: by, title: By }
+        - { field: labels, title: Labels }
+        - { field: updated, title: Updated }
+      link: url
+    - name: checks
+      title: Checks
+      action: checks
+      columns:
+        - { field: name, title: Workflow }
+        - { field: title, title: Title }
+        - { field: branch, title: Branch }
+        - { field: state, title: State }
+        - { field: at, title: Started }
+      link: url
+
+blueprints:
+  pull-requests: |
+    # Opens a pull request for each branch the lanes of one project send to
+    # the repository's remote, and says where it is: in the project's
+    # channel, and of the card, so that the card's history keeps it.
+    #
+    # Apply it once to a project whose fleet was started with `push`. It
+    # then lives for as long as pull requests are wanted, and stopping it
+    # is how that ends. A branch that already has a pull request is not
+    # given another: a card sent back from review and pushed again is in
+    # the pull request it had. Nothing here merges, closes or deletes
+    # anything.
+    blueprint: github/pull-requests
+    version: 3
+    description: Open a pull request on GitHub for each branch this project's lanes send to the repository's remote.
+    permissions: [extensions:github, board:read, channels:write, secrets]
+
+    params:
+      channel: { type: string, default: "", description: "Where to say that a pull request was opened, or could not be. Left empty, the channel called what the project is, which is the one its fleet reports in." }
+      base: { type: string, default: "", description: "The branch each pull request asks to be merged into. Left empty, the repository's default branch." }
+      key: { type: string, default: "", description: "A secret the factory keeps that the program acts as at GitHub: a token of a bot's account or an application's, which says what it may do. Each pull request is then opened by that account. Left empty, the program acts as whoever is signed in to it on this device." }
+
+    # Handed a key, the program goes by it and by nothing it has kept: the
+    # pull requests are the key's account's, and never those of whoever
+    # runs the daemon. With none named the variable is not set.
+    env:
+      GH_TOKEN: { secret: "${params.key}" }
+
+    state:
+      channel: ""  # where it says things
+
+    steps:
+      project:
+        description: It hears of one project's branches, and the program is run in that project's folder.
+        do: fail
+        when: ${ instance.project == null }
+        with: { message: "This opens pull requests for one project's branches, so it is applied to a project: --project <project>." }
+
+      reports:
+        description: The channel it says things in is there, made now where it was not: the one named, or the one called what the project is.
+        do: channel.ensure
+        with: { name: "${params.channel}", otherwise: "${instance.project}", project: "${instance.project}" }
+
+      said_in:
+        do: set
+        with: { channel: "${steps.reports.out.id}" }
+
+      account:
+        description: The program is installed and signed in. Said now, and not when the first branch arrives.
+        do: github.account
+        timeout: 1m
+
+    on:
+      pushed:
+        event: card.pushed
+        for: { project: "${instance.project}" }
+        steps:
+          card:
+            do: board.get
+            with: { id: "${event.data.card}" }
+
+          there:
+            description: Whether the branch has a pull request already. What was pushed is in it, and it is not given another.
+            do: github.find
+            allow_failure: true
+            timeout: 2m
+            with: { branch: "${event.data.branch}" }
+
+          open:
+            description: The card's title is the pull request's; its body is the card's, and which card it was.
+            when: ${ steps.there.ok && !steps.there.out.found }
+            do: github.open
+            allow_failure: true
+            timeout: 2m
+            with:
+              branch: "${event.data.branch}"
+              title: "${event.data.title}"
+              base: "${params.base}"
+              body: |
+                ${steps.card.out.body}
+
+                Card ${event.data.card}
+
+          proposed:
+            description: Said of the card, so that its history keeps where its pull request is.
+            when: ${ steps.open.ok }
+            do: emit
+            with: { topic: card.proposed, card: "${event.data.card}", project: "${event.data.project}", branch: "${event.data.branch}", url: "${steps.open.out.url}" }
+
+          say:
+            when: ${ steps.open.ok }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${event.data.card}: a pull request for its branch ${event.data.branch} is open at ${steps.open.out.url}"
+
+          trouble:
+            description: A pull request that could not be opened is said where one that was opened would have been.
+            when: ${ steps.there.failed || steps.open.failed }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${event.data.card}: no pull request was opened for its branch ${event.data.branch}: ${ steps.there.error ?? steps.open.error }"
+
+  issues: |
+    # Keeps the cards of one project that are linked with an issue on
+    # GitHub in step with it, a ticket at a time.
+    #
+    # Nothing crosses unless it is linked. A link is a row of the
+    # project's table `links`, which names a card, an issue, or both: a
+    # row that names a card has an issue made for it; one that names an
+    # issue's number has a card made for it; one that names both ties two
+    # tickets that were there already. Whoever adds a row has made a
+    # ticket public, so adding one takes what running the program takes
+    # (`extensions:github`). A card is linked for somebody who labels it,
+    # and an issue for whoever labels it there, only where this was told
+    # a label for that (`out_label`, `in_label`).
+    #
+    # Of a linked ticket the title, the body, and whether it is open or
+    # closed are kept the same on both sides. Which side moved is told by
+    # what the two last agreed on, which the link keeps (`sides.cross`),
+    # so what was sent never comes back as a change. What is said on the
+    # issue is said on the card, once each, and never as public. What is
+    # said on the card stays here unless whoever said it marked it public
+    # and holds what linking takes; then it is said on the issue, once.
+    #
+    # Whoever can write an issue is nobody the factory knows, and a
+    # card's words are what an agent works from. So whose changes of an
+    # issue's title and body are taken, and whose words there may answer
+    # what an agent asked, is said once (`takes_in`): everyone's; only
+    # those of somebody GitHub says has standing in the repository, which
+    # it is unless said, a change by anybody else being held in the link
+    # until somebody here says which stands; or nobody's. What that
+    # comes to for a ticket is `sides.cross`'s to say, handed whether the
+    # issue as it stands is trusted, which the package's own action
+    # works out from what GitHub says of who wrote it.
+    #
+    # What changed on GitHub is heard as it happens where GitHub can
+    # reach this factory: a caller says `issues.called` (the package's
+    # page says how one is described). Where it cannot, apply this with
+    # `timer`, and it asks once a minute. Either way an issue is read as
+    # it is at that moment, and nothing a call says of it is taken.
+    #
+    # Nothing here removes anything, on the board or on GitHub; a link
+    # that is taken away stops its ticket being kept in step, and leaves
+    # both as they are.
+    #
+    # What it does is said in a channel of the project, which it makes
+    # sure of as it is applied. Nothing it does rests on that being said:
+    # a line that cannot be posted is let be, and what follows goes on.
+    blueprint: github/issues
+    version: 2
+    description: Keep the cards of this project that are linked with an issue on GitHub in step with it, a ticket at a time.
+    permissions: [extensions:github, board, records, projects, channels:write, blueprints, emit, secrets]
+
+    params:
+      key: { type: string, default: "", description: "A secret the factory keeps that the program acts as at GitHub: a token of a bot's account or an application's, with leave to read and write this repository's issues and nothing else. Left empty, the program acts as whoever is signed in to it on this device." }
+      channel: { type: string, default: "", description: "Where to say that a ticket was linked, or that something could not be done. Left empty, the channel called what the project is." }
+      out_label: { type: string, default: "", description: "A label that links a card: a card given it has an issue made for it, where whoever labelled it holds `extensions:github`. Left empty, a card is linked only by a row of `links`." }
+      in_label: { type: string, default: "", description: "A label on GitHub that links an issue: an issue that has it has a card made for it. Left empty, an issue is linked only by a row of `links`." }
+      closed: { type: string, default: "", description: "The column a card is put in when its issue is closed, and whose cards have their issue closed. Left empty, the board's last." }
+      reopened: { type: string, default: "", description: "The column a card is put in when its issue is opened again, or made for an issue that is open. Left empty, the board's first." }
+      prefer: { type: string, default: here, description: "Which side is taken where a ticket changed on both since they last agreed: `here` or `there`." }
+      takes_in: { type: string, default: trusted, description: "Whose changes of an issue's title or body on GitHub are taken into its card once the two are linked, and whose words there may answer what an agent asked on the card: `everyone`, anybody who can write there; `trusted`, only somebody GitHub says has standing in the repository (its owner, a member of its organisation, a collaborator), a change by anybody else being held until somebody here says which stands; or `nobody`, so that the card's words are changed only here." }
+      timer: { type: bool, default: false, description: "Whether to ask GitHub once a minute what changed, for a factory GitHub cannot reach." }
+
+    env:
+      GH_TOKEN: { secret: "${params.key}" }
+
+    state:
+      channel: ""  # where it says things
+      closed: ""  # the column of a card whose issue is closed
+      reopened: ""  # the column of a card whose issue is open again
+      repository: ""  # the repository the project's folder is of
+
+    steps:
+      project:
+        description: It keeps one project's tickets, and the program is run in that project's folder.
+        do: fail
+        when: ${ instance.project == null }
+        with: { message: "This keeps one project's cards in step with its issues, so it is applied to a project: --project <project>." }
+
+      sided:
+        description: Which side is taken is one of two words.
+        do: fail
+        when: ${ !(params.prefer in ["here", "there"]) }
+        with: { message: "`prefer` is which side is taken where a ticket changed on both, `here` or `there`; it is `${params.prefer}`." }
+
+      taken:
+        description: Whose changes there are taken is one of three words.
+        do: fail
+        when: ${ !(params.takes_in in ["everyone", "trusted", "nobody"]) }
+        with: { message: "`takes_in` is whose changes of an issue on GitHub are taken into its card, `everyone`, `trusted` or `nobody`; it is `${params.takes_in}`." }
+
+      reports:
+        description: The channel it reports in is there, made now where it was not: the one named, or the one called what the project is, which a project that has no fleet has not got.
+        do: channel.ensure
+        with: { name: "${params.channel}", otherwise: "${instance.project}", project: "${instance.project}" }
+
+      said_in:
+        do: set
+        with: { channel: "${steps.reports.out.id}" }
+
+      account:
+        description: The program is installed and signed in. Said now, and not when the first ticket is linked.
+        do: github.account
+        timeout: 1m
+
+      where:
+        description: Which repository the project's folder is of. A call about another is passed over.
+        do: github.repository
+        timeout: 1m
+
+      whose:
+        do: set
+        with: { repository: "${steps.where.out.name}" }
+
+      board:
+        description: The project's board, whose first and last columns are where a card begins and ends unless another is said.
+        do: board.list
+
+      ends:
+        when: ${ params.closed != "" }
+        do: set
+        with: { closed: "${params.closed}" }
+
+      ends_last:
+        when: ${ params.closed == "" }
+        do: set
+        with: { closed: "${steps.board.out.last}" }
+
+      begins:
+        when: ${ params.reopened != "" }
+        do: set
+        with: { reopened: "${params.reopened}" }
+
+      begins_first:
+        when: ${ params.reopened == "" }
+        do: set
+        with: { reopened: "${steps.board.out.first}" }
+
+      links:
+        description: "The tickets that are linked, a row each. Adding one makes a ticket public, so it takes what running the program takes."
+        do: collection.ensure
+        with:
+          name: links
+          takes: extensions:github
+          fields:
+            # The card, the issue's number, or both.
+            card: { type: record, of: board }
+            issue: { type: number }
+            url: { type: text }
+            # What the two last agreed on: what tells which side moved.
+            agreed_title: { type: text, quiet: true, hidden: true }
+            agreed_body: { type: text, quiet: true, hidden: true }
+            agreed_closed: { type: flag, quiet: true, hidden: true }
+            # What was said there and has been said here, and what was
+            # said here and has been said there, by its name there.
+            came: { type: list, quiet: true, hidden: true }
+            sent: { type: list, quiet: true, hidden: true }
+            # When the issue had last changed as the two were brought
+            # together, as GitHub says it.
+            seen: { type: text, quiet: true, hidden: true }
+            # `bringing`, while a card is being made for the issue.
+            state: { type: text, quiet: true }
+            # A change of the issue's title or body by somebody GitHub
+            # does not say has standing there is not taken: it waits, and
+            # meanwhile neither side's title and body are written over
+            # the other's. Somebody here says which stands: `take`, what
+            # is on GitHub; or `keep`, what is on the card.
+            held: { type: choice, of: [waiting, take, keep] }
+            held_by: { type: text, quiet: true }
+
+      asks:
+        description: Asked on a timer, for a factory GitHub cannot reach.
+        when: ${params.timer}
+        spawn: github/issues-timer
+        as: timer
+        with: { key: "${params.key}" }
+
+      asks_not:
+        when: ${ !params.timer }
+        do: stop
+        with: { instance: timer, missing_ok: true }
+
+    on:
+      # A row of `links` was added or changed by somebody: what it names
+      # says what is owed.
+      linked:
+        event: record.*
+        for: { project: "${instance.project}", collection: links }
+        when: ${ event.topic in ["record.created", "record.updated"] && event.data.through == null }
+        turn: "${event.data.id}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.id}" }
+
+          out:
+            description: It names a card and no issue. One is made.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") != "" && (steps.link.out.data.issue ?? 0) == 0 }
+            do: emit
+            with: { topic: ticket.out, project: "${instance.project}", link: "${event.data.id}" }
+
+          in:
+            description: It names an issue and no card. One is made.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") == "" && (steps.link.out.data.issue ?? 0) > 0 }
+            do: emit
+            with: { topic: ticket.in, project: "${instance.project}", link: "${event.data.id}" }
+
+          both:
+            description: It names both. They are brought together.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") != "" && (steps.link.out.data.issue ?? 0) > 0 }
+            do: emit
+            with: { topic: ticket.due, project: "${instance.project}", link: "${event.data.id}" }
+
+      # A card's title or body was changed, by anything but this.
+      reworded:
+        event: board.item.updated
+        for: { project: "${instance.project}" }
+        when: ${ event.data.reworded && event.data.through != "github/issues" }
+        steps:
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", issue: { said: true } } }
+
+          due:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with: { topic: ticket.due, project: "${instance.project}", link: "${item}" }
+
+      # A card came to the column of the closed, or left it.
+      moved:
+        event: board.item.moved
+        for: { project: "${instance.project}" }
+        when: ${ event.data.to == state.closed || event.data.from == state.closed }
+        steps:
+          mine:
+            description: What this moved is not looked at again.
+            when: ${ event.data.through == "github/issues" }
+            do: end
+
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", issue: { said: true } } }
+
+          due:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with: { topic: ticket.due, project: "${instance.project}", link: "${item}" }
+
+      # A card was added, or its labels changed, where a label links.
+      added:
+        event: board.item.created
+        for: { project: "${instance.project}" }
+        when: ${ params.out_label != "" && event.data.through != "github/issues" }
+        steps:
+          labelled:
+            do: emit
+            with: { topic: ticket.labelled, project: "${instance.project}", card: "${event.data.id}", actor: "${event.source.actor}" }
+
+      relabelled:
+        event: board.item.updated
+        for: { project: "${instance.project}" }
+        when: ${ params.out_label != "" && "labels" in event.data.changed && event.data.through != "github/issues" }
+        steps:
+          labelled:
+            do: emit
+            with: { topic: ticket.labelled, project: "${instance.project}", card: "${event.data.id}", actor: "${event.source.actor}" }
+
+      # A card that may have the label that links. Linked here, it is
+      # linked as whoever applied this, for whoever labelled it: so they
+      # are asked for what linking takes.
+      labelled:
+        event: ticket.labelled
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.card}"
+        steps:
+          card:
+            allow_failure: true
+            do: board.get
+            with: { id: "${event.data.card}" }
+
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.card}" } }
+
+          may:
+            description: Whether whoever labelled it holds what making a ticket public takes, now.
+            when: ${ steps.card.ok && params.out_label in steps.card.out.labels && steps.link.out.those[0] == null }
+            allow_failure: true
+            do: actor.holds
+            with: { actor: "${event.data.actor}", scope: "extensions:github" }
+
+          add:
+            when: ${ steps.may.out.holds == true }
+            do: record.add
+            with: { collection: links, fields: { card: "${event.data.card}" } }
+
+          out:
+            when: ${steps.add.ok}
+            do: emit
+            with: { topic: ticket.out, project: "${instance.project}", link: "${steps.add.out.id}" }
+
+          left:
+            description: Labelled by somebody who may not make a ticket public, it stays here, and that is said.
+            when: ${ steps.may.out.holds == false }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${event.data.card} has the label ${params.out_label}, and was not linked with an issue on GitHub: whoever labelled it does not hold `extensions:github`, which making a ticket public takes. Somebody who does can link it with a row of the project's `links`."
+
+      # Something was said on a card and marked public, by somebody and
+      # not by a blueprint.
+      said:
+        event: record.commented
+        for: { project: "${instance.project}", collection: board }
+        when: ${ event.data.public == true && event.data.through == null }
+        steps:
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", issue: { said: true } } }
+
+          say:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with:
+              topic: ticket.said
+              project: "${instance.project}"
+              link: "${item}"
+              card: "${event.data.id}"
+              body: "${event.data.body}"
+              mark: "${event.seq}"
+              actor: "${event.source.actor}"
+
+      # GitHub said something happened to an issue of this repository. Of
+      # what it says only which issue is taken: the issue is read as it is.
+      called:
+        event: issues.called
+        outside: true
+        when: ${ event.data.repository.full_name == state.repository && event.data.issue != null && event.data.issue.pull_request == null }
+        steps:
+          heard:
+            do: emit
+            with: { topic: issues.heard, project: "${instance.project}", number: "${event.data.issue.number}" }
+
+      # When this starts, is applied again, or the daemon comes back, it
+      # looks once: what changed while nothing was listening, and what
+      # carried the label before anybody was told it links, is seen then.
+      first:
+        event: instance.active
+        scope: own
+        when: ${ event.source.instance == instance.id }
+        steps:
+          look:
+            do: emit
+            with: { topic: issues.look, project: "${instance.project}" }
+
+      started:
+        event: system.started
+        steps:
+          look:
+            do: emit
+            with: { topic: issues.look, project: "${instance.project}" }
+
+      # Asked what changed: as this starts, on a timer, or by anybody who
+      # says so.
+      look:
+        event: issues.look
+        for: { project: "${instance.project}" }
+        steps:
+          changed:
+            do: github.changed
+            timeout: 2m
+
+          heard:
+            for_each: ${steps.changed.out.issues}
+            do: emit
+            with:
+              topic: issues.heard
+              project: "${instance.project}"
+              number: "${item.number}"
+              stamp: "${item.stamp}"
+              labels: "${item.labels}"
+
+      # An issue may have changed.
+      heard:
+        event: issues.heard
+        for: { project: "${instance.project}" }
+        turn: "issue-${event.data.number}"
+        steps:
+          linked:
+            do: rows.read
+            with: { collection: links, saying: { issue: "${event.data.number}" } }
+
+          news:
+            description: Its link, unless the link has seen it as it now is.
+            do: rows.read
+            with:
+              collection: links
+              saying: { issue: "${event.data.number}", card: { said: true }, seen: { not: "${ event.data.stamp ?? '' }" } }
+
+          due:
+            for_each: ${steps.news.out.those}
+            do: emit
+            with: { topic: ticket.due, project: "${instance.project}", link: "${item}" }
+
+          called:
+            description: Linked with nothing, and a label links. Heard of with no word of its labels, the issue as it is now says whether it has the label.
+            when: ${ params.in_label != "" && steps.linked.out.those[0] == null && event.data.labels == null }
+            allow_failure: true
+            timeout: 2m
+            do: github.issue
+            with: { number: "${event.data.number}" }
+
+          listed:
+            description: Listed with the label among those it has now, it is read as it is all the same, and that says whether it has it.
+            when: ${ params.in_label != "" && steps.linked.out.those[0] == null && params.in_label in (event.data.labels ?? []) }
+            allow_failure: true
+            timeout: 2m
+            do: github.issue
+            with: { number: "${event.data.number}" }
+
+          add:
+            when: ${ params.in_label in (steps.called.out.labels ?? steps.listed.out.labels ?? []) }
+            do: record.add
+            with: { collection: links, fields: { issue: "${event.data.number}", url: "${ steps.called.out.url ?? steps.listed.out.url }" } }
+
+          in:
+            when: ${steps.add.ok}
+            do: emit
+            with: { topic: ticket.in, project: "${instance.project}", link: "${steps.add.out.id}" }
+
+      # A link names a card and no issue: one is made for it, unless one
+      # that carries the card's mark is there already.
+      make:
+        event: ticket.out
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${steps.link.failed}
+            do: end
+
+          made:
+            when: ${ (steps.link.out.data.issue ?? 0) > 0 }
+            do: end
+
+          card:
+            do: board.get
+            with: { id: "${steps.link.out.data.card}" }
+
+          found:
+            description: An issue that carries the card's mark was made for it before, by a run the daemon stopped in.
+            allow_failure: true
+            timeout: 2m
+            do: github.issue-find
+            with: { card: "${steps.link.out.data.card}" }
+
+          open:
+            when: ${ steps.found.ok && !steps.found.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: github.issue-open
+            with: { card: "${steps.link.out.data.card}", title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+
+          there:
+            description: Looked for again by its mark, whether making it went well or not. A step the daemon stopped in is not done twice, and says so as a failure, whether or not the issue had been made.
+            when: ${ steps.open.ok || steps.open.failed }
+            allow_failure: true
+            timeout: 2m
+            do: github.issue-find
+            with: { card: "${steps.link.out.data.card}" }
+
+          again:
+            description: Not there, though making it was tried: it was not made, and is made now.
+            when: ${ steps.open.failed && steps.there.ok && !steps.there.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: github.issue-open
+            with: { card: "${steps.link.out.data.card}", title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+
+          last:
+            when: ${steps.again.ok}
+            allow_failure: true
+            timeout: 2m
+            do: github.issue-find
+            with: { card: "${steps.link.out.data.card}" }
+
+          keep:
+            description: The link says which issue it is, and what the two agree on.
+            when: ${ steps.found.out.found || steps.there.out.found || steps.last.out.found }
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                issue: "${ steps.last.out.number ?? steps.there.out.number ?? steps.found.out.number }"
+                url: "${ steps.last.out.url ?? steps.there.out.url ?? steps.found.out.url }"
+                agreed_title: "${steps.card.out.title}"
+                agreed_body: "${steps.card.out.body}"
+                agreed_closed: false
+
+          told:
+            when: ${steps.keep.ok}
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card} is linked with an issue on GitHub: ${ steps.last.out.url ?? steps.there.out.url ?? steps.found.out.url }"
+
+          due:
+            description: And is brought together with it, a card that is closed already included.
+            when: ${steps.keep.ok}
+            do: emit
+            with: { topic: ticket.due, project: "${instance.project}", link: "${event.data.link}" }
+
+          trouble:
+            description: Said only where no issue carries the card's mark in the end.
+            when: ${ !(steps.found.out.found ?? false) && !(steps.there.out.found ?? false) && !(steps.last.out.found ?? false) }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card}: no issue was made for it on GitHub: ${ steps.found.error ?? steps.again.error ?? steps.open.error ?? steps.there.error ?? steps.last.error }"
+
+      # A link names an issue and no card: one is made for it. A daemon
+      # that stops as the card is added has the step done again when it
+      # is back, which finds the card it added (adding one is the same
+      # done twice). That a card is being made is written first all the
+      # same: a run cut short another way (what applied this stopped
+      # under it) leaves the link saying so with no card, and a link
+      # found so is left for a person and not given a second card.
+      bring:
+        event: ticket.in
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${steps.link.failed}
+            do: end
+
+          brought:
+            when: ${ (steps.link.out.data.card ?? "") != "" }
+            do: end
+
+          half:
+            when: ${ steps.link.out.data.state == "bringing" }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "The link ${event.data.link} with issue ${steps.link.out.data.issue} was left half made: a card may have been added for it as the daemon stopped. Name that card in the link, or empty the link's `state` to have one made."
+
+          left:
+            when: ${ steps.link.out.data.state == "bringing" }
+            do: end
+
+          issue:
+            allow_failure: true
+            timeout: 2m
+            do: github.issue
+            with: { number: "${steps.link.out.data.issue}" }
+
+          trouble:
+            when: ${steps.issue.failed}
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "No card was made for issue ${steps.link.out.data.issue} on GitHub: ${steps.issue.error}"
+
+          unread:
+            when: ${steps.issue.failed}
+            do: end
+
+          bringing:
+            do: record.update
+            with: { id: "${event.data.link}", fields: { state: bringing } }
+
+          open:
+            when: ${ !steps.issue.out.closed }
+            do: board.add
+            with: { title: "${steps.issue.out.title}", body: "${steps.issue.out.body}", status: "${state.reopened}" }
+
+          shut:
+            when: ${steps.issue.out.closed}
+            do: board.add
+            with: { title: "${steps.issue.out.title}", body: "${steps.issue.out.body}", status: "${state.closed}" }
+
+          keep:
+            description: The link says which card it is, and what the two agree on.
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                card: "${ steps.open.out.id ?? steps.shut.out.id }"
+                url: "${steps.issue.out.url}"
+                state: ""
+                agreed_title: "${steps.issue.out.title}"
+                agreed_body: "${steps.issue.out.body}"
+                agreed_closed: "${steps.issue.out.closed}"
+
+          told:
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${ steps.open.out.id ?? steps.shut.out.id } was made for an issue on GitHub: ${steps.issue.out.url}"
+
+          due:
+            description: And what was said on the issue is said on the card.
+            do: emit
+            with: { topic: ticket.due, project: "${instance.project}", link: "${event.data.link}" }
+
+      # A linked ticket is brought together: what moved on either side
+      # since the two last agreed crosses, and what was said on the issue
+      # is said on the card.
+      keep:
+        event: ticket.due
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            description: A link that was taken away keeps nothing in step.
+            when: ${steps.link.failed}
+            do: end
+
+          half:
+            when: ${ (steps.link.out.data.card ?? "") == "" || (steps.link.out.data.issue ?? 0) == 0 }
+            do: end
+
+          card:
+            allow_failure: true
+            do: board.get
+            with: { id: "${steps.link.out.data.card}" }
+
+          off:
+            description: A card that was taken off the board is not put back, and its issue is left as it is.
+            when: ${steps.card.failed}
+            do: end
+
+          there:
+            description: The issue as it is now.
+            allow_failure: true
+            timeout: 2m
+            do: github.issue
+            with: { number: "${steps.link.out.data.issue}" }
+
+          trouble:
+            when: ${steps.there.failed}
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card} was not brought together with its issue on GitHub: ${steps.there.error}"
+
+          unread:
+            when: ${steps.there.failed}
+            do: end
+
+          words:
+            description: Which of the title and the body moved, on which side, and whether what moved there is taken, by whose changes are and who wrote the issue as it stands.
+            do: sides.cross
+            with:
+              here: { title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+              there: { title: "${steps.there.out.title}", body: "${steps.there.out.body}" }
+              last: { title: "${steps.link.out.data.agreed_title}", body: "${steps.link.out.data.agreed_body}" }
+              prefer: "${params.prefer}"
+              takes: "${params.takes_in}"
+              trusted: "${steps.there.out.trusted}"
+              held: "${ steps.link.out.data.held ?? '' }"
+
+          edit:
+            description: What moved here is said there, and what did not is left as it is there.
+            when: ${ steps.words.out.came in ["out", "both"] }
+            timeout: 2m
+            do: github.issue-edit
+            with:
+              number: "${steps.link.out.data.issue}"
+              card: "${steps.link.out.data.card}"
+              sends: "${steps.words.out.sends}"
+              title: "${ steps.words.out.goes.title ?? '' }"
+              body: "${ steps.words.out.goes.body ?? '' }"
+
+          take_title:
+            description: What moved there, and is taken, is said here.
+            when: ${ "title" in steps.words.out.takes }
+            do: board.update
+            with: { id: "${steps.link.out.data.card}", title: "${steps.words.out.comes.title}" }
+
+          take_body:
+            when: ${ "body" in steps.words.out.takes }
+            do: board.update
+            with: { id: "${steps.link.out.data.card}", body: "${ steps.words.out.comes.body ?? '' }" }
+
+          agree:
+            description: What the two agree on, with nothing held, as one write.
+            when: ${ steps.words.out.holds == null }
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                agreed_title: "${steps.words.out.agreed.title}"
+                agreed_body: "${ steps.words.out.agreed.body ?? '' }"
+                held: "${steps.words.out.holds}"
+                held_by: ""
+
+          hold:
+            description: A change there that is not taken is held, with who made it.
+            when: ${ steps.words.out.holds == "waiting" }
+            do: record.update
+            with: { id: "${event.data.link}", fields: { held: waiting, held_by: "${steps.there.out.author}" } }
+
+          tell:
+            description: Said on the card once, as it comes to be held, and never as public.
+            when: ${steps.words.out.newly}
+            do: record.comment
+            with:
+              id: "${steps.link.out.data.card}"
+              body: "The title or the body of this card's issue on GitHub was changed by ${steps.there.out.author}, who has no standing in the repository, and was not taken: ${steps.there.out.url}\n\nUntil somebody says which stands, the card's title and body and the issue's are kept apart. In the link ${event.data.link}, set `held` to `take` to have what is on GitHub come in, or to `keep` to have the card's put back over it."
+
+          shut:
+            description: Whether it is closed, the same way. A card is closed by being in the column that was said.
+            do: sides.cross
+            with:
+              here: { closed: "${ steps.card.out.status == state.closed }" }
+              there: { closed: "${steps.there.out.closed}" }
+              last: { closed: "${steps.link.out.data.agreed_closed}" }
+              prefer: "${params.prefer}"
+
+          close:
+            when: ${ steps.shut.out.goes.closed == true }
+            timeout: 2m
+            do: github.issue-close
+            with: { number: "${steps.link.out.data.issue}" }
+
+          reopen:
+            when: ${ steps.shut.out.goes.closed == false }
+            timeout: 2m
+            do: github.issue-reopen
+            with: { number: "${steps.link.out.data.issue}" }
+
+          closed:
+            when: ${ steps.shut.out.comes.closed == true }
+            do: board.move
+            with: { id: "${steps.link.out.data.card}", to: "${state.closed}", note: "its issue on GitHub was closed" }
+
+          reopened:
+            when: ${ steps.shut.out.comes.closed == false }
+            do: board.move
+            with: { id: "${steps.link.out.data.card}", to: "${state.reopened}", note: "its issue on GitHub was opened again" }
+
+          agreed:
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields: { agreed_closed: "${steps.shut.out.agreed.closed}", seen: "${steps.there.out.stamp}", url: "${steps.there.out.url}" }
+
+          owed:
+            description: What was said on the issue and has not been said on the card. What was said from here is not said back.
+            do: sides.owed
+            with:
+              things: "${steps.there.out.said}"
+              had: "${ steps.link.out.data.came ?? [] }"
+              also: "${ steps.link.out.data.sent ?? [] }"
+              except: ours
+
+          hear:
+            description: Each is said on the card, with who said it there and whether GitHub says they have standing, never as public, and then kept as said. Whether it may answer what an agent asked on the card goes by whose words are taken.
+            for_each: ${steps.owed.out.those}
+            task:
+              said:
+                do: record.comment
+                with:
+                  id: "${steps.link.out.data.card}"
+                  body: "${item.who} said on GitHub:\n\n${item.body}\n\n${item.url}"
+
+              kept:
+                do: record.update
+                with: { id: "${event.data.link}", fields: { came: "${item.kept}" } }
+
+              anybodys:
+                when: ${ params.takes_in == "everyone" }
+                do: emit
+                with: { topic: ticket.answered, project: "${instance.project}", card: "${steps.link.out.data.card}", by: "${item.by}", body: "${item.body}" }
+
+              somebodys:
+                when: ${ params.takes_in == "trusted" && item.trusted }
+                do: emit
+                with: { topic: ticket.answered, project: "${instance.project}", card: "${steps.link.out.data.card}", by: "${item.by}", body: "${item.body}" }
+
+      # Something said on an issue by somebody whose words are taken:
+      # whether it answers what an agent asked on the card is asked of
+      # the board, as it is of what a person says on the card. What a
+      # blueprint says on a card answers nothing by itself.
+      answered:
+        event: ticket.answered
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.card}"
+        steps:
+          what:
+            description: Whether it answers what was asked on the card.
+            do: board.said
+            with: { id: "${event.data.card}", by: "github:${event.data.by}" }
+
+          taken:
+            when: ${ steps.what.out.came == "answer" }
+            do: board.update
+            with: { id: "${event.data.card}", fields: { question: "" } }
+
+          answer:
+            when: ${ steps.what.out.came == "answer" }
+            do: emit
+            with:
+              topic: card.answered
+              card: "${event.data.card}"
+              project: "${instance.project}"
+              asker: "${steps.what.out.asker}"
+              body: "${event.data.body}"
+
+      # Something said on a linked card and marked public is said on its
+      # issue, once, for whoever said it: so they are asked for what
+      # making something public takes.
+      say:
+        event: ticket.said
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${steps.link.failed}
+            do: end
+
+          may:
+            description: Whether whoever said it holds what making something public takes, now.
+            allow_failure: true
+            do: actor.holds
+            with: { actor: "${event.data.actor}", scope: "extensions:github" }
+
+          kept_here:
+            when: ${ !(steps.may.out.holds ?? false) }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "Something said on ${event.data.card} was marked public and was not said on its issue on GitHub: whoever said it does not hold `extensions:github`, which making something public takes."
+
+          not:
+            when: ${ !(steps.may.out.holds ?? false) }
+            do: end
+
+          found:
+            description: Said there before, by a run the daemon stopped in, it carries the mark.
+            allow_failure: true
+            timeout: 2m
+            do: github.said-find
+            with: { number: "${steps.link.out.data.issue}", mark: "${event.data.mark}" }
+
+          say:
+            when: ${ steps.found.ok && !steps.found.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: github.say
+            with:
+              number: "${steps.link.out.data.issue}"
+              mark: "${event.data.mark}"
+              body: "${steps.may.out.name} said:\n\n${event.data.body}"
+
+          there:
+            description: Looked for again by its mark, whether saying it went well or not. A step the daemon stopped in is not done twice, and says so as a failure, whether or not it had been said.
+            when: ${ steps.say.ok || steps.say.failed }
+            allow_failure: true
+            timeout: 2m
+            do: github.said-find
+            with: { number: "${steps.link.out.data.issue}", mark: "${event.data.mark}" }
+
+          again:
+            description: Not there, though saying it was tried: it was not said, and is said now.
+            when: ${ steps.say.failed && steps.there.ok && !steps.there.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: github.say
+            with:
+              number: "${steps.link.out.data.issue}"
+              mark: "${event.data.mark}"
+              body: "${steps.may.out.name} said:\n\n${event.data.body}"
+
+          last:
+            when: ${steps.again.ok}
+            allow_failure: true
+            timeout: 2m
+            do: github.said-find
+            with: { number: "${steps.link.out.data.issue}", mark: "${event.data.mark}" }
+
+          owed:
+            description: Its name there, beside those of what was said there from here before.
+            when: ${ steps.found.out.found || steps.there.out.found || steps.last.out.found }
+            do: sides.owed
+            with:
+              things: [{ id: "${ steps.last.out.id ?? steps.there.out.id ?? steps.found.out.id }" }]
+              had: "${ steps.link.out.data.sent ?? [] }"
+
+          keep:
+            when: ${steps.owed.ok}
+            do: record.update
+            with: { id: "${event.data.link}", fields: { sent: "${steps.owed.out.kept}" } }
+
+          trouble:
+            description: Said only where nothing on the issue carries the mark in the end.
+            when: ${ !(steps.found.out.found ?? false) && !(steps.there.out.found ?? false) && !(steps.last.out.found ?? false) }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "What was said publicly on ${event.data.card} was not said on its issue on GitHub: ${ steps.found.error ?? steps.again.error ?? steps.say.error ?? steps.there.error ?? steps.last.error }"
+
+  work: |
+    # A project's Git table: a row for each piece of work (a card whose
+    # branch reached the repository's remote), with what GitHub knows of
+    # it: where its branch is and how many commits it has, its pull request
+    # (where it is read, how it stands, its checks and what was decided of
+    # it), the issues it closes, and when the branch and the pull request
+    # last changed. The table sits beside the project's board, a row about
+    # a card, and is written only from here: nobody fills it by hand.
+    #
+    # A row is made when a card's branch reaches the remote (`card.pushed`,
+    # said by the round that sends it), and is read again as it is then:
+    # where its branch is, from the card's place, and its pull request,
+    # from GitHub. It is read again as GitHub says something of a pull
+    # request where GitHub can reach this factory (a caller that says
+    # `work.called`: the package's page says how one is described), when
+    # this starts or is applied again, and when the daemon comes back. Of
+    # what a call says only which branch is taken: the pull request is read
+    # as it is.
+    #
+    # Apply it to a project whose program is signed in. Where it is not,
+    # applying it is refused saying how to sign it in, and no table is
+    # made. Nothing here changes anything on GitHub.
+    blueprint: github/work
+    version: 1
+    description: Keep a table beside this project's board of what GitHub knows of each card's branch, its pull request and the issues it closes.
+    permissions: [extensions:github, board:read, records, projects, shell, emit, secrets]
+
+    params:
+      key: { type: string, default: "", description: "A secret the factory keeps that the program acts as at GitHub: a token of a bot's account or an application's, with leave to read this repository's pull requests. Left empty, the program acts as whoever is signed in to it on this device." }
+
+    env:
+      GH_TOKEN: { secret: "${params.key}" }
+
+    state:
+      repository: ""  # the repository the project's folder is of
+
+    steps:
+      project:
+        description: It keeps one project's table, and the program is run in that project's folder.
+        do: fail
+        when: ${ instance.project == null }
+        with: { message: "This keeps a table of one project's pieces of work, so it is applied to a project: --project <project>." }
+
+      account:
+        description: The program is installed and signed in. Where it is not, nothing is made.
+        do: github.account
+        timeout: 1m
+
+      where:
+        description: Which repository the project's folder is of. A call about another is passed over.
+        do: github.repository
+        timeout: 1m
+
+      whose:
+        do: set
+        with: { repository: "${steps.where.out.name}" }
+
+      table:
+        description: "The project's pieces of work, a row each, beside its board and about its cards, written only from here."
+        do: collection.ensure
+        with:
+          name: git
+          title: Git
+          beside: board
+          about: card
+          by_hand: false
+          fields:
+            card: { type: record, of: board }
+            branch: { type: text }
+            commit: { type: text }
+            commits: { type: number }
+            branch_changed: { type: text }
+            pull_request: { type: text }
+            state: { type: text }
+            checks: { type: text }
+            reviews: { type: text }
+            pull_request_changed: { type: text }
+            issues: { type: list }
+          groups:
+            - Branch: [branch, commit, commits, branch_changed]
+            - Pull request: [pull_request, state, checks, reviews, pull_request_changed]
+            - Issues: [issues]
+
+    on:
+      # A card's branch reached the remote: it is a piece of work, with a
+      # row of its own from now on.
+      pushed:
+        event: card.pushed
+        for: { project: "${instance.project}" }
+        turn: "${event.data.card}"
+        steps:
+          had:
+            do: rows.read
+            with: { collection: git, saying: { card: "${event.data.card}" } }
+
+          add:
+            when: ${ steps.had.out.those[0] == null }
+            do: record.add
+            with: { collection: git, fields: { card: "${event.data.card}", branch: "${event.data.branch}" } }
+
+          heard:
+            do: emit
+            with: { topic: work.heard, project: "${instance.project}", branch: "${event.data.branch}" }
+
+      # GitHub said something happened to a pull request of this
+      # repository. Of what it says only the branch is taken.
+      called:
+        event: work.called
+        outside: true
+        when: ${ event.data.repository.full_name == state.repository && event.data.pull_request != null }
+        steps:
+          heard:
+            do: emit
+            with: { topic: work.heard, project: "${instance.project}", branch: "${event.data.pull_request.head.ref}" }
+
+      # When this starts, is applied again, or the daemon comes back, each
+      # row is read again: what changed while nothing was listening is
+      # seen then.
+      first:
+        event: instance.active
+        scope: own
+        when: ${ event.source.instance == instance.id }
+        steps:
+          look:
+            do: emit
+            with: { topic: work.look, project: "${instance.project}" }
+
+      started:
+        event: system.started
+        steps:
+          look:
+            do: emit
+            with: { topic: work.look, project: "${instance.project}" }
+
+      look:
+        event: work.look
+        for: { project: "${instance.project}" }
+        steps:
+          rows:
+            do: rows.read
+            with: { collection: git }
+
+          heard:
+            for_each: ${steps.rows.out.rows}
+            do: emit
+            with: { topic: work.heard, project: "${instance.project}", branch: "${item.branch}" }
+
+      # A branch's row is read again as it is now.
+      heard:
+        event: work.heard
+        for: { project: "${instance.project}" }
+        turn: "branch-${event.data.branch}"
+        steps:
+          row:
+            description: The row of the branch, where it is a piece of work's. A branch of no card's is passed over.
+            do: rows.read
+            with: { collection: git, saying: { branch: "${event.data.branch}" } }
+
+          worked:
+            description: Where the card was worked, which holds its branch while its place is there.
+            when: ${ steps.row.out.those[0] != null }
+            allow_failure: true
+            do: place.changed
+            with: { item: "${steps.row.out.chosen[0].card}" }
+
+          head:
+            description: Where its branch is now.
+            when: ${ steps.worked.ok && steps.worked.out.there }
+            allow_failure: true
+            do: place.head
+            with: { item: "${steps.row.out.chosen[0].card}", dir: "${steps.worked.out.dir}" }
+
+          pull:
+            description: Its pull request as it stands, where it has one.
+            when: ${ steps.row.out.those[0] != null }
+            allow_failure: true
+            timeout: 2m
+            do: github.work
+            with: { branch: "${event.data.branch}" }
+
+          kept:
+            description: What GitHub knows of it, kept in its row.
+            when: ${ steps.pull.ok && steps.pull.out.found }
+            do: record.update
+            with:
+              id: "${steps.row.out.those[0]}"
+              fields:
+                commit: "${steps.pull.out.commit}"
+                commits: "${steps.pull.out.commits}"
+                branch_changed: "${steps.pull.out.committed}"
+                pull_request: "${steps.pull.out.url}"
+                state: "${steps.pull.out.state}"
+                checks: "${steps.pull.out.checks}"
+                reviews: "${steps.pull.out.reviews}"
+                pull_request_changed: "${steps.pull.out.changed}"
+                issues: "${steps.pull.out.issues}"
+
+          branch:
+            description: With no pull request, where its branch is, from the card's place.
+            when: ${ steps.head.ok && steps.pull.out.found != true }
+            do: record.update
+            with: { id: "${steps.row.out.those[0]}", fields: { commit: "${steps.head.out.commit}" } }
+
+  issues-timer: |
+    # Asks GitHub once a minute which issues changed, for a factory that
+    # GitHub cannot reach, and has `github/issues` look when any did. It is
+    # started by `github/issues` where that was applied with `timer`, and
+    # stopped by it where it was not.
+    blueprint: github/issues-timer
+    version: 1
+    description: Ask GitHub once a minute which issues of this project's repository changed, and have what keeps them in step look.
+    permissions: [extensions:github, emit, secrets]
+
+    params:
+      key: { type: string, default: "", description: "A secret the factory keeps that the program acts as at GitHub. Left empty, the program acts as whoever is signed in to it on this device." }
+
+    env:
+      GH_TOKEN: { secret: "${params.key}" }
+
+    on:
+      asked:
+        poll:
+          every: 1m
+          do: github.changed
+        steps:
+          look:
+            do: emit
+            with: { topic: issues.look, project: "${instance.project}" }

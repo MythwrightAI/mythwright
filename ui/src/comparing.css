@@ -1,0 +1,43 @@
+/* What is asked in the drawer beside a blueprint's text: the ways its
+   starting is compared by, and what it is applied with. Each thing asked is
+   a label, the box under it and what it means under that, and takes the
+   width it is given and no more: a select is as wide as its longest
+   choice unless it is told, and that pushed its neighbours off the edge.
+   Each way is a block of its own with a line over it. What the form is
+   left by stays in reach at the drawer's foot, over whatever is under it. */
+.comparing { display: grid; gap: 14px; min-width: 0; align-content: start; }
+.comparing-about { margin: 0; font-size: calc(12.5px * var(--size)); line-height: 1.45; }
+.comparing-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; min-width: 0; }
+.comparing-field { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.comparing-field > input, .comparing-field > select, .comparing-field > textarea { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+.comparing-field > textarea { min-height: 52px; }
+.comparing-label { font-size: calc(12px * var(--size)); color: var(--dim); }
+.comparing-said { font-size: calc(11.5px * var(--size)); line-height: 1.35; color: var(--faint); overflow-wrap: anywhere; }
+.comparing-way { display: grid; gap: 10px; min-width: 0; padding-top: 12px; border-top: 1px solid var(--line); }
+.comparing-way-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: calc(26px * var(--tall)); }
+.comparing-way-called { font-size: calc(12px * var(--size)); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+.comparing-way-line { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; min-width: 0; }
+.comparing-way-name { flex: 1 1 90px; }
+.comparing-way-share { flex: 0 0 60px; }
+.comparing-way-starts { flex: 2 1 150px; }
+/* A way that starts a text played side by side says which, and how to start it as it is written instead. */
+.comparing-sent { min-width: 0; font-size: calc(13px * var(--size)); line-height: 1.4; overflow-wrap: anywhere; }
+.comparing-way-sent > button { justify-self: start; max-width: 100%; height: auto; min-height: calc(26px * var(--tall)); padding: 2px 8px; white-space: normal; text-align: left; }
+.comparing-more { display: flex; }
+.comparing-wrong { margin: 0; }
+.comparing-foot {
+  position: sticky; bottom: -14px; z-index: 1; display: flex; justify-content: flex-end; gap: 8px;
+  margin: 0 -14px -14px; padding: 12px 14px 14px; background: var(--bg1); border-top: 1px solid var(--line);
+}
+/* What a blueprint is applied with. One of two is pressed, and is as wide as its words. */
+.applying-choice { justify-self: start; }
+.applying .comparing-said > :first-child { margin-top: 0; }
+/* A rule its shares grow by: a part of its own, under the ways. */
+.comparing-check { gap: 8px; align-items: flex-start; }
+.comparing-check input { margin-top: 3px; }
+.comparing-rule { display: grid; gap: 12px; min-width: 0; }
+.compared-ruling { margin-bottom: 4px; }
+/* What a rule's parts are written in is as wide as its column and no wider, whatever size text is; and what its
+   dialog is left by goes onto a second line before it leaves the window. */
+.comparing-rule input:not([type='checkbox']), .comparing-rule select { width: 100%; min-width: 0; }
+.modal:has(.comparing-rule) .modal-foot { flex-wrap: wrap; }

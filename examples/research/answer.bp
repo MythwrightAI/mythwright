@@ -1,0 +1,99 @@
+# One question, put to an agent of a project.
+#
+# What the agent is told is the file `prompts/answer.md` beside this, with
+# the question in it. Its answer is kept as a document of the project's
+# library, called after the question, and what came of asking is said as
+# an event (`research.answered`), which is what a comparison of two ways of
+# asking counts.
+blueprint: research/answer
+description: Put one question to an agent of a project, keep its answer as a document, and say what came of it.
+permissions: [agents, channels, records]
+
+params:
+  project: { type: string }
+  question: { type: string }
+
+  role:
+    type: string
+    default: ""
+    description: "Only an agent of this role is asked; any agent of the project, if empty."
+
+  channel:
+    type: string
+    default: ""
+    description: "Where the answer is said, and where it was kept; nowhere if empty."
+
+steps:
+  asked:
+    description: What the agent is told, from the file beside this.
+    do: text.put
+    with:
+      parts:
+        - from: answer.md
+          with: { question: "${params.question}" }
+
+  answer:
+    description: An agent of the project is asked, and says how sure it is of what it answered. With nobody to ask, or an agent that cannot do it, nothing is answered and the rest says so.
+    allow_failure: true
+    do: agent.task
+    with:
+      prompt: "${steps.asked.out.text}"
+      role: "${params.role}"
+      if_available: true
+      # It says its answer where the work is reported, as itself.
+      channel: "${params.channel}"
+      options: [answered, unsure]
+
+  kept:
+    description: The answer is a document of the project's library, called after the question.
+    when: ${ steps.answer.ok && steps.answer.out.available }
+    allow_failure: true
+    do: record.add
+    with:
+      project: "${params.project}"
+      collection: docs
+      fields:
+        title: "${params.question}"
+        body: "${steps.answer.out.reply}"
+        tags: [research]
+
+  where:
+    description: Said where the work is reported, once it is kept.
+    when: ${ steps.kept.ok && params.channel != "" }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "The answer to \"${params.question}\" is in the library, as ${steps.kept.out.id}."
+
+  said:
+    description: What came of asking, for whatever counts it. An agent that chose neither is taken to have answered.
+    when: ${ steps.answer.ok && steps.answer.out.available }
+    do: emit
+    with:
+      topic: research.answered
+      project: "${params.project}"
+      question: "${params.question}"
+      came: "${ steps.answer.out.decision ?? 'answered' }"
+      by: "${steps.answer.out.slot}"
+
+  nobody:
+    description: Said where the work is reported, when nothing was answered, with why.
+    when: ${ params.channel != "" && !steps.said.ok }
+    do: channel.post
+    with:
+      channel: "${params.channel}"
+      body: "Nothing was answered to \"${params.question}\": ${ steps.answer.error ?? 'there is no agent to ask' }"
+
+  unanswered:
+    description: And counted as that.
+    when: ${ !steps.said.ok }
+    do: emit
+    with:
+      topic: research.answered
+      project: "${params.project}"
+      question: "${params.question}"
+      came: unanswered
+
+outputs:
+  came: "${ steps.answer.out.decision ?? 'unanswered' }"
+  document: "${ steps.kept.out.id ?? '' }"

@@ -1,0 +1,468 @@
+# What waits for a person in a project is told to somebody: a line in
+# their inbox (`inbox.tell`), from the factory's bot.
+#
+# A fleet attaches this (`uses`), and it tells of eight things:
+#
+# - **`asked`**: something asked a question in place of going on, a
+#   card's agent or whoever plans a feature, and waits for the answer.
+#   Of a card it is said on the card by whoever asked, naming each who
+#   is told with @, which is what tells them; asked of nobody, it says
+#   so there and where the fleet reports;
+# - **`left`**: a card was left for a person, by its round, by those who
+#   looked at it or by whatever else its stage does, with why;
+# - **`blocked`**: a card's agent could not do what it needed (something
+#   it needed was refused it), and it was left for a person, with what
+#   the agent said; a row that tells of `left` is told of it too;
+# - **`review`**: a card waits for a person to review it, nobody being
+#   there to look or too few (`card.waits`);
+# - **`held`**: a card waits for somebody to press what its column
+#   offers (a row of the project's `actions` that holds), once each time
+#   it comes there;
+# - **`plan`**: a plan waits to be accepted, a feature's or a card's;
+# - **`failed`**: something of the fleet failed, which is what the fleet
+#   itself says where it reports;
+# - **`slow`**: a command run for a card (a row of `segments` that says
+#   `warn_after`) has run longer than it may before somebody is told, and
+#   goes on; told once for the card's coming, though the command is run
+#   again after a stop.
+#
+# Whom is a table of the project, `tells`, which sits beside its board.
+# A row is somebody (`whom`: `applier`, whoever applied the fleet; what
+# somebody is called after `@`; or an actor) and which of them they are
+# told of (`of`; all of them, where a row says none):
+#
+#   mw record list shop tells
+#   mw record add shop tells title=lead whom=@grace of=left,failed
+#
+# It starts with one row, `applier`. A row emptied or taken away tells
+# nobody, and with no row nobody is told.
+#
+# What is said is this text's, said as whoever applied the fleet: it is
+# not held to what whoever is told may read. A line opens the card, the
+# record or what is running that it is about, which whoever opens it is
+# shown only as they may read it.
+#
+# Whom a thing is told to and the sentence that says it are asked
+# (`tells.whom`). A telling that cannot be made (a row names nobody)
+# fails the run that was to make it, which the fleet says where it
+# reports; one of something that failed is let be, since the fleet has
+# said that already.
+#
+# Whoever applied the fleet may be somebody who may put nothing in an
+# inbox: a key made before there was one. This then cannot say whom,
+# says so once where the fleet reports, and stops; it is attached again
+# when the fleet is next applied.
+blueprint: std/told
+version: 5
+description: "Tell somebody of what waits for a person in a project (a question, a card left or waiting to be reviewed, a plan, something of the fleet that failed, a command that runs long), as the rows of its `tells` say whom."
+permissions: [inbox, board, records, projects, channels]
+one_at_a_time: true
+
+params:
+  project: { type: string, description: "The project whose fleet this is attached to." }
+
+  channel:
+    type: string
+    default: ""
+    description: "Where the fleet reports; the project's own name, if empty."
+
+  whom:
+    type: list
+    description: "Who is told when it is first made: the rows the project's `tells` starts with. After that the table says, and this is not read again."
+    default:
+      - title: applier
+        whom: applier
+
+state:
+  # Whether the table has been given what it starts with: once, so that
+  # a table someone emptied stays empty.
+  seeded: false
+
+steps:
+  tells:
+    description: Who is told what. A row is somebody, and which things they are told of.
+    do: collection.ensure
+    with:
+      name: tells
+      project: "${params.project}"
+      # Reached from the board's page, as the fleet's own tables are.
+      beside: board
+      fields:
+        title: { type: text, required: true }
+        # Somebody: `applier`, whoever applied the fleet; what somebody
+        # with an account, or an agent, is called after `@`; or an actor
+        # (`user:<id>`, `agent:<name>`). They are told as whoever applied
+        # the fleet, so saying whom takes what telling takes.
+        whom: { type: text, takes: "inbox:write" }
+        # Which things: `asked`, `left`, `blocked`, `review`, `held`, `plan`,
+        # `failed`, `slow`. All of them, where it says none.
+        of: { type: list }
+      views:
+        tells: { kind: table }
+      history:
+        record.created: "{actor} added it"
+        record.updated: "{actor} changed its {changed}"
+        record.removed: "{actor} took it away"
+
+  first:
+    description: The table starts with these, once, each added unless a row is called what it is called already. Whoever applied the fleet says whom as themselves, and one who may tell nobody cannot.
+    when: ${ !state.seeded && steps.tells.out.records == 0 }
+    allow_failure: true
+    do: rows.start
+    with: { project: "${params.project}", collection: tells, rows: "${params.whom}" }
+
+  kept:
+    when: ${ !steps.first.failed }
+    do: set
+    with: { seeded: true }
+
+  reports:
+    description: Where the fleet reports, for saying that nobody can be told.
+    when: ${steps.first.failed}
+    do: channel.ensure
+    with:
+      name: "${params.channel}"
+      otherwise: "${params.project}"
+      project: "${params.project}"
+
+  untold:
+    description: Said once, where the fleet reports, with what to do.
+    when: ${steps.first.failed}
+    allow_failure: true
+    do: channel.post
+    with:
+      channel: "${steps.reports.out.id}"
+      body: "Nobody is told of what waits for a person in ${params.project}: ${steps.first.reason}. Whoever applied the fleet may put nothing in an inbox. Apply the fleet again as somebody who may, saying `--force`, and they are told; or give the key `inbox` and apply it again."
+      detail: "${steps.first.error}"
+
+  gone:
+    description: And this stops, having nobody to tell. It is attached again when the fleet is next applied.
+    needs: [untold]
+    when: ${steps.first.failed}
+    do: stop
+
+# Applied again with its fleet, it goes on where it is.
+on_update: []
+
+on:
+  # Something was asked on a card, by its agent or by what looked after
+  # it, instead of going on. The question is said on the card, among
+  # what is said there, by whoever asked, naming with @ each the rows say
+  # it is put to: being named is what tells them, in their inbox, and it
+  # is answered by saying something on the card.
+  asked:
+    event: card.asked
+    for: { project: "${params.project}" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: asked
+          said: ${event.data}
+          project: "${params.project}"
+
+      put:
+        description: The question is said on the card by whoever asked it, naming whom it is put to; asked of nobody, it says so.
+        do: record.ask
+        with:
+          id: "${steps.whom.out.about}"
+          says: "${steps.whom.out.asks}"
+          to: ${steps.whom.out.to}
+          asker: "${ event.data.asker ?? '' }"
+          otherwise: "${steps.whom.out.unasked}"
+          once: "asked ${event.seq}"
+
+      reports:
+        description: Asked of nobody, it is said where the fleet reports too.
+        when: ${steps.put.out.nobody}
+        do: channel.ensure
+        with:
+          name: "${params.channel}"
+          otherwise: "${params.project}"
+          project: "${params.project}"
+
+      untold:
+        when: ${steps.put.out.nobody}
+        allow_failure: true
+        do: channel.post
+        with: { channel: "${steps.reports.out.id}", body: "${steps.whom.out.untold}" }
+
+  # Whoever plans a feature asked.
+  wondered:
+    event: feature.asked
+    for: { project: "${params.project}" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: asked
+          said: ${event.data}
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"
+
+  # A card was left for a person.
+  left:
+    event: card.left
+    for: { project: "${params.project}" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: left
+          said: ${event.data}
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"
+
+  # A card waits for a person to do what its column does (`kind`):
+  # review it, nobody being there to look.
+  waited:
+    event: card.waits
+    for: { project: "${params.project}" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: "${event.data.kind}"
+          said: ${event.data}
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"
+
+  # A card waits for somebody to press what its column offers.
+  held:
+    event: board.item.held
+    for: { project: "${params.project}" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: held
+          said: ${event.data}
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"
+
+  # A feature has a plan, which waits to be accepted.
+  planned:
+    event: feature.planned
+    for: { project: "${params.project}" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: plan
+          said: ${event.data}
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"
+
+  # A card has a plan, which waits where its stage sends it nowhere.
+  drafted:
+    event: card.planned
+    for: { project: "${params.project}" }
+    when: ${ event.data.waits ?? false }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: plan
+          said: ${event.data}
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"
+
+  # A command run for a card has run longer than its row says it may
+  # before somebody is told. Once for the card's coming, whichever run
+  # says it: a command begun again after a stop says it again.
+  slow:
+    event: card.slow
+    for: { project: "${params.project}" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: slow
+          said: ${event.data}
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"
+          once: "${steps.whom.out.once}"
+
+  # What fails in the fleet, as the fleet itself hears it and says it
+  # where it reports: an instance nobody called, one that something
+  # other than the fleet called and let fail, and a handler's run. Heard
+  # of the fleet this is attached to, and of nothing this does itself.
+  trouble:
+    event: instance.failed
+    scope: target
+    when: ${ (event.data.called_by ?? '') == '' }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: failed
+          said: ${event.data}
+          from: "${event.source.instance}"
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        allow_failure: true
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"
+
+  let_be:
+    event: instance.failed
+    scope: target
+    when: ${ (event.data.called_by ?? '') != '' && (event.data.let_be ?? false) && event.data.called_by != target.id }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: failed
+          said: ${event.data}
+          from: "${event.source.instance}"
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        allow_failure: true
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"
+
+  slipped:
+    event: run.failed
+    scope: target
+    when: ${ event.data.flow != "main" }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: tells }
+
+      whom:
+        do: tells.whom
+        with:
+          rows: ${steps.rows.out.rows}
+          of: failed
+          said: ${event.data}
+          from: "${event.source.instance}"
+          project: "${params.project}"
+
+      tell:
+        when: ${steps.whom.out.tells}
+        allow_failure: true
+        do: inbox.tell
+        with:
+          to: ${steps.whom.out.to}
+          says: "${steps.whom.out.says}"
+          why: "${steps.whom.out.why}"
+          about: "${steps.whom.out.about}"

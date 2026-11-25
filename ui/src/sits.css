@@ -1,0 +1,38 @@
+/* What sits beside a table (`views/sits.tsx`): what a column's head says
+   of the rows that are about the column, and a table drawn in the drawer
+   beside the page of the one it sits beside. Colours are the theme's. */
+
+/* A column's name, and beside it the mark that opens what is set up for
+   the column (`views/columnset.tsx`): the name gives way, and the mark is
+   whole beside it, so nothing in a head moves or lies over the count. */
+.column-name { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.column-name > :first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.column-head button.column-set {
+  position: relative; flex: none; display: inline-grid; place-items: center;
+  width: calc(20px * var(--tall)); height: calc(20px * var(--tall)); margin: -3px 0; padding: 0; color: var(--faint);
+}
+.column-head button.column-set:hover, .column-head button.column-set[aria-expanded="true"] { color: var(--text); }
+/* Something there holds the column's cards until it is pressed. */
+.column-set-dot { position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1.5px var(--bg1); }
+
+/* A table in the drawer has all of it: its head under the drawer's own,
+   and its rows in a place of their own that scrolls both ways, so that
+   the drawer itself never scrolls sideways. */
+.drawer-body:has(> .sits-table) { display: block; padding: 0; overflow: hidden; }
+.sits-table .view-head { padding: 10px 14px 8px; gap: 8px; }
+.sits-table .grid-scroll, .sits-table .rows-page { --side: 14px; --foot: 14px; padding: 0 14px 14px; }
+.sits-table .board { padding: 4px 14px 14px; }
+/* What opens under a button of its head is as wide as the head, wherever
+   the button has come to stand in it: under a button at the drawer's left
+   it would otherwise open out past the drawer's edge, and be cut off. And
+   it is no taller than the drawer has room for. */
+.sits-table .view-head { position: relative; }
+.sits-table .view-head .menu-anchor { position: static; }
+.sits-table .view-head .menu, .sits-table .view-head .layout-menu {
+  left: 14px; right: 14px; top: auto; width: auto; margin-top: 4px; max-height: calc(100dvh - 260px); overflow-y: auto;
+}
+/* The way back from a row's form to the table it was opened from. */
+.sits-back { justify-self: start; padding: 0; }
+/* Over a row's form: the way back to its table where there is one, and its address to copy at the right. */
+.row-acts { display: flex; align-items: center; gap: calc(8px * var(--density)); min-height: 0; }
+.row-acts .row-link { margin-left: auto; }

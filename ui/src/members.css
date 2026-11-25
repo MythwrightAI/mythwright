@@ -1,0 +1,28 @@
+/* The Members page (views/members.tsx): its two tabs in its head, as the page about the program's are, and on its People tab a line
+   for each person, as wide as the panel and no wider: the name gives way before anything that is pressed leaves the line. */
+.members-tabs { min-width: 0; }
+.members-tab { flex: none; white-space: nowrap; }
+/* The choice of whose agents, at the row's end, no taller than the tabs and giving way before them. */
+.members-tabs > .narrow { flex: 0 1 auto; min-width: 0; max-width: 50%; margin: 0 0 4px auto; }
+.members-panel { min-width: 0; }
+.people-page { grid-template-columns: minmax(0, 1fr); }
+.people-page .panel-head { flex-wrap: wrap; row-gap: 6px; }
+.people-page .panel-head > h2.grow { flex: 1 0 auto; }
+.people-page .panel-head > .muted { min-width: 0; }
+.people-listed > ul { list-style: none; margin: 0; padding: 0 0 4px; }
+.people-listed .person-line { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: calc(40px * var(--tall)); padding: 2px 14px; }
+.people-listed .person-line + .person-line { border-top: 1px solid var(--line); }
+.people-listed .person-name { flex: 0 1 auto; min-width: 0; }
+/* The faint words beside a name (you) give way first, and the name after them. */
+.people-listed .person-said { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(12px * var(--size)); }
+.people-listed .person-line .person-waiting { flex: none; color: var(--accent); font-size: calc(12px * var(--size)); font-weight: 600; }
+.people-listed .person-acts { display: flex; flex: none; align-items: center; gap: 6px; margin-left: auto; }
+/* The menu at a line's end is always there, as an agent's is on the Agents tab: never only where the pointer is. */
+.people-listed .person-line .row-more { opacity: 0.7; margin-right: 0; }
+.people-listed .person-line .row-more:hover, .people-listed .person-line .row-more:focus-visible { opacity: 1; }
+/* Under a finger, what is pressed on a line is tall enough to be touched. */
+@media (pointer: coarse) {
+  .people-listed .person-line { min-height: calc(46px * var(--tall)); }
+  .people-listed .person-message { height: calc(34px * var(--tall)); }
+  .people-listed .person-line .row-more { width: calc(34px * var(--tall)); height: calc(34px * var(--tall)); }
+}

@@ -1,0 +1,38 @@
+shop/hears
+
+What it is
+  = Everything a handler can hear, and how it is told which.
+  After a restart:
+    title: Taken up where it was
+  Runs:
+    title: On, for what it hears
+  = Whoever applies it may tell it one thing:
+    = Whose things these are. It has to be said. [project]
+
+What it hears, and what it then does
+  = Its handlers take turns: one of them runs at a time.
+  `thing.made`: a thing was made [on.made/@]
+    from: Heard from its own project, and from the factory itself.
+    only: Only where its `project` is the param `project`.
+    Say that it was made. [on.made/note]
+  `thing.*`: any of a thing was made; a thing was changed; a thing was taken away [on.any/@]
+    from: Heard from every project.
+    only: Only when the event's `id` is not `shelf`.
+    Write a line in the run's log. [on.any/run]
+  `shop.told` [on.theirs/@]
+    from: Heard only from itself and what it started.
+    tags: one at a time by the event's `id`
+    Write a line in the run's log. [on.theirs/run]
+  `shop.called` [on.called/@]
+    from: Heard from its own project, and from the factory itself.
+    only: It is said from outside: by a person, a key or a caller.
+    tags: a burst taken once, after 30 seconds of quiet
+    Write a line in the run's log. [on.called/run]
+  Every 5 minutes. [on.timed/@]
+    Write a line in the run's log. [on.timed/run]
+  Every minute it asks this, and goes on when the answer is another: Read a thing. [on.asked/@]
+    Write a line in the run's log. [on.asked/run]
+
+What it may do
+  = It runs as whoever applies it, and can do no more than they can.
+  = Read things. [things:read]

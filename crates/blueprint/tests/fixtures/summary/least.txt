@@ -1,0 +1,10 @@
+shop/least
+
+What it is
+  What it is doing is written down as it goes, so that it is taken up where it was after a restart.
+
+What it does when it is applied
+  1. Write a line in the run's log. [greet]
+
+What it may do
+  It runs as whoever applies it, and can do no more than they can.

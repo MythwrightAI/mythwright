@@ -1,0 +1,9 @@
+{
+  "says": "Where nobody has signed the program in, applying is refused with a sentence saying so and what to do, before any branch arrives.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"given": {"signed-out": ""}},
+    {"apply": "pull-requests", "project": "shop", "fails": "is not signed in on this device. Sign in with `gh auth login`"},
+    {"ran": ["auth status"]}
+  ]
+}

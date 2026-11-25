@@ -1,0 +1,22 @@
+blueprint: kept
+state: { under_way: [], seen: [] }
+
+on:
+  begun:
+    event: work.begun
+    # one of them is under way from here
+    do: keep
+    with:
+      in: under_way
+      by: item
+      what: { item: "${event.data.item}", called: "${event.data.called}" }
+
+  over:
+    event: work.over
+    do: drop
+    with:
+      from: under_way
+      by: called  # by what it was called
+      is: "${event.data.called}"
+
+  saw: { event: work.seen, do: keep, with: { in: seen, what: "${event.data.item}" } }

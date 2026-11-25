@@ -1,0 +1,89 @@
+/* Comments on a record, apart from what happened to it.
+
+   Beside a document they are the Comments tab of the panel there (`views/doctools.tsx`): every comment, oldest first,
+   each who, when and the words in a box of its own as what was said is in a history, and under them the line one is
+   added by. In the drawer for something with no page of its own (a mockup) they are the same.
+
+   In a list of records the mark is at the end of a record's line, in room
+   that is kept for it whether or not it is drawn: one with nothing said
+   is drawn only while its line is pointed at or it has the keyboard, and
+   always where nothing can be pointed with. */
+.doc-comments { display: grid; gap: calc(8px * var(--density)); align-content: start; min-width: 0; }
+.doc-comments > h3 { margin: 6px 0 0; }
+.doc-comments .comment { padding: 6px 9px; border: 1px solid var(--line); border-radius: calc(7px * var(--round)); background: var(--bg1); }
+.doc-comments > .comment-add textarea { margin-left: 0; border-color: var(--line-strong); background: var(--bg0); }
+.doc-tools .doc-comments > .comment-add button:disabled { visibility: visible; }
+/* What a document is, a line each: what each is, faint, and what it says beside it, wrapping where it is long. */
+.doc-details { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.doc-details dl { display: grid; gap: calc(8px * var(--density)); margin: 0; }
+.doc-detail { display: grid; grid-template-columns: minmax(76px, auto) minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.doc-detail dt { font-size: calc(12px * var(--size)); }
+.doc-detail dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+button.doc-history { justify-self: start; height: auto; padding: 0; }
+.comment-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.comment { display: grid; gap: 1px; min-width: 0; }
+.comment-by { font-size: calc(11.5px * var(--size)); }
+.comment-who { color: var(--text); font-weight: 600; }
+.comment-words { white-space: pre-wrap; overflow-wrap: anywhere; }
+.comment-add { display: flex; align-items: flex-start; gap: 8px; }
+/* Its words begin where the comments' do: the box it is written in stands out to their left by its own edge. */
+.comment-add textarea { flex: 1; min-width: 0; height: calc(28px * var(--tall)); min-height: calc(28px * var(--tall)); max-height: 120px; margin-left: -9px; padding: 3px 8px; resize: none; border-color: transparent; background: transparent; }
+/* Where one is written is outlined more strongly once the pointer is on it. */
+.comment-add textarea:hover:not(:focus) { border-color: var(--dim); }
+.comment-add textarea:focus { border-color: var(--dim); background: var(--bg0); }
+.comment-add button { flex: none; }
+/* Nothing to send and nobody writing: the button keeps its room and is not drawn. */
+.comment-add:not(:focus-within) button:disabled { visibility: hidden; }
+
+/* In the drawer they are the drawer's own, each in a box as what was said is in a history. */
+.comments.in-drawer { display: grid; gap: 6px; padding: 0; overflow: visible; scrollbar-gutter: auto; border: 0; background: none; }
+.comments.in-drawer > * { max-width: none; }
+.comments.in-drawer .comment { padding: 6px 9px; border: 1px solid var(--line); border-radius: calc(7px * var(--round)); background: var(--bg2); }
+.comments.in-drawer .comment-add button:disabled { visibility: visible; }
+.comments.in-drawer .comment-add textarea { margin-left: 0; border-color: var(--line-strong); background: var(--bg0); }
+
+button.comment-mark { flex: none; min-width: 46px; justify-content: center; gap: 4px; padding: 0 6px; color: var(--faint); opacity: 0; }
+button.comment-mark.has { color: var(--dim); }
+button.comment-mark.has, .library-line:hover .comment-mark, button.comment-mark:focus-visible { opacity: 1; }
+.comment-count { font-size: calc(12px * var(--size)); font-variant-numeric: tabular-nums; }
+@media (hover: none) { button.comment-mark { opacity: 1; } }
+
+/* Comments on a few words of a document (`views/anchored.tsx`, `write/selected.ts`).
+
+   The words are marked where they are found, in the block editor and in the file's source: only coloured, so that
+   pointing at one colours it more and moves nothing. Words chosen in the block editor have a small bar over them,
+   lying over the page in the editor's scrolling box as the handle does. A mark's comments open in a card in the margin
+   to the right of the text's column, at the height of the mark's line, where the page has room for it; it lies over
+   nothing of the text. Anything narrower opens them in the Comments tab of the panel beside the document. */
+.writer .commented { background: color-mix(in srgb, var(--page-accent) 20%, transparent); border-bottom: 2px solid color-mix(in srgb, var(--page-accent) 55%, transparent); cursor: pointer; }
+.writer .commented:hover { background: color-mix(in srgb, var(--page-accent) 34%, transparent); }
+.cm-commented { background: color-mix(in srgb, var(--accent) 18%, transparent); border-bottom: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); cursor: pointer; }
+.cm-commented:hover { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.page > .select-bar { position: absolute; z-index: 15; display: flex; margin: 0; max-width: none; padding: 2px; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg2); box-shadow: var(--shadow); font: calc(13px * var(--size))/1.3 var(--sans); }
+.page > .select-bar[hidden] { display: none; }
+.select-bar button { height: calc(28px * var(--tall)); padding: 0 10px; color: var(--text); }
+.page > .writer-beside { margin: 0; max-width: none; height: 0; }
+.writer-card { position: absolute; z-index: 12; box-sizing: border-box; font: calc(13px * var(--size))/1.45 var(--sans); color: var(--text); }
+.words-thread { display: grid; gap: 8px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: calc(8px * var(--round)); background: var(--bg1); box-shadow: var(--shadow); }
+.words-thread.aside { box-shadow: none; }
+.words-thread-head { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.words-thread-on { flex: 1; min-width: 0; padding-left: 8px; border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); color: var(--dim); overflow-wrap: anywhere; quotes: none; }
+button.words-thread-close { flex: none; width: calc(24px * var(--tall)); height: calc(24px * var(--tall)); justify-content: center; padding: 0; color: var(--faint); font-size: calc(16px * var(--size)); }
+.words-thread .comment-add textarea { margin-left: 0; border-color: var(--line-strong); background: var(--bg0); }
+.words-thread .comment-add button:disabled { visibility: visible; }
+.comment-on { color: var(--dim); font-size: calc(12px * var(--size)); overflow-wrap: anywhere; }
+.comment-on.gone { color: var(--faint); font-style: italic; }
+
+/* Room made beside the column (`roomy` in `anchored.ts`): where the page is too narrow for a card
+   beside its column in the middle, the column stands as far right as leaves the room to its right, and no narrower
+   than it has to. It is made while the document has comments on its words, so that a mark pressed has its room
+   already; nothing is made on a phone, where the panel beside the document has the screen. */
+.writer { --room: 320px; }
+.writer.page.margined > .ProseMirror {
+  max-width: min(var(--column), calc(100% - var(--room)));
+  margin-left: clamp(0px, calc(100% - var(--column) - var(--room)), calc((100% - var(--column)) / 2));
+  margin-right: auto;
+}
+/* The mark whose comments are open is drawn as that, in both editors. */
+.writer .commented.open { background: color-mix(in srgb, var(--page-accent) 46%, transparent); border-bottom-color: var(--page-accent); }
+.cm-commented.cm-open { background: color-mix(in srgb, var(--accent) 42%, transparent); border-bottom-color: var(--accent); }

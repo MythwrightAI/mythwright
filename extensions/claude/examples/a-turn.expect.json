@@ -1,0 +1,14 @@
+{
+  "reply": "ready",
+  "session": "0f1e2d3c-0000-4000-8000-000000000001",
+  "model": "example-model",
+  "shown": [
+    "Looking at the board first.",
+    "[Bash]",
+    "ready"
+  ],
+  "cost_usd": 0.0528817,
+  "input_tokens": 36717,
+  "output_tokens": 4,
+  "failure": null
+}

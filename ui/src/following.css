@@ -1,0 +1,20 @@
+/* Follow at the top of a page (views/followbutton.tsx): a bell and a word, the bell filled and lit while it is followed;
+   on a phone's width the word gives way and the bell is what is pressed. */
+.head-follow { flex: none; gap: 5px; padding: 0 8px; color: var(--faint); }
+.head-follow:hover, .head-follow[aria-expanded="true"] { color: var(--text); }
+.head-follow[aria-pressed="true"] { color: var(--accent); }
+@media (max-width: 480px) { .head-follow-says { display: none; } .head-follow { padding: 0 6px; } }
+/* Settings → Following (views/followingpanel.tsx): one line a thing, its kind, what it is called, and how often with Unfollow
+   at the end; on a narrow page how often goes under what it is called. */
+.following-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.following-line { display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; row-gap: 4px; min-width: 0; }
+.following-kind { flex: none; width: calc(150px * var(--size)); font-size: calc(12px * var(--size)); }
+.following-title { flex: 1 1 160px; min-width: 0; text-align: left; justify-content: flex-start; }
+.following-how { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; }
+.following-how select, .following-how input[type="time"] { width: auto; }
+@media (max-width: 560px) { .following-kind { width: auto; } .following-how { margin-left: 0; flex-basis: 100%; } }
+/* A line of something followed, on its own page (views/followedchanges.tsx): the changes it told of, one a line. */
+.followed-change-list { margin: 6px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
+.followed-change { display: flex; gap: 10px; min-width: 0; }
+.followed-change > .truncate { flex: 1 1 auto; min-width: 0; }
+.followed-change > .faint { flex: none; }

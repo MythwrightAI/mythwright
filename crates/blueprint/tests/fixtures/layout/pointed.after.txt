@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=./blueprint.schema.json
+# What this is for, said before it begins.
+blueprint: pointed
+description: "A board: its cards, and what moves them"
+
+steps:
+  say: { do: emit, with: { topic: shop.said, data: { rounds: "${ 1 + 1 }" } } }  # as it goes

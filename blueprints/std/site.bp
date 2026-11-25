@@ -1,0 +1,96 @@
+# A project's library, written out as web pages that anything can serve.
+#
+# Applied to a project that has a library (`std/docs` makes one), this
+# writes the library out as plain files: a front page, a page for each
+# document that is published, the pictures and files those pages use, and
+# one style sheet. The folder can be put on any host, under any address,
+# or opened from the disk: every link in it leads to a file beside it,
+# nothing in it runs, and nothing is fetched from anywhere else.
+#
+# Only what is published is written. A document says so of itself, in the
+# block of settings at its head:
+#
+#   ---
+#   public: true
+#   ---
+#
+# `publish: all` writes every document instead. A link from a page that is
+# written to something that is not is written as its words, and each one
+# is named in what the step gives out (`left_out`).
+#
+# It stays, and writes the library out again whenever a file of it is
+# added, changed or taken away. The folder is replaced as a whole each
+# time, and only if an export wrote what is in it: one that holds anything
+# else is left as it is, and this fails saying so.
+#
+#   mw apply std/site --project shop
+#   mw apply std/site --project shop --param publish=all --param to=public
+blueprint: std/site
+version: 2
+description: Write a project's library out as web pages, and again whenever a document of it changes.
+permissions: [projects, records]
+
+params:
+  library:
+    type: string
+    default: docs
+    description: "The library, by its name: `docs` is what `std/docs` makes."
+
+  to:
+    type: string
+    default: site
+    description: "The folder of the project the pages are written to, from the top of the project. It is replaced as a whole, and has to be beside the library's own folder, not in it."
+
+  publish:
+    type: string
+    default: marked
+    enum: [marked, all]
+    description: "Which documents: `marked`, the ones whose own settings say `public: true`; or `all`."
+
+state:
+  folder: ""
+
+steps:
+  written:
+    description: The library, written out as it is now.
+    do: library.export
+    with:
+      collection: "${params.library}"
+      to: "${params.to}"
+      publish: "${params.publish}"
+
+  where:
+    description: The library's own folder is kept, to know which changes to a file are changes to it.
+    do: set
+    with:
+      folder: "${steps.written.out.from}"
+
+on:
+  changed:
+    # Every way a document comes to change is a file of the project
+    # changing: written through the factory, saved in an editor, arriving
+    # with a change to the project.
+    event: project.file.changed
+    for: { project: "${instance.project}" }
+    when: ${ state.folder in event.data.folders }
+    do: library.export
+    with:
+      collection: "${params.library}"
+      to: "${params.to}"
+      publish: "${params.publish}"
+
+  many:
+    # So many files changed at once that they were not each said.
+    event: project.rescanned
+    for: { project: "${instance.project}" }
+    do: library.export
+    with:
+      collection: "${params.library}"
+      to: "${params.to}"
+      publish: "${params.publish}"
+
+outputs:
+  to: ${steps.written.out.to}
+  pages: ${steps.written.out.pages}
+  files: ${steps.written.out.files}
+  left_out: ${steps.written.out.left_out}

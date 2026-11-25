@@ -1,0 +1,90 @@
+/* How a document looks as a page.
+ *
+ * This one file is used twice: by the client, where a document is written,
+ * and by the daemon, which puts it into every page it builds for publishing.
+ * What is typed and what is published are then drawn by the same rules and
+ * cannot drift apart. It depends on nothing else in the client: a page
+ * written out has none of the client's measures of a look, so each is
+ * read with what it usually is beside it. */
+
+.page {
+  --page-bg: #f4f3ef;
+  --page-text: #1d1f23;
+  --page-dim: #565e6b;
+  --page-line: #dfdbd2;
+  --page-wash: #eceae4;
+  --page-accent: #b46a00;
+  margin: 0;
+  padding: 44px 28px 96px;
+  background: var(--page-bg);
+  color: var(--page-text);
+  font: calc(16px * var(--size, 1))/1.68 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+@media (prefers-color-scheme: dark) {
+  .page {
+    --page-bg: #0f1114;
+    --page-text: #e6e8eb;
+    --page-dim: #a3acb9;
+    --page-line: #2b313b;
+    --page-wash: #1c2027;
+    --page-accent: #e8a33d;
+  }
+}
+/* The one thing in a page: its blocks, in a column that is easy to read.
+ * How wide that column is, is said once: what the client draws over a
+ * document's text in the same column (its comments) is as wide by this. */
+:root { --column: 720px; }
+.page > * { max-width: var(--column); margin: 0 auto; }
+.page h1, .page h2, .page h3, .page h4 { line-height: 1.25; margin: 1.6em 0 0.5em; font-weight: 700; }
+.page h1 { font-size: 2em; margin-top: 0.4em; letter-spacing: -0.01em; }
+.page h2 { font-size: 1.45em; }
+.page h3 { font-size: 1.18em; }
+.page h4 { font-size: 1em; }
+.page p { margin: 0.7em 0; }
+.page a { color: var(--page-accent); text-decoration: underline; text-underline-offset: 2px; }
+.page ul, .page ol { margin: 0.7em 0; padding-left: 1.5em; }
+.page li { margin: 0.2em 0; }
+.page li > p { margin: 0.2em 0; }
+.page blockquote { margin: 1em 0; padding: 0.1em 0 0.1em 1em; border-left: 3px solid var(--page-line); color: var(--page-dim); }
+.page hr { border: 0; border-top: 1px solid var(--page-line); margin: 2em 0; }
+.page code { font: 0.9em ui-monospace, "SF Mono", Menlo, Consolas, monospace; background: var(--page-wash); padding: 0.1em 0.35em; border-radius: calc(4px * var(--round, 1)); }
+.page pre { background: var(--page-wash); padding: 14px 16px; border-radius: calc(8px * var(--round, 1)); overflow-x: auto; margin: 1em 0; line-height: 1.5; }
+.page pre code { background: none; padding: 0; font-size: 0.88em; }
+.page img { max-width: 100%; border-radius: calc(6px * var(--round, 1)); }
+.page table { border-collapse: collapse; margin: 1em 0; width: 100%; font-size: 0.95em; }
+.page th, .page td { border: 1px solid var(--page-line); padding: 6px 10px; text-align: left; vertical-align: top; overflow-wrap: break-word; }
+.page th { background: var(--page-wash); font-weight: 600; }
+.page del { color: var(--page-dim); }
+/* On a page of a library: the way back to its front page. */
+.page .page-up { margin: 0 auto 1.4em; font-size: 0.9em; color: var(--page-dim); }
+.page .page-up a { color: inherit; }
+/* A library's pages have its contents beside them (`studio::site`): under
+ * the page where there is no room, with a way to them at its head, and
+ * beside it, kept in view, where there is. Links and nothing else. */
+.page .page-to-nav { margin: 0 auto 0.6em; font-size: 0.9em; }
+.page .page-to-nav a { color: var(--page-dim); }
+.page .page-nav { margin-top: 3em; padding-top: 1.2em; border-top: 1px solid var(--page-line); font-size: 0.92em; line-height: 1.4; }
+.page .page-nav-top { margin: 0 0 0.3em; font-weight: 600; }
+.page .page-nav ul { list-style: none; margin: 0; padding: 0; }
+.page .page-nav ul ul { margin: 0.1em 0 0.3em 0.55em; padding-left: 0.6em; border-left: 1px solid var(--page-line); }
+.page .page-nav li { margin: 0; }
+.page .page-nav a { display: flex; align-items: center; box-sizing: border-box; min-height: 44px; padding: 0.4em 0.5em; border-radius: calc(6px * var(--round, 1)); color: var(--page-dim); text-decoration: none; overflow-wrap: anywhere; }
+.page .page-nav a:hover { color: var(--page-text); text-decoration: underline; }
+.page .page-nav a.page-nav-folder { color: var(--page-text); font-weight: 600; }
+.page .page-nav a[aria-current="page"] { color: var(--page-text); background: var(--page-wash); font-weight: 600; }
+@media (min-width: 960px) {
+  .page.navigated {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(0, var(--column)) minmax(0, 1fr);
+    column-gap: 40px;
+    align-items: start;
+  }
+  .page.navigated > main { grid-column: 2; grid-row: 1; width: 100%; margin: 0; }
+  .page.navigated > .page-nav {
+    grid-column: 1; grid-row: 1; justify-self: end; width: 100%; max-width: 260px; margin: 0;
+    padding: 0; border-top: 0; position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto;
+  }
+  .page .page-nav a { display: block; min-height: 0; padding: 0.25em 0.5em; }
+  .page .page-to-nav { display: none; }
+}

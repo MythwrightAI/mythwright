@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- On a phone: the page goes under the notch and the bar at the foot (and keeps clear of them itself),
+         and gives the keyboard its room instead of being covered by it. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="color-scheme" content="dark light" />
+    <!-- A link drawn on the page (an address in what a blueprint told somebody) is looked up by nobody until it is pressed. -->
+    <meta http-equiv="x-dns-prefetch-control" content="off" />
+    <!-- Which build this page is: the daemon reads it to tell open pages when it changes. -->
+    <meta name="build" content="%BUILD%" data-live="%LIVE%" />
+    <title>Loading</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 558.67 558.67'%3E%3Crect width='558.67' height='558.67' fill='%23000000'/%3E%3Cg fill='%23ffffff'%3E%3Cpath d='M122.16,399.13c8.52-16.43,23.64-29.29,42-33.03,155.22,10.52,225.18-140.63,282.51-260.91-20.11,126.9-86.55,292.83-239.19,286.96-24.45.25-61.81-1.9-85.32,6.97Z'/%3E%3Cpath d='M111.99,431.97c55.31-78.9,218.25,72.77,316.44-206.89-33.29,235.35-116.96,206.98-316.44,206.89Z'/%3E%3C/g%3E%3C/svg%3E" />
+    <!-- The theme that was chosen here, before anything is drawn in another. -->
+    <script>
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem('client.theme') || 'grid-iron';
+        // How what is read looks for whoever reads here (`savedOf` in `appearance.ts`): light where they chose it, or
+        // where the system asks for it and they chose neither; what is read wide; the size of its text; and its letters.
+        var seen = JSON.parse(localStorage.getItem('client.appearance') || 'null') || {};
+        var light = seen.colour === 'light' || (seen.colour !== 'dark' && matchMedia('(prefers-color-scheme: light)').matches);
+        if (light) document.documentElement.dataset.light = '';
+        if (seen.width === 'wide') document.documentElement.dataset.readWidth = 'wide';
+        if (seen.size) {
+          document.documentElement.dataset.readText = '';
+          document.documentElement.style.setProperty('--read-size', String(seen.size));
+        }
+        if (seen.face) {
+          document.documentElement.dataset.readFace = 'serif';
+          document.documentElement.style.setProperty('--read-face', String(seen.face));
+        }
+        // A theme somebody made here is its list of colours, put on the page itself: its light version's where the
+        // page is light and it has one.
+        var own = JSON.parse(localStorage.getItem('client.theme.colours') || 'null');
+        if (light) own = JSON.parse(localStorage.getItem('client.theme.light') || 'null') || own;
+        for (var name in own || {}) document.documentElement.style.setProperty(name, String(own[name]));
+        // And what it says of its letters, their size, how close things stand and how round corners are. A stack of
+        // letters kept from before the systems' emoji ended each is worn with them (`withEmoji` in `looks.ts`).
+        var look = JSON.parse(localStorage.getItem('client.theme.look') || 'null');
+        var emoji = '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", emoji';
+        for (var measure in look || {}) {
+          var value = String(look[measure]).trim();
+          if ((measure === '--sans' || measure === '--mono') && value && value.slice(-emoji.length) !== emoji) value = value.replace(/,\s*$/, '') + ', ' + emoji;
+          document.documentElement.style.setProperty(measure, value);
+        }
+      } catch (unkept) {}
+    </script>
+    <!-- What the page loads as it opens may not arrive: a browser drops what is on its way when the
+         system says its network changed (a container's interface coming or going is enough), and a
+         page whose script did not load whole drew nothing and said nothing, for ever. So it is loaded
+         once more by itself, and where that fails too it says so. main.tsx asks the same where the
+         daemon could not be asked as the page opened; it forgets the try once the page has started. -->
+    <script>
+      (function () {
+        var asked = false;
+        window.couldNotStart = function (said) {
+          if (asked) return;
+          asked = true;
+          try {
+            if (!sessionStorage.getItem('client.started-again')) {
+              sessionStorage.setItem('client.started-again', 'yes');
+              location.reload();
+              return;
+            }
+            sessionStorage.removeItem('client.started-again');
+          } catch (unkept) {}
+          var say = function () {
+            var root = document.getElementById('app');
+            root.textContent = said + ' Reload to try again.';
+            root.className = 'empty';
+          };
+          if (document.getElementById('app')) say();
+          else document.addEventListener('DOMContentLoaded', say);
+        };
+        // Only what the page opens with: what the client loads later says so itself.
+        window.addEventListener(
+          'error',
+          function (event) {
+            var failed = event.target;
+            if (failed && failed.hasAttribute && failed.hasAttribute('data-opens'))
+              window.couldNotStart('The client could not be loaded: part of it did not arrive.');
+          },
+          true,
+        );
+      })();
+    </script>
+    <link rel="stylesheet" href="%APP_CSS%" data-opens />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="%APP_JS%" data-opens></script>
+  </body>
+</html>

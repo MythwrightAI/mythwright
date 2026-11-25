@@ -1,0 +1,1471 @@
+[
+  {
+    "args": [
+      {
+        "help": "how long to pause",
+        "name": "for",
+        "required": false,
+        "type": "duration"
+      },
+      {
+        "help": "a topic pattern to wait for instead",
+        "name": "event",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "what this instance started, each by the name it was started under (`as`): waited for until none of them is alive, however many there are and in whatever order they end. For things spawned side by side, waited for together",
+        "name": "ended",
+        "required": false,
+        "type": "list"
+      },
+      {
+        "help": "an expression over `event` that must hold",
+        "name": "where",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "give up waiting for the event after this long",
+        "name": "timeout",
+        "required": false,
+        "type": "duration"
+      },
+      {
+        "help": "whose events it hears: `project`, its own project's and the factory's own, which are no project's (the usual); or `fleet`, every project's",
+        "name": "scope",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "an event to say once the wait is listening, as `emit` says one: `topic`, and what it carries. For asking something and waiting for the answer, which cannot then come too soon to be heard",
+        "name": "say",
+        "required": false,
+        "type": "object",
+        "within": {
+          "keys": [
+            {
+              "help": "where it is published; whatever else is written is what the event carries",
+              "name": "topic",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    ],
+    "capability": null,
+    "example": "blueprint: asked-and-answered\n\nsteps:\n  asked:\n    do: wait\n    with:\n      event: question.answered\n      timeout: 1h\n      say: { topic: question.asked, what: Ship today? }\n\n  said:\n    do: log\n    with: { message: \"Answered after the asking: ${ !steps.asked.out.timed_out }\" }\n",
+    "idempotent": true,
+    "name": "wait",
+    "open": false,
+    "outputs": [
+      [
+        "timed_out",
+        "true when the timeout passed before the event"
+      ],
+      [
+        "event",
+        "the event that arrived"
+      ],
+      [
+        "ended",
+        "with `ended`: how each ended, by its name; nothing for one that was never started"
+      ],
+      [
+        "gave",
+        "with `ended`: what each gave out, in the order they are named; nothing for one that never ran"
+      ]
+    ],
+    "summary": "Pause for a while, or until an event arrives."
+  },
+  {
+    "args": [
+      {
+        "help": "what to call it; unique on this device",
+        "name": "name",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "help": "everything below as one mapping, e.g. passed in as a param",
+        "name": "spec",
+        "required": false,
+        "type": "object"
+      },
+      {
+        "help": "a script of your own for the system's shell: `sh`, or on Windows `cmd`, which is given one line",
+        "name": "run",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "a program and its arguments, run without a shell; `{port}` in an argument is the port it is given and `{name}` what it is called, for a program that takes those as arguments",
+        "name": "cmd",
+        "required": false,
+        "type": "list"
+      },
+      {
+        "help": "arguments for this program's own command line, run without a shell: what `$FACTORY_CLI` is to a script",
+        "name": "cli",
+        "required": false,
+        "type": "list"
+      },
+      {
+        "help": "directory to run in, relative to the project",
+        "name": "cwd",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "extra environment variables",
+        "name": "env",
+        "required": false,
+        "type": "object"
+      },
+      {
+        "help": "the port it listens on (default: a free one)",
+        "name": "port",
+        "required": false,
+        "type": "int"
+      },
+      {
+        "help": "the variable the port is passed in (default PORT)",
+        "name": "port_env",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "how to tell it is healthy: one way of asking it, and how often",
+        "name": "health",
+        "required": false,
+        "type": "object",
+        "within": {
+          "keys": [
+            {
+              "help": "`true`: it is healthy while its port takes a connection",
+              "name": "tcp",
+              "type": "bool"
+            },
+            {
+              "help": "a path, such as `/health`: it is healthy while asking for that on its port is answered well",
+              "name": "http",
+              "type": "string"
+            },
+            {
+              "help": "a command your shell reads: it is healthy while the command ends well",
+              "name": "cmd",
+              "type": "string"
+            },
+            {
+              "help": "how often it is asked (default 2s, and never more often than every 100ms)",
+              "name": "interval",
+              "type": "duration"
+            },
+            {
+              "help": "how long an answer is waited for before the asking counts as failed (default 2s)",
+              "name": "timeout",
+              "type": "duration"
+            },
+            {
+              "help": "how many askings in a row fail before a healthy service is said to be unhealthy (default 3)",
+              "name": "unhealthy_after",
+              "type": "int"
+            }
+          ]
+        }
+      },
+      {
+        "help": "always, on-failure (default) or never",
+        "name": "restart",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "restarts allowed per hour before giving up (default 6)",
+        "name": "max_restarts",
+        "required": false,
+        "type": "int"
+      },
+      {
+        "help": "wait before the first restart, doubling each time (default 1s)",
+        "name": "restart_backoff",
+        "required": false,
+        "type": "duration"
+      },
+      {
+        "help": "how long it gets to stop cleanly (default 5s); on Windows nothing is asked of it and it is ended at once",
+        "name": "stop_grace",
+        "required": false,
+        "type": "duration"
+      }
+    ],
+    "capability": "fleet:write",
+    "example": "blueprint: web\npermissions: [fleet:write]\n\nsteps:\n  serve:\n    do: service.start\n    with: { name: web, cmd: [python3, -m, http.server, \"8080\"], port: 8080, health: { tcp: true } }\n",
+    "idempotent": true,
+    "makes": {
+      "named": "name",
+      "what": "a service"
+    },
+    "name": "service.start",
+    "open": false,
+    "outputs": [
+      [
+        "name",
+        "the service's name"
+      ],
+      [
+        "port",
+        "the port it was given"
+      ],
+      [
+        "pid",
+        "its process id"
+      ],
+      [
+        "address",
+        "where to reach it"
+      ]
+    ],
+    "runs": [
+      "run",
+      "cmd",
+      "cli"
+    ],
+    "summary": "Start a long-lived process and keep it running."
+  },
+  {
+    "args": [
+      {
+        "help": "the table's name",
+        "name": "collection",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "help": "which project (default: this instance's)",
+        "name": "project",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "what a cell that says nothing is taken to say, by cell: a value or a form. A cell with nothing here is filled by its kind: nothing for a number, false for a flag, none for a list, empty text otherwise",
+        "name": "fill",
+        "required": false,
+        "type": "object",
+        "within": {
+          "each": "a cell, with what it is given: a value, or a form that says how the value is come by",
+          "keys": [
+            {
+              "help": "another cell of the row: what that one says",
+              "name": "like",
+              "type": "string"
+            },
+            {
+              "help": "with `like`, what is given where that cell says nothing, or a number not above nothing: a value or a form",
+              "name": "else",
+              "type": "any"
+            },
+            {
+              "help": "another cell of the row: what that one says, as a name is written",
+              "name": "slug_of",
+              "type": "string"
+            },
+            {
+              "help": "another cell of the row: the form written beside what that one says is taken, as in `{ by: does, review: 3, otherwise: 1 }`",
+              "name": "by",
+              "type": "string"
+            },
+            {
+              "help": "with `by`, the form taken where nothing is written beside what the cell says",
+              "name": "otherwise",
+              "type": "any"
+            },
+            {
+              "help": "with `each`, how many times the one goes into the other, never fewer than one: what is shared out, a value or a form",
+              "name": "share",
+              "type": "any"
+            },
+            {
+              "help": "with `share`, what each is given of it: a value or a form",
+              "name": "each",
+              "type": "any"
+            },
+            {
+              "help": "forms, the least of whose numbers is given: one that says nothing, or a number not above nothing, is passed over",
+              "name": "least",
+              "type": "list"
+            }
+          ]
+        }
+      },
+      {
+        "help": "a cell in which each row is to say what no earlier row says: each row is given `again`, and those that say it again are listed",
+        "name": "once",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "the rows there were before, by id, to say which were taken away",
+        "name": "had",
+        "required": false,
+        "type": "list"
+      },
+      {
+        "help": "a cell whose numbers are added up over the rows, leaving out those that say `once` again",
+        "name": "adding",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "for each row, figures over rows of other lists, by the name each is given: the row is given what the figure comes to under the name, and how many rows it was over as `<name>_rows`",
+        "name": "counting",
+        "required": false,
+        "type": "object",
+        "within": {
+          "each": "a figure over the rows of another list, by the name each row is given it under",
+          "keys": [
+            {
+              "help": "the rows it is worked out over",
+              "name": "of",
+              "type": "list"
+            },
+            {
+              "help": "the cell in which those rows say what the row says: it is worked out over those that say the same there",
+              "name": "by",
+              "type": "string"
+            },
+            {
+              "help": "the cell of those rows whose numbers are added up; how many of them there are, where it is not said",
+              "name": "sum",
+              "type": "string"
+            },
+            {
+              "help": "a cell of those rows: one in which it is so is left out",
+              "name": "unless",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      {
+        "help": "what each row is given, by cell, once it is filled, marked (`again`) and counted: a value or a form, as `fill` takes them",
+        "name": "giving",
+        "required": false,
+        "type": "object",
+        "within": {
+          "each": "a cell, with what it is given: a value, or a form that says how the value is come by",
+          "keys": [
+            {
+              "help": "another cell of the row: what that one says",
+              "name": "like",
+              "type": "string"
+            },
+            {
+              "help": "with `like`, what is given where that cell says nothing, or a number not above nothing: a value or a form",
+              "name": "else",
+              "type": "any"
+            },
+            {
+              "help": "another cell of the row: what that one says, as a name is written",
+              "name": "slug_of",
+              "type": "string"
+            },
+            {
+              "help": "another cell of the row: the form written beside what that one says is taken, as in `{ by: does, review: 3, otherwise: 1 }`",
+              "name": "by",
+              "type": "string"
+            },
+            {
+              "help": "with `by`, the form taken where nothing is written beside what the cell says",
+              "name": "otherwise",
+              "type": "any"
+            },
+            {
+              "help": "with `each`, how many times the one goes into the other, never fewer than one: what is shared out, a value or a form",
+              "name": "share",
+              "type": "any"
+            },
+            {
+              "help": "with `share`, what each is given of it: a value or a form",
+              "name": "each",
+              "type": "any"
+            },
+            {
+              "help": "forms, the least of whose numbers is given: one that says nothing, or a number not above nothing, is passed over",
+              "name": "least",
+              "type": "list"
+            }
+          ]
+        }
+      },
+      {
+        "help": "lists of what one cell says, by the name each is given, in the order of the rows",
+        "name": "gathering",
+        "required": false,
+        "type": "object",
+        "within": {
+          "each": "a list of what one cell says, by the name it is given out under",
+          "keys": [
+            {
+              "help": "the cell",
+              "name": "of",
+              "type": "string"
+            },
+            {
+              "help": "what a row is to say to be in it, by cell, as `saying` is written; every row, where it is not said",
+              "name": "saying",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      {
+        "help": "what a row is to say, by cell, to be one of `those`; a row is one of them when it says all of it",
+        "name": "saying",
+        "required": false,
+        "type": "object",
+        "within": {
+          "each": "a cell, with what a row is to say in it: a value for exactly that, or a form",
+          "keys": [
+            {
+              "help": "anything but this value",
+              "name": "not",
+              "type": "any"
+            },
+            {
+              "help": "any one of these values",
+              "name": "in",
+              "type": "list"
+            },
+            {
+              "help": "`true` for something, `false` for nothing",
+              "name": "said",
+              "type": "bool"
+            }
+          ]
+        }
+      }
+    ],
+    "capability": "records:read",
+    "example": "blueprint: open-orders\npermissions: [records:read]\n\nsteps:\n  open:\n    do: rows.read\n    with: { collection: orders, saying: { status: open } }\n\n  said:\n    when: ${ steps.open.out.those[0] != null }\n    do: log\n    with: { message: \"The first open order is ${ steps.open.out.those[0] }.\" }\n",
+    "idempotent": true,
+    "name": "rows.read",
+    "open": false,
+    "outputs": [
+      [
+        "rows",
+        "each row: its `id`, every cell the table declares or `fill` names, and what `once` and `counting` add"
+      ],
+      [
+        "ids",
+        "the rows there are now, by id"
+      ],
+      [
+        "count",
+        "how many rows there are"
+      ],
+      [
+        "those",
+        "the rows that say what `saying` asks, by id; none where it asks nothing"
+      ],
+      [
+        "others",
+        "the rows that do not, by id; none where `saying` asks nothing"
+      ],
+      [
+        "chosen",
+        "the rows that say what `saying` asks, as `rows` gives them; none where it asks nothing"
+      ],
+      [
+        "gathered",
+        "each list `gathering` asks for, by its name"
+      ],
+      [
+        "gone",
+        "those of `had` that are no longer there"
+      ],
+      [
+        "went",
+        "how many those are"
+      ],
+      [
+        "again",
+        "the rows that say in the `once` cell what an earlier row says, each with that row as `first`"
+      ],
+      [
+        "sum",
+        "what the `adding` cell comes to"
+      ]
+    ],
+    "summary": "Read a table's rows as they are taken: each with what it leaves unsaid filled in, and what can be said of them together."
+  },
+  {
+    "args": [
+      {
+        "help": "whom, one or a list: `applier`, whoever applied this (a key is its maker); an actor (`user:<id>`, `agent:<name>`); or a handle, with or without its `@`, which tells everybody it names. One that names nobody, and a bot, are refused, and nobody is then told",
+        "name": "to",
+        "required": true,
+        "type": "any"
+      },
+      {
+        "help": "the words",
+        "name": "says",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "help": "why, in one word of the blueprint's own, such as `asked` (default: `told`)",
+        "name": "why",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "the id of what it is about: a card, a record, a channel, something running. Told again of the same thing for the same `why`, the line there is is raised and says the latest; about nothing, each telling is a line of its own",
+        "name": "about",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "the id of what opens it, where that is not what it is about",
+        "name": "place",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "which telling this is, in words of the blueprint's own: told again with the same words, of the same thing for the same `why`, by any run, nobody is told twice. Where it is not said, the same step done again is what tells nothing",
+        "name": "once",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "what is shown with the words, each a part of its own kind: addresses to follow, or the cards of a board to be passed or failed where the line is read. Told again, the line says the latest",
+        "name": "parts",
+        "required": false,
+        "type": "list",
+        "within": {
+          "keys": [
+            {
+              "help": "what the part is",
+              "name": "kind",
+              "type": "string",
+              "words": [
+                {
+                  "help": "addresses, each shown as a link",
+                  "name": "links"
+                },
+                {
+                  "help": "the cards of a board in one column as it is told, each listed where it is when it is read, or the cards holding one label; each to be passed or failed where it is read while it is where the part says",
+                  "name": "cards"
+                },
+                {
+                  "help": "one message of a channel, opened where it was said: in its thread where it is in one",
+                  "name": "message"
+                },
+                {
+                  "help": "rows of a table of a project's, by their ids or by what a cell says, with the columns named, each drawn as its table draws it, as whoever reads the line may read the table",
+                  "name": "rows"
+                },
+                {
+                  "help": "the runs of an instance, of what ran under a key, or of what ran under an environment: what each is a run of, how it went, when and how long, each opening its run's page",
+                  "name": "runs"
+                },
+                {
+                  "help": "measurements by their names and labels, each its latest value beside the median of its last few",
+                  "name": "measures"
+                }
+              ]
+            },
+            {
+              "help": "the tab of the line's page it is in, by its name; the parts that say none are on a first tab with no name",
+              "name": "tab",
+              "type": "string"
+            },
+            {
+              "help": "of `links`: the addresses, each a page on the web (http or https)",
+              "name": "links",
+              "type": "list"
+            },
+            {
+              "help": "of `message`: the channel's id",
+              "name": "channel",
+              "type": "string"
+            },
+            {
+              "help": "of `message`: the message's id",
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "help": "of `cards`, `rows` and `runs`: whose board, table or runs; the project the text is applied for where it says none",
+              "name": "project",
+              "type": "string"
+            },
+            {
+              "help": "of `rows`: the table, by its name",
+              "name": "table",
+              "type": "string"
+            },
+            {
+              "help": "of `rows`: the rows, each by its id, in the order listed; or say `saying`",
+              "name": "ids",
+              "type": "list"
+            },
+            {
+              "help": "of `rows`: what a row is to say, by cell, to be listed, as `rows.read`'s `saying` is written; or say `ids`",
+              "name": "saying",
+              "type": "object"
+            },
+            {
+              "help": "of `rows`: the columns shown, in order, each by its name (default: the table's own)",
+              "name": "columns",
+              "type": "list"
+            },
+            {
+              "help": "of `runs`: the instance whose runs are listed, by its id; or say `key` or `environment`",
+              "name": "instance",
+              "type": "string"
+            },
+            {
+              "help": "of `runs`: the key whose instances' runs are listed, of the project: a pipeline's, applied again and again",
+              "name": "key",
+              "type": "string"
+            },
+            {
+              "help": "of `runs`: the environment of the project whose runs are listed",
+              "name": "environment",
+              "type": "string"
+            },
+            {
+              "help": "of `runs`: how many of the latest are listed (default 10, at most 50)",
+              "name": "most",
+              "type": "int"
+            },
+            {
+              "help": "of `measures`: the measurements, each by its name",
+              "name": "measures",
+              "type": "list"
+            },
+            {
+              "help": "of `measures`: the labels each is to be measured by, each with its value as a word",
+              "name": "labels",
+              "type": "object"
+            },
+            {
+              "help": "of `measures`: how many of each's latest values its median is of (default 10, at most 100)",
+              "name": "last",
+              "type": "int"
+            },
+            {
+              "help": "of `cards`: the column whose cards are listed; or say `label`",
+              "name": "column",
+              "type": "string"
+            },
+            {
+              "help": "of `cards`: the label the cards listed hold; or say `column`",
+              "name": "label",
+              "type": "string"
+            },
+            {
+              "help": "of `cards`: the column a card that fails is moved to, with why (default `ready`)",
+              "name": "fail_to",
+              "type": "string"
+            },
+            {
+              "help": "of `cards`: the column a card that passes is moved to, once it is approved; or say `pass_press`, or neither, and it stays",
+              "name": "pass_to",
+              "type": "string"
+            },
+            {
+              "help": "of `cards`: what its column offers to be pressed that is pressed on a card that passes, once it is approved",
+              "name": "pass_press",
+              "type": "string"
+            },
+            {
+              "help": "of `cards`: a card is failed only with why (default true)",
+              "name": "reason",
+              "type": "bool"
+            }
+          ]
+        }
+      }
+    ],
+    "capability": "inbox:write",
+    "example": "blueprint: tell-me\npermissions: [inbox:write]\n\nsteps:\n  tell:\n    do: inbox.tell\n    with: { to: applier, says: The nightly copy is made. }\n",
+    "idempotent": true,
+    "name": "inbox.tell",
+    "open": false,
+    "outputs": [
+      [
+        "told",
+        "each actor the line is in the inbox of"
+      ],
+      [
+        "passed",
+        "each that was told nothing, having no inbox: an agent the factory starts"
+      ]
+    ],
+    "summary": "Tell somebody something: a line in their inbox, from the factory's bot."
+  },
+  {
+    "args": [
+      {
+        "help": "the collection's name; a project's board is the one called `board`",
+        "name": "name",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "help": "what its records are made of: each field by its name, with what it holds",
+        "name": "fields",
+        "required": true,
+        "type": "object",
+        "within": {
+          "each": "a field of the collection, by its name",
+          "keys": [
+            {
+              "help": "what it holds: `text` where it is not said",
+              "name": "type",
+              "type": "string",
+              "words": [
+                {
+                  "help": "words",
+                  "name": "text"
+                },
+                {
+                  "help": "one of the words `of` says can be chosen",
+                  "name": "choice"
+                },
+                {
+                  "help": "somebody: a person or an agent, as in `agent:builder`",
+                  "name": "actor"
+                },
+                {
+                  "help": "several words",
+                  "name": "list"
+                },
+                {
+                  "help": "a number",
+                  "name": "number"
+                },
+                {
+                  "help": "true or false",
+                  "name": "flag"
+                },
+                {
+                  "help": "a day, written `2026-11-30`",
+                  "name": "date"
+                },
+                {
+                  "help": "a record of the collection `of` names, by its id",
+                  "name": "record"
+                },
+                {
+                  "help": "several records of the one collection `of` names, by their ids",
+                  "name": "records"
+                },
+                {
+                  "help": "a document: its Markdown, kept in the row, as a topic's body is",
+                  "name": "document"
+                }
+              ]
+            },
+            {
+              "help": "a record cannot be without it",
+              "name": "required",
+              "type": "bool"
+            },
+            {
+              "help": "for a choice what can be chosen, in order; for a record or records the collection whose records it names",
+              "name": "of",
+              "type": "any"
+            },
+            {
+              "help": "its changes are not news: no line of a record's history is written for a change to it alone",
+              "name": "quiet",
+              "type": "bool"
+            },
+            {
+              "help": "it is left out of a view of the collection until somebody shows it there",
+              "name": "hidden",
+              "type": "bool"
+            },
+            {
+              "help": "every event about a record of the collection carries what it holds, under `fields` of the event's data, so that a handler is chosen by it with nothing run: a text longer than a kilobyte cut there, and anything else that long left out. Not of a field that is quiet or says what giving it a value takes",
+              "name": "said",
+              "type": "bool"
+            },
+            {
+              "help": "its column is kept in order by an index from the first row, so that a table of many rows is sorted and held by it at once: any column of a large table is indexed when it is first sorted by, and this says it of one before anybody asks. Not of a field that holds several things",
+              "name": "indexed",
+              "type": "bool"
+            },
+            {
+              "help": "for a text that takes any word, the usual ones, which are offered to whoever fills it",
+              "name": "suggests",
+              "type": "list"
+            },
+            {
+              "help": "for words that are a time of day with the zone it is in after it (`02:00 Europe/Zagreb`): whoever writes one with no zone is given their own",
+              "name": "zoned",
+              "type": "bool"
+            },
+            {
+              "help": "where it is among the fields a record is called by, from 1, wherever the record is named: an attempt called by its card and its contender, where its title is what something else knows it by",
+              "name": "calls",
+              "type": "number"
+            },
+            {
+              "help": "another field of the table, whose writer it keeps: the factory writes into it who wrote that field each time it is written, and nobody writes it themselves",
+              "name": "writer_of",
+              "type": "string"
+            },
+            {
+              "help": "the name of the icon its column is drawn with, until somebody who looks at the table chooses another",
+              "name": "icon",
+              "type": "string"
+            },
+            {
+              "help": "what giving it a value takes beside what changing the record does: a scope, or a list of scopes every one of which is asked, or for a choice or a flag the scopes of each value that takes any, or `each` for a list of scopes that the record gives somebody, where adding the record or changing anything of it takes holding each scope it then says",
+              "name": "takes",
+              "type": "any",
+              "within": {
+                "each": "a value of the field as it is written, with the scope, or the list of scopes, giving the field that value takes"
+              }
+            },
+            {
+              "help": "with `takes: each`, the scopes such a list stands for where a record leaves it empty; of a choice, the one word of `of` nothing chosen stands for, which is where nothing ranks and what a number written before the field was a choice is counted from",
+              "name": "unsaid",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      {
+        "help": "the ways it starts laid out: each by its name, with how its records are laid out and what that goes by",
+        "name": "views",
+        "required": false,
+        "type": "object",
+        "within": {
+          "each": "a way of looking at the collection, by its name",
+          "keys": [
+            {
+              "help": "how its records are laid out: `table` where it is not said",
+              "name": "kind",
+              "type": "string",
+              "words": [
+                {
+                  "help": "rows and columns",
+                  "name": "table"
+                },
+                {
+                  "help": "a column for each thing the choice `by` names can be",
+                  "name": "board"
+                },
+                {
+                  "help": "a line for each record",
+                  "name": "list"
+                },
+                {
+                  "help": "a tile for each record",
+                  "name": "gallery"
+                },
+                {
+                  "help": "each record on its day: the date field `by` names, or `created` or `updated`, and when it was made where none is said",
+                  "name": "calendar"
+                },
+                {
+                  "help": "its records by what comes first: what can be begun now, what waits only on those, and so on",
+                  "name": "order"
+                }
+              ]
+            },
+            {
+              "help": "what it goes by: for a board the choice field its columns come from, for a calendar the date its records are put on the days of, for an order the field in which a record says which others come before it",
+              "name": "by",
+              "type": "string"
+            },
+            {
+              "help": "the fields it leaves out",
+              "name": "hides",
+              "type": "list"
+            },
+            {
+              "help": "for an order, the choice whose last value says a record is done: the collection's first choice where none is said",
+              "name": "done",
+              "type": "string"
+            },
+            {
+              "help": "for a board, an order or a table, the field its records are gathered by",
+              "name": "group",
+              "type": "string"
+            },
+            {
+              "help": "what it is held to: a map from a field to the things a record has to hold one of there to be shown",
+              "name": "only",
+              "type": "object",
+              "within": {
+                "each": "a field, with the things a record has to hold one of there: a list, or one alone"
+              }
+            },
+            {
+              "help": "its columns in the order they stand",
+              "name": "columns",
+              "type": "list"
+            },
+            {
+              "help": "for a table, the column it is frozen up to",
+              "name": "freezes",
+              "type": "string"
+            },
+            {
+              "help": "for a table, a map from a column to the figure at its foot",
+              "name": "figures",
+              "type": "object",
+              "within": {
+                "each": "a column, with the figure at its foot",
+                "words": [
+                  {
+                    "help": "how many rows say something there",
+                    "name": "filled"
+                  },
+                  {
+                    "help": "how many rows say nothing there",
+                    "name": "empty"
+                  },
+                  {
+                    "help": "what a number's rows add up to",
+                    "name": "sum"
+                  },
+                  {
+                    "help": "what a number's rows come to on average",
+                    "name": "mean"
+                  },
+                  {
+                    "help": "the least a number's rows say",
+                    "name": "least"
+                  },
+                  {
+                    "help": "the greatest a number's rows say",
+                    "name": "greatest"
+                  },
+                  {
+                    "help": "how many rows a flag is ticked in",
+                    "name": "ticked"
+                  },
+                  {
+                    "help": "how many different things are said, of what is neither a number nor a flag",
+                    "name": "different"
+                  }
+                ]
+              }
+            },
+            {
+              "help": "for a table, a map from a column to how wide it is",
+              "name": "widths",
+              "type": "object",
+              "within": {
+                "each": "a column, with how wide it is: whole pixels at the usual size of text, from 60 to 2000"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "help": "where the records are kept: `local`, this installation's database (the default), `files`, one file a record in the project, `service`, a store service another blueprint hosts, `documents`, the Markdown files of a folder of the project as they are, or `mockups`, the folders of a folder of the project that each hold a page",
+        "name": "store",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "for `store: service`, the address the store service answers at: what the blueprint that hosts it gives out as `url`; for `store: documents` or `mockups`, the folder of the project they are in (the one called what the collection is, unless said)",
+        "name": "at",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "the model its records are, where they are one this program itself reads: `card`, for a board. A field of the model that is declared must be what the model says; one left out that a record can do without is there all the same",
+        "name": "model",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "which events are kept as the history of its records: a list of topics or groups of them (`board.item.*`), or a map from each to the sentence said of it, with what the event says of itself in braces (`{actor} moved it from {from} to {to}`)",
+        "name": "history",
+        "required": false,
+        "type": "any"
+      },
+      {
+        "help": "a scope changing its records takes beside what changing any record does, such as `agents:write` for a table a fleet is arranged by; whoever declares it, or declares it again, must hold it",
+        "name": "takes",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "a scope reading its records takes beside what reading any record does, such as `private:notes` for a table that is kept from whoever was not given that: its records, the files it keeps them in and what is said of them are then theirs alone who hold it; whoever declares it, or declares it again, must hold it",
+        "name": "reads",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "another collection of the project whose records these steer, such as `agents` for the table that says what a fleet's agents are given to do: what those records do, and for whom, goes by what a record here says, so one is added or changed here only by whoever could write each of those as it stands (what its cells take, and each scope a list of its own gives); declaring it again without this takes `admin`",
+        "name": "steers",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "another table of the project this one sits beside, such as `board` for the tables a fleet is arranged by: it is then reached from that table's page and is not listed by itself among what the project has. It is how the table is shown and nothing else: it lets nobody in and keeps nobody out",
+        "name": "beside",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "with `beside`: the field of this table that says what of the other a row is about, such as `column` for a row that says what is done with the cards of a column, which is then said at that column's head; a row that leaves the field empty is about what it is called",
+        "name": "about",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "its columns in groups: a list of headings in the order they are drawn, each a mapping from the heading to the fields under it in order, as in `[{ \"Who they are\": [role, count] }]`. A field in no group is drawn before the groups; one named twice, or that the collection has not got, is refused. It is how the table is shown and nothing else",
+        "name": "groups",
+        "required": false,
+        "type": "any"
+      },
+      {
+        "help": "`false` for a table whose rows are written only by the commands and blueprints that keep it, such as one a script adds a row to for each run: the client then offers no new row, no cell to change and no column to add, call something else or take away, and its rows are read there, sorted, held, gathered and taken away as any are. Nothing else is refused: a command and a blueprint write its records as they write any table's. Said only of a table of plain records; it is how the table is shown and nothing else",
+        "name": "by_hand",
+        "required": false,
+        "type": "bool"
+      },
+      {
+        "help": "what it is called for people, beside its name, such as `Test runs` for `test-runs`: its name is still what everything else knows it by. Whoever may change it may call it something else, which is kept when it is declared again; a board, a library and mockups keep their words",
+        "name": "title",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "what it is for, in one sentence, said under its head wherever it is shown",
+        "name": "description",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "`true` for a table that is only to be made: where the project has a table of its name that something else declared (another blueprint, a script, a person), it is refused and nothing of that one is changed; declared again by the same instance it is the same done twice",
+        "name": "anew",
+        "required": false,
+        "type": "bool"
+      },
+      {
+        "help": "which project (default: this instance's)",
+        "name": "project",
+        "required": false,
+        "type": "string"
+      }
+    ],
+    "capability": "projects:write",
+    "example": "blueprint: visitors\npermissions: [projects:write]\n\nsteps:\n  table:\n    do: collection.ensure\n    with:\n      name: visitors\n      fields: { name: { type: text, required: true }, came: { type: date } }\n",
+    "idempotent": true,
+    "makes": {
+      "named": "name",
+      "setting": "beside",
+      "what": "a table"
+    },
+    "name": "collection.ensure",
+    "open": false,
+    "outputs": [
+      [
+        "name",
+        "the collection's name"
+      ],
+      [
+        "store",
+        "where it is kept"
+      ],
+      [
+        "at",
+        "for one kept by a store service, its address"
+      ],
+      [
+        "records",
+        "how many records it has"
+      ]
+    ],
+    "summary": "Declare a collection of records for a project: what they are made of, how they are looked at, and where they are kept."
+  },
+  {
+    "args": [
+      {
+        "help": "the collection's name, as `collection.ensure` declared it",
+        "name": "collection",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "help": "what it holds, each field by its name (`title: November`)",
+        "name": "fields",
+        "required": true,
+        "type": "object"
+      },
+      {
+        "help": "which project (default: this instance's)",
+        "name": "project",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "the agent whose work it is added from, as an actor (`agent:<name>`), where that is known from what is written: its history says so beside this blueprint. Anything else, or nothing, says nobody",
+        "name": "wrote",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "the fields a table of this name is declared with where the project has none, as `collection.ensure` takes them: of one that is there only the fields it has are written, and it keeps its own. Either way it is a table that says nothing of what writing or reading it takes, of what its rows steer, or of a model",
+        "name": "declaring",
+        "required": false,
+        "type": "object",
+        "within": {
+          "each": "a field of the collection, by its name",
+          "keys": [
+            {
+              "help": "what it holds: `text` where it is not said",
+              "name": "type",
+              "type": "string",
+              "words": [
+                {
+                  "help": "words",
+                  "name": "text"
+                },
+                {
+                  "help": "one of the words `of` says can be chosen",
+                  "name": "choice"
+                },
+                {
+                  "help": "somebody: a person or an agent, as in `agent:builder`",
+                  "name": "actor"
+                },
+                {
+                  "help": "several words",
+                  "name": "list"
+                },
+                {
+                  "help": "a number",
+                  "name": "number"
+                },
+                {
+                  "help": "true or false",
+                  "name": "flag"
+                },
+                {
+                  "help": "a day, written `2026-11-30`",
+                  "name": "date"
+                },
+                {
+                  "help": "a record of the collection `of` names, by its id",
+                  "name": "record"
+                },
+                {
+                  "help": "several records of the one collection `of` names, by their ids",
+                  "name": "records"
+                },
+                {
+                  "help": "a document: its Markdown, kept in the row, as a topic's body is",
+                  "name": "document"
+                }
+              ]
+            },
+            {
+              "help": "a record cannot be without it",
+              "name": "required",
+              "type": "bool"
+            },
+            {
+              "help": "for a choice what can be chosen, in order; for a record or records the collection whose records it names",
+              "name": "of",
+              "type": "any"
+            },
+            {
+              "help": "its changes are not news: no line of a record's history is written for a change to it alone",
+              "name": "quiet",
+              "type": "bool"
+            },
+            {
+              "help": "it is left out of a view of the collection until somebody shows it there",
+              "name": "hidden",
+              "type": "bool"
+            },
+            {
+              "help": "every event about a record of the collection carries what it holds, under `fields` of the event's data, so that a handler is chosen by it with nothing run: a text longer than a kilobyte cut there, and anything else that long left out. Not of a field that is quiet or says what giving it a value takes",
+              "name": "said",
+              "type": "bool"
+            },
+            {
+              "help": "its column is kept in order by an index from the first row, so that a table of many rows is sorted and held by it at once: any column of a large table is indexed when it is first sorted by, and this says it of one before anybody asks. Not of a field that holds several things",
+              "name": "indexed",
+              "type": "bool"
+            },
+            {
+              "help": "for a text that takes any word, the usual ones, which are offered to whoever fills it",
+              "name": "suggests",
+              "type": "list"
+            },
+            {
+              "help": "for words that are a time of day with the zone it is in after it (`02:00 Europe/Zagreb`): whoever writes one with no zone is given their own",
+              "name": "zoned",
+              "type": "bool"
+            },
+            {
+              "help": "where it is among the fields a record is called by, from 1, wherever the record is named: an attempt called by its card and its contender, where its title is what something else knows it by",
+              "name": "calls",
+              "type": "number"
+            },
+            {
+              "help": "another field of the table, whose writer it keeps: the factory writes into it who wrote that field each time it is written, and nobody writes it themselves",
+              "name": "writer_of",
+              "type": "string"
+            },
+            {
+              "help": "the name of the icon its column is drawn with, until somebody who looks at the table chooses another",
+              "name": "icon",
+              "type": "string"
+            },
+            {
+              "help": "what giving it a value takes beside what changing the record does: a scope, or a list of scopes every one of which is asked, or for a choice or a flag the scopes of each value that takes any, or `each` for a list of scopes that the record gives somebody, where adding the record or changing anything of it takes holding each scope it then says",
+              "name": "takes",
+              "type": "any",
+              "within": {
+                "each": "a value of the field as it is written, with the scope, or the list of scopes, giving the field that value takes"
+              }
+            },
+            {
+              "help": "with `takes: each`, the scopes such a list stands for where a record leaves it empty; of a choice, the one word of `of` nothing chosen stands for, which is where nothing ranks and what a number written before the field was a choice is counted from",
+              "name": "unsaid",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      {
+        "help": "with `declaring`: `false` where the table made is one whose rows are written only by the commands and blueprints that keep it, as `collection.ensure` takes it; said of a table that is there already it changes nothing",
+        "name": "by_hand",
+        "required": false,
+        "type": "bool"
+      }
+    ],
+    "capability": "records:write",
+    "example": "blueprint: visitor-kept\npermissions: [records:write]\n\non:\n  seen:\n    event: visitor.seen\n    outside: true\n    do: record.add\n    with: { collection: visitors, fields: { name: \"${event.data.name}\" } }\n",
+    "idempotent": true,
+    "makes": {
+      "named": "collection",
+      "what": "a row of the table"
+    },
+    "name": "record.add",
+    "open": false,
+    "outputs": [
+      [
+        "id",
+        "the record's id, such as `shop-sprints-3`"
+      ],
+      [
+        "data",
+        "what it holds, each field by its name"
+      ]
+    ],
+    "summary": "Add a record to a collection a blueprint declared: a sprint, a release, whatever the project keeps."
+  },
+  {
+    "args": [
+      {
+        "help": "the record",
+        "name": "id",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "help": "what to say",
+        "name": "body",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "help": "mark it public: it is private unless this says so, and what is private is told to nobody outside the factory by whatever keeps the record somewhere else as well",
+        "name": "public",
+        "required": false,
+        "type": "bool"
+      },
+      {
+        "help": "the words of a document it is about, where it is about a few of them and not the whole document",
+        "name": "anchor",
+        "required": false,
+        "type": "object",
+        "within": {
+          "keys": [
+            {
+              "help": "the words commented on, as they read in the document, on one line",
+              "name": "quote",
+              "type": "string"
+            },
+            {
+              "help": "a few words just before them in the same block, so that the same words said twice are told apart",
+              "name": "before",
+              "type": "string"
+            },
+            {
+              "help": "a few words just after them in the same block",
+              "name": "after",
+              "type": "string"
+            },
+            {
+              "help": "the headings the block stands under, outermost first, so that words that moved are looked for there first",
+              "name": "under",
+              "type": "list"
+            }
+          ]
+        }
+      }
+    ],
+    "capability": null,
+    "example": "blueprint: said-on-a-card\n\nparams:\n  card: { type: string, description: The card to say something on. }\n\nsteps:\n  said:\n    do: record.comment\n    with: { id: \"${params.card}\", body: The tests pass on this one. }\n",
+    "idempotent": true,
+    "name": "record.comment",
+    "open": false,
+    "outputs": [
+      [
+        "id",
+        "the record"
+      ],
+      [
+        "collection",
+        "the collection it is a record of"
+      ]
+    ],
+    "summary": "Say something on a record, a card included; it is kept in the record's history and changes nothing of it. Needs `board:write` for a card, `records:write` for any other."
+  },
+  {
+    "args": [
+      {
+        "help": "what the comparison is called: a word, such as `models`",
+        "name": "name",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "help": "the blueprint whose starts name it",
+        "name": "of",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "help": "its ways, each a mapping (or a word, for a way that is the work as it is written)",
+        "name": "ways",
+        "required": true,
+        "type": "list",
+        "within": {
+          "keys": [
+            {
+              "help": "what the way is called: a word, such as `otter`, which a start names as its `way`",
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "help": "its part of the things where they are shared out; a start that names its way is given it whatever the shares (default 1)",
+              "name": "share",
+              "type": "int"
+            },
+            {
+              "help": "a blueprint started in place of the one compared",
+              "name": "blueprint",
+              "type": "string"
+            },
+            {
+              "help": "the version of what it starts that it is held to",
+              "name": "version",
+              "type": "string"
+            },
+            {
+              "help": "what it hands, over what the start hands",
+              "name": "with",
+              "type": "object"
+            },
+            {
+              "help": "for a file a step links, by its name in the library, the file it reads instead",
+              "name": "prompts",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      {
+        "help": "the param that says which thing a start is for; else its place in the tree",
+        "name": "per",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "blueprints started for the same things that are measured with each thing's way",
+        "name": "also",
+        "required": false,
+        "type": "list"
+      },
+      {
+        "help": "the param that says which thing a start of one of `also` is for, where it is another than `per`",
+        "name": "also_per",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "help": "the events about its things that are counted",
+        "name": "counts",
+        "required": false,
+        "type": "list",
+        "within": {
+          "keys": [
+            {
+              "help": "what the count is called: a lowercase word, such as `judged`",
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "help": "the event's topic, whole",
+              "name": "topic",
+              "type": "string"
+            },
+            {
+              "help": "the field of the event that says which thing it is about; a dotted path reads within it",
+              "name": "thing",
+              "type": "string"
+            },
+            {
+              "help": "the fields whose values say what it came to, each read as `thing` is; the last word of the topic where none",
+              "name": "by",
+              "type": "list"
+            },
+            {
+              "help": "what it came to that says the thing was accepted (the last of several fields where several say); a thing is counted as accepted once",
+              "name": "accepts",
+              "type": "list"
+            }
+          ]
+        }
+      }
+    ],
+    "capability": "blueprints:run",
+    "example": "blueprint: two-ways\npermissions: [blueprints:run]\n\nsteps:\n  compared:\n    do: compare.start\n    with: { name: tones, of: std/run, ways: [loud, quiet] }\n",
+    "idempotent": true,
+    "name": "compare.start",
+    "open": false,
+    "outputs": [
+      [
+        "name",
+        "what the comparison is called"
+      ],
+      [
+        "ways",
+        "the names of its ways, as it now has them"
+      ],
+      [
+        "ended",
+        "true where it had ended, and was answered as it is"
+      ]
+    ],
+    "summary": "Start a comparison whose ways are named by the start, or answer the one there is of that name with the ways asked for added: from now, a start of `of` here whose params say `compared` and `way` goes that way and is measured with it."
+  }
+]

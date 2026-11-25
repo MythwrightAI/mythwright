@@ -1,0 +1,93 @@
+blueprint: shop/steps
+description: "Every way a step is said: by itself, by its action, and by the language."
+permissions: [things, post]
+
+params:
+  count: { type: number, default: 2, description: How many there are. }
+  mode: { type: string, default: plain, enum: [plain, fancy] }
+
+state:
+  seen: false
+  last: ""
+  open: []
+
+steps:
+  said:
+    description: |
+      Look at the thing first. What it holds decides
+      the rest.
+    do: thing.read
+    with: { id: shelf }
+  unsaid:
+    do: letter.send
+    with: { to: someone }
+  empty:
+    description: ""
+    do: thing.read
+    with: { id: shelf }
+  told:
+    do: emit
+    with: { topic: shop.told, id: shelf }
+  kept:
+    do: set
+    with: { seen: true, last: "${steps.said.out.id}" }
+  paused:
+    do: wait
+    with: { for: 5m }
+  asked:
+    do: wait
+    with:
+      event: shop.answered
+      timeout: 1h
+      say: { topic: shop.asked }
+  once:
+    when: ${ !state.seen }
+    do: letter.send
+    with: { to: someone }
+  failed:
+    when: ${steps.unsaid.failed}
+    do: log
+    with: { message: "it failed" }
+  many:
+    when: ${ params.count > 3 && params.mode == "fancy" }
+    do: letter.send
+    with: { to: someone }
+  either:
+    when: ${ params.mode in ["plain", "fancy"] || (state.last ?? '') != '' }
+    do: letter.send
+    with: { to: someone }
+  worked:
+    when: ${ len(params.mode) > 3 }
+    do: letter.send
+    with: { to: someone }
+  group:
+    description: Two things done as one.
+    task:
+      inner:
+        do: thing.read
+        with: { id: shelf }
+      after:
+        description: And said.
+        do: log
+        with: { message: done }
+  held:
+    do: keep
+    with: { in: open, what: { id: shelf }, by: id }
+  let_go:
+    do: drop
+    with: { from: open, is: shelf, by: id }
+  counted:
+    do: measure
+    with: { name: shop.counted, value: 3 }
+  nothing:
+    do: noop
+  child:
+    do: stop
+    with: { instance: helper, missing_ok: true }
+  wrong:
+    when: ${ params.count < 0 }
+    do: fail
+    with: { message: "fewer than none" }
+  over:
+    do: end
+    with: { status: failed, reason: enough }

@@ -1,0 +1,21 @@
+/* An archived channel: what its page says at its head, the line where something would be written, and the Archived part of the side panel and of the inbox. */
+/* At the head, after what it is about: the word with its box, and Unarchive for whoever may; each whole, giving way to nothing. */
+.archived-head { display: inline-flex; align-items: center; gap: 8px; flex: none; min-width: 0; }
+.archived-mark { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: calc(999px * var(--round)); color: var(--dim); font-size: calc(12px * var(--size)); white-space: nowrap; }
+.archived-head button { white-space: nowrap; }
+/* Where the composer was, as wide as it was and where it stood: one line, nothing to type in. */
+.archived-line { box-sizing: border-box; display: flex; align-items: flex-start; gap: 8px; width: min(720px, calc(100% - 40px)); margin: 0 auto 44px; padding: 12px 14px; border: 1px dashed var(--line-strong); border-radius: calc(12px * var(--round)); color: var(--dim); font-size: calc(13px * var(--size)); overflow-wrap: anywhere; }
+.archived-line .sign { flex: none; margin-top: 2px; }
+.archived-line .archived-said { flex: 1 1 auto; min-width: 0; }
+.archived-line button { flex: none; margin: -5px -6px -5px 0; white-space: nowrap; }
+.thread .archived-line { width: auto; margin: 8px 12px 12px; }
+/* The Archived part stands at the foot of the channels, set apart from what is above it; its count is a faint word, never one of what waits. */
+.archived-part { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 4px; }
+.archived-part .group-name .glyph { display: inline-flex; align-items: center; justify-content: center; }
+.archived-part .group-name .hint { margin-left: auto; padding-left: 6px; color: var(--faint, var(--dim)); font-size: calc(11.5px * var(--size)); flex: none; }
+/* On a phone the channel's head is one line that does not wrap: the word gives way to its box, which says it whole to whoever points at it. */
+@media (max-width: 760px), (pointer: coarse) and (max-height: 520px) {
+  .channel > .split > .view-head .archived-head { gap: 4px; }
+  .channel > .split > .view-head .archived-mark { padding: 2px 6px; }
+  .channel > .split > .view-head .archived-word, .channel > .split > .view-head .archived-head button { display: none; }
+}

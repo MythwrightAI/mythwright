@@ -1,0 +1,17 @@
+/* A word shown working, in the drawer: the scenario's sentence and what
+   was done, over what happened drawn as the Sandbox view draws it, and
+   at its foot what this was, which stays in view while the rest scrolls.
+   It is a sandbox's view (`.sandbox`), so its lines are laid out for the
+   drawer's width as they are in a narrow Sandbox view. */
+.drawer-body:has(> .scenario) { display: block; padding: 0; overflow: hidden; }
+.scenario { height: 100%; }
+.scenario-body { display: grid; gap: 14px; align-content: start; min-width: 0; min-height: 0; overflow: auto; padding: 14px 16px 18px; }
+.scenario-notice { margin: 0; padding: 8px 10px; border-left: 4px solid var(--accent); border-radius: calc(6px * var(--round)); background: var(--accent-soft); font-size: calc(13px * var(--size)); line-height: 1.5; overflow-wrap: anywhere; }
+.scenario-done { margin: 0; padding-left: 20px; display: grid; gap: 3px; font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; }
+
+/* Run it, under an example the daemon has a scenario of. */
+.ref-run-line { display: flex; justify-content: flex-end; margin-top: 4px; }
+button.ref-run { height: auto; min-height: calc(24px * var(--tall)); padding: 2px 10px; font-size: calc(12px * var(--size)); }
+@media (pointer: coarse) {
+  button.ref-run { min-height: calc(34px * var(--tall)); }
+}

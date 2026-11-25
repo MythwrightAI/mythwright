@@ -1,0 +1,305 @@
+# Who is next for a card that waits on somebody, as the rows of the
+# project's `chain` say. A fleet attaches this
+# (`uses`), as it does `std/told`.
+#
+# A row is one rung: which kinds of wait it is for (`waits`: `review`,
+# `left`, `blocked`, `asked`, `held`, `plan`, `idle`; every kind but
+# `idle` where it says none), held to a column (`column`) or to cards
+# with a label (`labelled`) where it says so, where it stands among the
+# rest (`step`, the lowest first), who is told (`who`: `applier`, a
+# handle after `@`, or an actor) and how long the card may wait there
+# before the next rung is tried too (`after`, as `4h`; never, where it
+# says none):
+#
+#   mw record add shop chain title=lead waits=review who=@grace after=4h step=1
+#   mw record add shop chain title=owner waits=review who=applier step=2
+#
+# A card in a column no stage works waits on somebody only where a rung
+# says `idle` and names that column.
+#
+# With no row nothing is done here, and nothing is run for a card: whom
+# the project's `tells` names is told as ever (`std/told`). What is done
+# for a card that waits is one text, called by a handler for each kind
+# of wait (`std/chain-wait`): which rung is next, and the sentence, is a
+# block's (`chain.next`); where on the chain a card is, is kept on its
+# own row (`rung`), and a wait ends when the card is moved. A rung's time is waited out by `std/later`, begun
+# only for a rung that says one, which says `later.over` when it is.
+blueprint: std/chain
+version: 2
+description: "Tell whoever is next for a card that waits on somebody, as the rows of its project's `chain` say, and the next rung after so long."
+permissions: [inbox, records, projects, board, blueprints]
+
+params:
+  project: { type: string, description: "The project whose fleet this is attached to." }
+
+state:
+  # Whether the chain has a rung, and which columns a rung names for a
+  # card nobody works: read again as its rows change, so that nothing is
+  # run here for a card while the chain has no row.
+  rungs: false
+  idle: []
+
+steps:
+  chain:
+    description: Who is next for a card that waits on somebody. A row is a rung.
+    do: collection.ensure
+    with:
+      name: chain
+      project: "${params.project}"
+      beside: board
+      # A rung gives an agent work as whoever applied the fleet: a row is
+      # written only by whoever could write each row of its agents.
+      steers: agents
+      fields:
+        title: { type: text, required: true }
+        # Which kinds of wait: `review`, `left`, `blocked`, `asked`,
+        # `held`, `plan`, `idle`. Every one but `idle`, where it says none.
+        waits: { type: list }
+        column: { type: text }
+        labelled: { type: list }
+        step: { type: number }
+        # Somebody: `applier`, a handle after `@`, or an actor. Told as
+        # whoever applied the fleet, so saying whom takes what telling takes.
+        # For a rung that looks or reviews, an agent (`agent:<name>`), or
+        # for one that looks one of a role (`role:<role>`).
+        who: { type: text, takes: "inbox:write" }
+        # What it does: `tell` whoever it names (the usual); `look`, the
+        # agent looks at the card and decides what becomes of it; `review`,
+        # the agent reviews it as one of its stage's role would.
+        does: { type: choice, of: [tell, look, review] }
+        # What an agent that looks or reviews is told, in the row's words.
+        told: { type: text }
+        after: { type: text }
+      views:
+        chain: { kind: table }
+      history:
+        record.created: "{actor} added it"
+        record.updated: "{actor} changed its {changed}"
+        record.removed: "{actor} took it away"
+
+  rows:
+    needs: [chain]
+    do: rows.read
+    with: { project: "${params.project}", collection: chain }
+
+  read:
+    do: chain.read
+    with: { rows: "${steps.rows.out.rows}" }
+
+  kept:
+    do: set
+    with: { rungs: "${steps.read.out.rungs}", idle: "${steps.read.out.idle}" }
+
+# Applied again with its fleet, it goes on where it is.
+on_update: []
+
+on:
+  # Its rows changed: what it has is read again.
+  changed:
+    event: record.*
+    for: { project: "${params.project}", collection: chain }
+    steps:
+      rows:
+        do: rows.read
+        with: { project: "${params.project}", collection: chain }
+
+      read:
+        do: chain.read
+        with: { rows: "${steps.rows.out.rows}" }
+
+      kept:
+        do: set
+        with: { rungs: "${steps.read.out.rungs}", idle: "${steps.read.out.idle}" }
+
+  # A card was left for a person.
+  left:
+    event: card.left
+    for: { project: "${params.project}" }
+    when: ${state.rungs}
+    turn: "${event.data.card}"
+    steps:
+      wait:
+        call: std/chain-wait
+        as: "wait-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          asking: "chain-${event.seq}"
+          item: "${event.data.card}"
+          topic: "${event.topic}"
+          said: ${event.data}
+
+      later:
+        description: The next rung after the time this one says, where it says one.
+        when: ${ steps.wait.out.later || steps.wait.out.up }
+        spawn: std/later
+        as: "later-${event.data.card}-${event.seq}"
+        with:
+          after: "${steps.wait.out.after}"
+          about: "${event.data.card}"
+          says: { due: "${steps.wait.out.next}", heard: "${event.topic}", said: "${event.data}" }
+
+  # Something was asked on a card, in place of going on.
+  asked:
+    event: card.asked
+    for: { project: "${params.project}" }
+    when: ${state.rungs}
+    turn: "${event.data.card}"
+    steps:
+      wait:
+        call: std/chain-wait
+        as: "wait-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          asking: "chain-${event.seq}"
+          item: "${event.data.card}"
+          topic: "${event.topic}"
+          said: ${event.data}
+
+      later:
+        description: The next rung after the time this one says, where it says one.
+        when: ${ steps.wait.out.later || steps.wait.out.up }
+        spawn: std/later
+        as: "later-${event.data.card}-${event.seq}"
+        with:
+          after: "${steps.wait.out.after}"
+          about: "${event.data.card}"
+          says: { due: "${steps.wait.out.next}", heard: "${event.topic}", said: "${event.data}" }
+
+  # A card waits for a person to do what its column does.
+  waited:
+    event: card.waits
+    for: { project: "${params.project}" }
+    when: ${state.rungs}
+    turn: "${event.data.card}"
+    steps:
+      wait:
+        call: std/chain-wait
+        as: "wait-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          asking: "chain-${event.seq}"
+          item: "${event.data.card}"
+          topic: "${event.topic}"
+          said: ${event.data}
+
+      later:
+        description: The next rung after the time this one says, where it says one.
+        when: ${ steps.wait.out.later || steps.wait.out.up }
+        spawn: std/later
+        as: "later-${event.data.card}-${event.seq}"
+        with:
+          after: "${steps.wait.out.after}"
+          about: "${event.data.card}"
+          says: { due: "${steps.wait.out.next}", heard: "${event.topic}", said: "${event.data}" }
+
+  # A card has a plan, which waits where its stage sends it nowhere.
+  planned:
+    event: card.planned
+    for: { project: "${params.project}" }
+    when: ${ state.rungs && (event.data.waits ?? false) }
+    turn: "${event.data.card}"
+    steps:
+      wait:
+        call: std/chain-wait
+        as: "wait-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          asking: "chain-${event.seq}"
+          item: "${event.data.card}"
+          topic: "${event.topic}"
+          said: ${event.data}
+
+      later:
+        description: The next rung after the time this one says, where it says one.
+        when: ${ steps.wait.out.later || steps.wait.out.up }
+        spawn: std/later
+        as: "later-${event.data.card}-${event.seq}"
+        with:
+          after: "${steps.wait.out.after}"
+          about: "${event.data.card}"
+          says: { due: "${steps.wait.out.next}", heard: "${event.topic}", said: "${event.data}" }
+
+  # Something a card's column offers waits to be pressed.
+  held:
+    event: board.item.held
+    for: { project: "${params.project}" }
+    when: ${state.rungs}
+    turn: "${event.data.card}"
+    steps:
+      wait:
+        call: std/chain-wait
+        as: "wait-${event.data.card}-${event.seq}"
+        with:
+          project: "${params.project}"
+          asking: "chain-${event.seq}"
+          item: "${event.data.card}"
+          topic: "${event.topic}"
+          said: ${event.data}
+
+      later:
+        description: The next rung after the time this one says, where it says one.
+        when: ${ steps.wait.out.later || steps.wait.out.up }
+        spawn: std/later
+        as: "later-${event.data.card}-${event.seq}"
+        with:
+          after: "${steps.wait.out.after}"
+          about: "${event.data.card}"
+          says: { due: "${steps.wait.out.next}", heard: "${event.topic}", said: "${event.data}" }
+
+  # A card came to a column a rung names, which no stage works.
+  moved:
+    event: board.item.moved
+    for: { project: "${params.project}" }
+    when: ${ state.rungs && event.data.to in state.idle }
+    turn: "${event.data.id}"
+    steps:
+      wait:
+        call: std/chain-wait
+        as: "wait-${event.data.id}-${event.seq}"
+        with:
+          project: "${params.project}"
+          asking: "chain-${event.seq}"
+          item: "${event.data.id}"
+          topic: "${event.topic}"
+          said: ${event.data}
+
+      later:
+        description: The next rung after the time this one says, where it says one.
+        when: ${ steps.wait.out.later || steps.wait.out.up }
+        spawn: std/later
+        as: "later-${event.data.id}-${event.seq}"
+        with:
+          after: "${steps.wait.out.after}"
+          about: "${event.data.id}"
+          says: { due: "${steps.wait.out.next}", heard: "${event.topic}", said: "${event.data}" }
+
+  # A rung's time is over: the next is told, where the card still waits as it did.
+  due:
+    event: later.over
+    scope: own
+    when: ${ (event.data.about ?? '') != '' }
+    turn: "${event.data.about}"
+    steps:
+      wait:
+        call: std/chain-wait
+        as: "wait-${event.data.about}-${event.seq}"
+        with:
+          project: "${params.project}"
+          asking: "chain-${event.seq}"
+          item: "${event.data.about}"
+          topic: "${event.data.says.heard}"
+          said: ${event.data.says.said}
+          due: ${event.data.says.due}
+
+      later:
+        description: The next rung after the time this one says, where it says one.
+        when: ${ steps.wait.out.later || steps.wait.out.up }
+        spawn: std/later
+        as: "later-${event.data.about}-${event.seq}"
+        with:
+          after: "${steps.wait.out.after}"
+          about: "${event.data.about}"
+          says:
+            due: "${steps.wait.out.next}"
+            heard: "${event.data.says.heard}"
+            said: "${event.data.says.said}"

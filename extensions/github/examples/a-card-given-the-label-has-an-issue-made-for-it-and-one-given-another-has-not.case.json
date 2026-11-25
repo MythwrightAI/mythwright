@@ -1,0 +1,19 @@
+{
+  "says": "Told a label that links cards, a card given it by somebody who holds what linking takes has an issue made for it; a card given another label is left here.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"apply": "issues", "project": "shop", "sets_off": "look", "params": {"out_label": "public"}},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"run": ["board", "set", "shop-1", "labels=public"], "sets_off": "keep"},
+    {"ran": ["{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"holds": {"issues/1": {"title": "Add a cart", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "t1"}}},
+    {"run": ["board", "add", "shop", "Fix the footer"]},
+    {"run": ["board", "set", "shop-2", "labels=later"], "sets_off": "labelled"},
+    {"ran": []},
+    {"run": ["board", "set", "shop-1", "labels=public,soon"], "sets_off": "labelled"},
+    {"ran": []}
+  ]
+}

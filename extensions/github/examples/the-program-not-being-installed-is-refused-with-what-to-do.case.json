@@ -1,0 +1,8 @@
+{
+  "says": "Where the program is not installed, applying is refused with a sentence saying so and what to do.",
+  "program": false,
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"apply": "pull-requests", "project": "shop", "fails": "is not installed on this device, or not where the daemon looks for programs. Install it"}
+  ]
+}

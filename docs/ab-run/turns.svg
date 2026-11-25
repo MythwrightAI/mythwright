@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 558" width="760" height="558" role="img" aria-labelledby="t d">
+<style>
+  .bg{fill:#fcfcfb} .t1{fill:#0b0b0b} .t2{fill:#52514e} .grid{stroke:#e4e3df} .axis{stroke:#bdbcb6}
+  .opus{fill:#2a78d6} .sol{fill:#eb6834} .opusink{stroke:#1d5aa3} .solink{stroke:#b54a1f}
+  text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+  @media (prefers-color-scheme: dark){
+    .bg{fill:#1a1a19} .t1{fill:#f0efec} .t2{fill:#c3c2b7} .grid{stroke:#33322f} .axis{stroke:#55544f}
+    .opus{fill:#3987e5} .sol{fill:#d95926} .opusink{stroke:#9cc3f2} .solink{stroke:#f3b496}
+  }
+</style>
+<defs><pattern id="ho" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="opusink" stroke-width="2"/></pattern><pattern id="hs" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="solink" stroke-width="2"/></pattern></defs>
+<title id="t">Every head-to-head turn: how long, and how it ended</title>
+<desc id="d">Seven tests. Docs export first try: opus blocked 12m35s, sol blocked 7m42s. Second try: opus done 1h14m56s and won, sol blocked 48m23s. Navigation first try: opus blocked 4m09s, sol blocked 4m31s. Second try: opus done 27m03s and won, sol blocked 24m12s. Blueprint by name: opus done 1m26s and won, sol done 1m22s. Design card: both asked, opus 30s, sol 1m04s. Take at the top: opus done 17m34s and won, sol done 6m06s.</desc>
+<rect class="bg" width="760" height="558" rx="8"/>
+<text x="20" y="30" class="t1" font-size="16" font-weight="600">Every head-to-head turn: how long, and how it ended</text>
+<text x="20" y="50" class="t2" font-size="13">Length of each agent's turn in minutes. Hatched: it ended blocked or asked, and nothing of it was kept.</text>
+<rect x="20" y="68" width="12" height="12" rx="2" class="opus"/><text x="38" y="78" class="t2" font-size="13">opus</text><rect x="88.8" y="68" width="12" height="12" rx="2" class="sol"/><text x="106.8" y="78" class="t2" font-size="13">sol</text><rect x="150.4" y="68" width="12" height="12" rx="2" class="opus"/><rect x="150.4" y="68" width="12" height="12" rx="2" fill="url(#ho)"/><text x="168.4" y="78" class="t2" font-size="13">blocked or asked</text>
+<line x1="170.0" y1="96" x2="170.0" y2="530" class="grid"/><text x="170.0" y="546" class="t2" font-size="12" text-anchor="middle">0 min</text>
+<line x1="275.0" y1="96" x2="275.0" y2="530" class="grid"/><text x="275.0" y="546" class="t2" font-size="12" text-anchor="middle">20 min</text>
+<line x1="380.0" y1="96" x2="380.0" y2="530" class="grid"/><text x="380.0" y="546" class="t2" font-size="12" text-anchor="middle">40 min</text>
+<line x1="485.0" y1="96" x2="485.0" y2="530" class="grid"/><text x="485.0" y="546" class="t2" font-size="12" text-anchor="middle">60 min</text>
+<line x1="590.0" y1="96" x2="590.0" y2="530" class="grid"/><text x="590.0" y="546" class="t2" font-size="12" text-anchor="middle">80 min</text>
+<text x="158" y="128" class="t1" font-size="13" text-anchor="end">Docs export, 1st try</text>
+<path class="opus"  d="M170,104 H232.06355000000002 Q236.06355000000002,104 236.06355000000002,108 V118 Q236.06355000000002,122 232.06355000000002,122 H170 Z"/>
+<path class="" fill="url(#ho)" d="M170,104 H232.06355000000002 Q236.06355000000002,104 236.06355000000002,108 V118 Q236.06355000000002,122 232.06355000000002,122 H170 Z"/>
+<text x="244.06355000000002" y="118" class="t2" font-size="12"><tspan class="t1" font-weight="600">opus</tspan> blocked 12m35s</text>
+<path class="sol"  d="M170,126 H206.4425875 Q210.4425875,126 210.4425875,130 V140 Q210.4425875,144 206.4425875,144 H170 Z"/>
+<path class="" fill="url(#hs)" d="M170,126 H206.4425875 Q210.4425875,126 210.4425875,130 V140 Q210.4425875,144 206.4425875,144 H170 Z"/>
+<text x="218.4425875" y="140" class="t2" font-size="12"><tspan class="t1" font-weight="600">sol</tspan> blocked 7m42s</text>
+<text x="158" y="188" class="t1" font-size="13" text-anchor="end">Docs export, 2nd try</text>
+<path class="opus"  d="M170,164 H559.38005 Q563.38005,164 563.38005,168 V178 Q563.38005,182 559.38005,182 H170 Z"/>
+<text x="571.38005" y="178" class="t2" font-size="12"><tspan class="t1" font-weight="600">opus</tspan> done 1h14m56s · won</text>
+<path class="sol"  d="M170,186 H420.02895 Q424.02895,186 424.02895,190 V200 Q424.02895,204 420.02895,204 H170 Z"/>
+<path class="" fill="url(#hs)" d="M170,186 H420.02895 Q424.02895,186 424.02895,190 V200 Q424.02895,204 420.02895,204 H170 Z"/>
+<text x="432.02895" y="200" class="t2" font-size="12"><tspan class="t1" font-weight="600">sol</tspan> blocked 48m23s</text>
+<text x="158" y="248" class="t1" font-size="13" text-anchor="end">Navigation, 1st try</text>
+<path class="opus"  d="M170,224 H187.751625 Q191.751625,224 191.751625,228 V238 Q191.751625,242 187.751625,242 H170 Z"/>
+<path class="" fill="url(#ho)" d="M170,224 H187.751625 Q191.751625,224 191.751625,228 V238 Q191.751625,242 187.751625,242 H170 Z"/>
+<text x="199.751625" y="238" class="t2" font-size="12"><tspan class="t1" font-weight="600">opus</tspan> blocked 4m09s</text>
+<path class="sol"  d="M170,246 H189.6903625 Q193.6903625,246 193.6903625,250 V260 Q193.6903625,264 189.6903625,264 H170 Z"/>
+<path class="" fill="url(#hs)" d="M170,246 H189.6903625 Q193.6903625,246 193.6903625,250 V260 Q193.6903625,264 189.6903625,264 H170 Z"/>
+<text x="201.6903625" y="260" class="t2" font-size="12"><tspan class="t1" font-weight="600">sol</tspan> blocked 4m31s</text>
+<text x="158" y="308" class="t1" font-size="13" text-anchor="end">Navigation, 2nd try</text>
+<path class="opus"  d="M170,284 H307.98231250000003 Q311.98231250000003,284 311.98231250000003,288 V298 Q311.98231250000003,302 307.98231250000003,302 H170 Z"/>
+<text x="319.98231250000003" y="298" class="t2" font-size="12"><tspan class="t1" font-weight="600">opus</tspan> done 27m03s · won</text>
+<path class="sol"  d="M170,306 H293.0626 Q297.0626,306 297.0626,310 V320 Q297.0626,324 293.0626,324 H170 Z"/>
+<path class="" fill="url(#hs)" d="M170,306 H293.0626 Q297.0626,306 297.0626,310 V320 Q297.0626,324 293.0626,324 H170 Z"/>
+<text x="305.0626" y="320" class="t2" font-size="12"><tspan class="t1" font-weight="600">sol</tspan> blocked 24m12s</text>
+<text x="158" y="368" class="t1" font-size="13" text-anchor="end">Blueprint by name</text>
+<path class="opus"  d="M170,344 H173.777725 Q177.55545,344 177.55545,347.777725 V358.222275 Q177.55545,362 173.777725,362 H170 Z"/>
+<text x="185.55545" y="358" class="t2" font-size="12"><tspan class="t1" font-weight="600">opus</tspan> done 1m26s · won</text>
+<path class="sol"  d="M170,366 H173.60583125 Q177.2116625,366 177.2116625,369.60583125 V380.39416875 Q177.2116625,384 173.60583125,384 H170 Z"/>
+<text x="185.2116625" y="380" class="t2" font-size="12"><tspan class="t1" font-weight="600">sol</tspan> done 1m22s</text>
+<text x="158" y="428" class="t1" font-size="13" text-anchor="end">Design card</text>
+<path class="opus"  d="M170,404 H171.5 Q173,404 173,405.5 V420.5 Q173,422 171.5,422 H170 Z"/>
+<path class="" fill="url(#ho)" d="M170,404 H171.5 Q173,404 173,405.5 V420.5 Q173,422 171.5,422 H170 Z"/>
+<text x="181" y="418" class="t2" font-size="12"><tspan class="t1" font-weight="600">opus</tspan> asked 30s</text>
+<path class="sol"  d="M170,426 H172.80231874999998 Q175.6046375,426 175.6046375,428.80231875 V441.19768125 Q175.6046375,444 172.80231874999998,444 H170 Z"/>
+<path class="" fill="url(#hs)" d="M170,426 H172.80231874999998 Q175.6046375,426 175.6046375,428.80231875 V441.19768125 Q175.6046375,444 172.80231874999998,444 H170 Z"/>
+<text x="183.6046375" y="440" class="t2" font-size="12"><tspan class="t1" font-weight="600">sol</tspan> asked 1m04s</text>
+<text x="158" y="488" class="t1" font-size="13" text-anchor="end">Take at the top</text>
+<path class="opus"  d="M170,464 H258.2175625 Q262.2175625,464 262.2175625,468 V478 Q262.2175625,482 258.2175625,482 H170 Z"/>
+<text x="270.2175625" y="478" class="t2" font-size="12"><tspan class="t1" font-weight="600">opus</tspan> done 17m34s · won</text>
+<path class="sol"  d="M170,486 H198.00925 Q202.00925,486 202.00925,490 V500 Q202.00925,504 198.00925,504 H170 Z"/>
+<text x="210.00925" y="500" class="t2" font-size="12"><tspan class="t1" font-weight="600">sol</tspan> done 6m06s</text>
+</svg>

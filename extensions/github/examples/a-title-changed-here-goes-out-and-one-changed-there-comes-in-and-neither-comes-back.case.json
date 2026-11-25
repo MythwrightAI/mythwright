@@ -1,0 +1,28 @@
+{
+  "says": "A linked card whose title is changed has its issue's title changed; an issue whose title is changed on GitHub, said by a call that is signed, has its card's changed. What crossed is what the two agree on: asked afterwards what changed, nothing is sent back either way.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "issues", "project": "shop", "sets_off": "look"},
+    {"given": {"signing.txt": "s3cret"}},
+    {"run": ["secret", "set", "hub-signing", "--file", "{here}/signing.txt"]},
+    {"run": ["caller", "set", "hub", "--topic", "issues.called", "--secret", "hub-signing", "--header", "X-Hub-Signature-256", "--prefix", "sha256="]},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["auth status", "repo view --json=nameWithOwner --jq=.nameWithOwner", "{issues-changed}", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "issue create --title=Add a cart --body=Customers need one.\\n\\n<!-- card shop-1 -->", "{issues-last} --jq=[.[] | select(.body | contains(\"<!-- card shop-1 -->\"))] | (.[0] // {}) | {number, url}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"run": ["board", "set", "shop-1", "title=Add a basket"], "sets_off": "keep"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}", "issue edit 1 --title=Add a basket"]},
+    {"holds": {"issues/1": {"title": "Add a basket", "body": "Customers need one.\n\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "t2"}}},
+    {"run": ["emit", "issues.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["{issues-changed}", "api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"given": {"issues/1/title": "Add a trolley", "issues/1/body": "Customers need one.\r\nAnd a way to empty it.\r\n\r\n<!-- card shop-1 -->", "issues/1/stamp": "s9"}},
+    {"call": "hub", "signed": "s3cret", "header": "X-Hub-Signature-256", "prefix": "sha256=", "body": {"action": "edited", "issue": {"number": 1}, "repository": {"full_name": "acme/shop"}}, "sets_off": "keep"},
+    {"ran": ["api graphql -F owner={owner} -F repo={repo} -F number=1 {issue-whole}"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Add a trolley"},
+    {"run": ["record", "show", "shop-1"], "says": "body: Customers need one.\nAnd a way to empty it."},
+    {"run": ["emit", "issues.look", "project=shop"], "sets_off": "look"},
+    {"ran": ["{issues-changed}"]},
+    {"holds": {"issues/1": {"title": "Add a trolley", "body": "Customers need one.\r\nAnd a way to empty it.\r\n\r\n<!-- card shop-1 -->", "state": "OPEN", "stamp": "s9"}}}
+  ]
+}

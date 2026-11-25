@@ -1,0 +1,39 @@
+shop/may
+
+What it is
+  What somebody deciding to apply this most needs to know.
+  What it is doing is written down as it goes, so that it is taken up where it was after a restart.
+  Whoever applies it may tell it 3 things:
+    - command: A command of your own. It has to be said.
+    - key: The secret the tool is handed. Unless it is said: nothing.
+    - spec: Everything the last tool is handed. It has to be said.
+
+What it makes
+  A thing called `shelf`. [made]
+  Another blueprint, `shop/other`, run under it and waited for. [other]
+
+What it does when it is applied
+  1. Run a command and wait for it to finish. [listed]
+  2. Run a command and wait for it to finish. [yours]
+  3. Run a command and wait for it to finish. [whole]
+  4. Make sure a thing is there. [made]
+  5. Run `shop/other` and wait for it to finish. [other]
+  6. Run a command and wait for it to finish. [script]
+  7. Run a command and wait for it to finish. [mixed]
+
+What it may do
+  It runs as whoever applies it, and can do no more than they can.
+  Of what they can do, it uses only what it lists: `shell`, `things`, `secrets`, `blueprints` and `post`.
+  Make and change things. [things:write]
+  Start, apply and stop blueprint instances. [blueprints:run]
+  Use what the factory keeps secret, without being shown it: hand one to a program. [secrets:use]
+  Run commands on a device. [shell]
+  Send letters. [post:send]
+  ! It runs a command: `git status --short`. [listed]
+  ! It runs a command that the param `command` says. [yours]
+  ! It runs a command it is handed as it runs, which its text does not write out. [whole]
+  ! It runs a command of 2 lines, written out in its text. [script]
+  ! It runs a command: `make <the param command> -j<the param key>`. [mixed]
+  ! It hands the secret `shop` to what it runs, as the variable `SHOP_TOKEN`.
+  ! It hands the secret the param `key` names to what it runs, as the variable `TOOL_KEY`. [yours]
+  What the blueprints it starts may do is said of each of them: `shop/other`.

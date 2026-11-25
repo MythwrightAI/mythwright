@@ -1,0 +1,39 @@
+shop/steps
+
+What it is
+  Every way a step is said: by itself, by its action, and by the language.
+  It keeps, from one run to the next: `last`, `open` and `seen`.
+  What it is doing is written down as it goes, so that it is taken up where it was after a restart.
+  Whoever applies it may tell it 2 things:
+    - count: How many there are. Unless it is said: `2`.
+    - mode: Its text does not say what it is for. One of `plain` or `fancy`. Unless it is said: `plain`.
+
+What it does when it is applied
+  1. Look at the thing first. [said]
+  2. Send a letter. [unsaid]
+  3. Read a thing. [empty]
+  4. Say `shop.told`. [told]
+  5. Keep `last` and `seen`. [kept]
+  6. Wait 5 minutes. [paused]
+  7. Say `shop.asked`, and wait until `shop.answered` is said, for 1 hour at most. [asked]
+  8. Send a letter. Only when what it keeps as `seen` is not so. [once]
+  9. Write a line in the run's log. Only when the step `unsaid` failed. [failed]
+  10. Send a letter. Only when the param `count` is more than `3` and the param `mode` is `fancy`. [many]
+  11. Send a letter. Only when the param `mode` is one of `plain` or `fancy` or what it keeps as `last` says something. [either]
+  12. Send a letter. Only when a condition holds, written `len(params.mode) > 3`. [worked]
+  13. Two things done as one. [group]
+    1. Read a thing. [group.inner]
+    2. And said. [group.after]
+  14. Keep an entry in its list `open`. [held]
+  15. Take an entry out of its list `open`. [let_go]
+  16. Measure `shop.counted`. [counted]
+  17. Do nothing. [nothing]
+  18. Stop `helper` and everything it started. [child]
+  19. Fail here, on purpose. Only when the param `count` is less than `0`. [wrong]
+  20. End this run here, as failed. [over]
+
+What it may do
+  It runs as whoever applies it, and can do no more than they can.
+  Of what they can do, it uses only what it lists: `things` and `post`.
+  Read things. [things:read]
+  Send letters. [post:send]

@@ -1,0 +1,115 @@
+The words of a failure hook, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== failure_hook.do
+--- written
+blueprint: w
+steps:
+    a:
+        do: fail
+        on_fail:
+            - do: noop
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: fail
+    on_fail:
+      - do: noop
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: fail
+        on_fail:
+            - do: nothing.like.it
+--- refused 6:15
+there is no action called `nothing.like.it`
+
+=== failure_hook.emit
+--- written
+blueprint: w
+steps:
+    a:
+        do: fail
+        on_fail:
+            - emit: {topic: w.failed}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: fail
+    on_fail:
+      - emit: { topic: w.failed }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: fail
+        on_fail:
+            - emit: 3
+--- refused 6:15
+`emit` needs `topic` (where to publish, e.g. `build.slow`)
+
+=== failure_hook.when
+--- written
+blueprint: w
+steps:
+    a:
+        do: fail
+        on_fail:
+            - do: noop
+              when: ${ 1 == 1 }
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: fail
+    on_fail:
+      - do: noop
+        when: ${ 1 == 1 }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: fail
+        on_fail:
+            - do: noop
+              when: ${ 1 + }
+--- refused 7:21
+`when`: the expression ends too soon
+
+=== failure_hook.with
+--- written
+blueprint: w
+steps:
+    a:
+        do: fail
+        on_fail:
+            - do: log
+              with: {message: hi}
+--- laid
+blueprint: w
+
+steps:
+  a:
+    do: fail
+    on_fail:
+      - do: log
+        with: { message: hi }
+--- wrong
+blueprint: w
+steps:
+    a:
+        do: fail
+        on_fail:
+            - do: noop
+              with: [a]
+--- refused 7:21
+`with` must be a mapping, found a list

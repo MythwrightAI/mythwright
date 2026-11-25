@@ -1,0 +1,154 @@
+The words of a param, a case for each: a text written with the word any
+old way, that text as it is laid out, the word written wrongly, and where
+and why the reader refuses that. `WRITE_WORDS=1` on the test that reads
+this writes what is laid out and what is refused, to be read before it is
+kept.
+
+=== param.default
+--- written
+blueprint: w
+params:
+    who:
+        type: int
+        default: 3
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+params:
+  who:
+    type: int
+    default: 3
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+params:
+    who:
+        type: int
+        default: many
+steps:
+    a: {do: noop}
+--- refused 5:18
+the default for `who` is not int
+
+=== param.description
+--- written
+blueprint: w
+params:
+    who:
+        type: string
+        description:   Who it is for.
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+params:
+  who:
+    type: string
+    description: Who it is for.
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+params:
+    who:
+        type: string
+        description: [a]
+steps:
+    a: {do: noop}
+--- refused 5:22
+`description` must be text, found a list
+
+=== param.enum
+--- written
+blueprint: w
+params:
+    who:
+        type: string
+        enum: [a, b]
+        default: a
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+params:
+  who:
+    type: string
+    enum: [a, b]
+    default: a
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+params:
+    who:
+        type: string
+        enum: 3
+steps:
+    a: {do: noop}
+--- refused 5:15
+`enum` must be a list
+
+=== param.required
+--- written
+blueprint: w
+params:
+    who:
+        type: string
+        required: true
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+params:
+  who:
+    type: string
+    required: true
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+params:
+    who:
+        type: string
+        required: maybe
+steps:
+    a: {do: noop}
+--- refused 5:19
+`required` must be true or false
+
+=== param.type
+--- written
+blueprint: w
+params:
+    who:
+        type: string
+steps:
+    a: {do: noop}
+--- laid
+blueprint: w
+
+params:
+  who:
+    type: string
+
+steps:
+  a: { do: noop }
+--- wrong
+blueprint: w
+params:
+    who:
+        type: thing
+steps:
+    a: {do: noop}
+--- refused 4:15
+unknown type `thing`; expected one of: string, int, number, bool, list, object, duration, any

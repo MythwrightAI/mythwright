@@ -1,0 +1,1 @@
+If something the card needs was refused you (a command, a file, the network) and you could not do without it, do not say it is done: change nothing more, say what you needed and why, and choose `blocked`. The card is then left for a person, who is told what you said.

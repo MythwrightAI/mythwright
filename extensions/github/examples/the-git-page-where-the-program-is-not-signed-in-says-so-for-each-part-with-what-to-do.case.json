@@ -1,0 +1,40 @@
+{
+  "says": "Where nobody has signed the program in, each part of the Git page says so, with what to do.",
+  "steps": [
+    {
+      "repository": "shop",
+      "remote": "git@github.com:acme/shop.git"
+    },
+    {
+      "run": [
+        "project",
+        "create",
+        "--bare",
+        "Shop",
+        "--path",
+        "{here}/shop"
+      ]
+    },
+    {
+      "given": {
+        "signed-out": ""
+      }
+    },
+    {
+      "run": [
+        "project",
+        "git",
+        "shop",
+        "--parts"
+      ],
+      "says": "The program `gh` is not signed in on this device. Sign in with `gh auth login`"
+    },
+    {
+      "ran": [
+        "pr list {pulls-listed}",
+        "issue list {issues-listed}",
+        "run list {runs-listed}"
+      ]
+    }
+  ]
+}

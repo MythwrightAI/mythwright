@@ -1,0 +1,175 @@
+/* The parts of a told line on its page (`views/reviewed.tsx`): links, and a board's cards, a table of a row a card,
+   its cells side by side and centred on the row (its id, its title on one line, whom it is assigned to, its column,
+   the last thing said), Pass, Fail and its thread in the last, and what is unfolded of a card in a row of its own
+   under it; where the part is narrow (the drawer, a phone) a card's cells stand under its id and title, the buttons
+   under them. */
+.told-parts { display: flex; flex-direction: column; gap: 0; }
+.told-part { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); min-width: 0; }
+.told-links ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.told-links li { overflow-wrap: anywhere; font-size: calc(13px * var(--size)); }
+.told-goes { margin: 0; font-size: calc(12px * var(--size)); }
+/* Its letters' size, so that where the table gives way is as much wider as text is larger (in the query's `em`). It
+   gives way where its cells would not have their room: an id, 5em of a title, the room `Assigned to` takes, a column,
+   5em of what was said last and three buttons come to some 50em, and less was drawn past the page's edge. */
+.told-cards { container-type: inline-size; font-size: calc(13px * var(--size)); }
+/* A grid of six tracks that every row lays its cells in (`subgrid`), so that each track is sized by what the table
+   asks of it in order: an id, a column and the buttons as wide as their words; whom a card is assigned to as wide as
+   its name (up to 20em) out of whatever room there is before anything else grows; then the title, which is given
+   twice what the last thing said is given, each from a few words. As a table, whom a card is assigned to was sized
+   with the rest and cut to its first letter, and on a wide window the room went where the words were longest. */
+.told-table {
+  display: grid; width: 100%; font-size: calc(13px * var(--size));
+  grid-template-columns: max-content minmax(min-content, 2fr) minmax(min-content, max-content) max-content minmax(min-content, 1fr) max-content;
+}
+.told-table thead, .told-table tbody, .told-table tr { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+.told-table thead tr, .told-table tbody.told-card { border-bottom: 1px solid var(--line); }
+/* A cell is centred on its row and no taller than its words, so the lines between cards are the rows' own. */
+.told-table th, .told-table td { border: 0; }
+.told-table th { background: none; text-align: left; font-weight: 600; font-size: calc(12px * var(--size)); color: var(--dim); padding: 0 8px calc(4px * var(--density)); white-space: nowrap; }
+.told-table td { align-self: center; padding: calc(8px * var(--density)) 8px; min-width: 0; overflow-wrap: break-word; }
+.told-table th:first-child, .told-table td:first-child { padding-left: 0; }
+.told-table th:last-child, .told-table td:last-child { padding-right: 0; }
+.told-table tr.told-card-more td { grid-column: 1 / -1; padding-top: 0; }
+/* A card's id is one word and stays whole (an id broke mid-word over three lines). */
+.told-card-id { white-space: nowrap; }
+/* Its title is one line, cut where it does not fit and said whole by the tip (it was drawn over many lines beside its
+   id), and so is the last thing said on it. Each is held in a grid of one track that may be as narrow as nothing
+   (`minmax(0, 1fr)`), so its cell can be given less than the words' whole length and they are cut there, never less
+   than a word or two: these two are what give way, so that the table fits beside the side panel at 1100 wide. */
+.told-table td.told-card-title, .told-table td.told-card-last { min-width: 5em; }
+button.told-card-open { display: grid; grid-template-columns: minmax(0, 1fr); max-width: 100%; height: auto; min-height: 0; padding: 0; text-align: left; color: var(--text); font: inherit; }
+.told-card-line { display: grid; grid-template-columns: minmax(0, 1fr); }
+.told-card-title .told-card-words, .told-card-said { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.told-card-open:hover .told-card-words { text-decoration: underline; }
+/* Whom it is assigned to, whole up to 20em with what kind of somebody it is, and cut, the kind whole and the tip
+   saying both, only where the name is longer or the table has no more room: held in a grid of one track as wide as
+   the name and no narrower than nothing, so that its cell asks for nothing it must have and the name's whole width
+   as what it would have. */
+.told-card-who { white-space: nowrap; }
+.told-card-whom { display: grid; grid-template-columns: minmax(0, max-content); }
+.told-card-whom .assigned-brief { max-width: 20em; min-width: 0; }
+.told-card-column { white-space: nowrap; }
+.told-card-last { color: var(--dim); }
+.told-table td.told-card-last { white-space: nowrap; }
+.told-card-acts { white-space: nowrap; text-align: right; }
+/* Its buttons close together, each no wider than its words need. */
+.told-card-buttons { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+/* Where a card the part was told of is now, in the place of Pass and Fail: words, nothing to press. */
+.told-card-now { font-size: calc(13px * var(--size)); }
+.told-card-acts button { min-height: calc(28px * var(--tall)); padding: 0 8px; }
+@container (max-width: 52em) {
+  .told-table thead { display: none; }
+  .told-table, .told-table tbody, .told-table tr, .told-table td { display: block; width: auto; }
+  .told-table tbody.told-card { border-top: 1px solid var(--line); border-bottom: 0; padding: calc(8px * var(--density)) 0; }
+  .told-table tbody.told-card:first-of-type { border-top: 0; }
+  /* Its id and its title on the first line, the title wrapping beside the id, and each other cell under them. */
+  .told-table tr.told-card-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 0.5em; }
+  .told-table tr.told-card-row > td:nth-child(n + 3) { grid-column: 1 / -1; }
+  .told-table td { border: 0; padding: 0; white-space: normal; text-align: left; align-self: start; }
+  .told-table td.told-card-id { white-space: nowrap; }
+  .told-table td.told-card-title, .told-table td.told-card-last { width: auto; min-width: 0; white-space: normal; }
+  .told-card-title .told-card-words, .told-card-said { white-space: normal; overflow-wrap: break-word; }
+  .told-table td[data-label]::before { content: attr(data-label) ': '; color: var(--dim); }
+  .told-card-buttons { flex-wrap: wrap; }
+}
+.told-fail { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.told-fail-label { display: flex; flex-direction: column; gap: 4px; font-size: calc(12px * var(--size)); color: var(--dim); }
+.told-fail textarea, .told-say textarea { width: 100%; box-sizing: border-box; min-height: calc(48px * var(--tall)); font: inherit; font-size: calc(13px * var(--size)); }
+.told-fail-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.told-fail-acts button[aria-disabled='true'], .told-say button[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
+.told-fail-why { flex: 1 1 200px; min-width: 0; font-size: calc(12px * var(--size)); }
+.told-thread { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.told-thread ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.told-said { font-size: calc(13px * var(--size)); overflow-wrap: anywhere; }
+.told-said p { margin: 2px 0 0; white-space: pre-wrap; }
+.told-say { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.told-refused { margin: 6px 0 0; color: var(--bad, var(--accent)); font-size: calc(12.5px * var(--size)); overflow-wrap: anywhere; }
+.told-done { margin: 6px 0 0; font-size: calc(12.5px * var(--size)); color: var(--dim); }
+.told-parts-failed { margin: 12px 0 0; color: var(--dim); }
+@media (max-width: 760px), (hover: none) {
+  .told-card-acts button { min-height: calc(40px * var(--tall)); }
+}
+
+/* A message a discussion ended at: one button, as wide as its words. */
+.told-message button {
+  width: auto;
+  align-self: flex-start;
+}
+
+/* Over a thread that is a discussion: how it stands, and its ending (`views/discussing.tsx`). */
+.discussion-head { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-bottom: 1px solid var(--line); min-width: 0; font-size: calc(13px * var(--size)); }
+.discussion-head .faint { min-width: 0; overflow-wrap: anywhere; }
+
+/* A change somebody asked for (`views/askedpart.tsx`): a row a cell, what it was, what it is to be and what it takes,
+   and Approve and Decline under them; where the part is narrow a cell's values stand under its name. */
+.told-change { container-type: inline-size; font-size: calc(13px * var(--size)); }
+.told-change-why { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.told-change-cells { width: 100%; border-collapse: collapse; font-size: calc(13px * var(--size)); }
+.told-change-cells th { background: none; text-align: left; font-weight: 600; font-size: calc(12px * var(--size)); color: var(--dim); padding: 0 8px calc(4px * var(--density)); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.told-change-cells tbody th { color: var(--text); font-size: calc(13px * var(--size)); border-bottom: 0; }
+.told-change-cells td, .told-change-cells tbody th { vertical-align: top; padding: calc(8px * var(--density)) 8px; border-top: 1px solid var(--line); min-width: 0; overflow-wrap: anywhere; }
+.told-change-cells tr > :first-child { padding-left: 0; }
+.told-change-cells tr > :last-child { padding-right: 0; }
+.told-change-scope { display: inline-block; margin-right: 6px; white-space: nowrap; }
+.told-change-scope.lacking { color: var(--dim); }
+.told-change-standing, .told-change-whynot, .told-change-whole { margin: 0; overflow-wrap: anywhere; }
+.told-change-acts { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.told-change-acts button { width: auto; min-height: calc(28px * var(--tall)); }
+@container (max-width: 34em) {
+  .told-change-cells thead { display: none; }
+  .told-change-cells, .told-change-cells tbody, .told-change-cells tr, .told-change-cells td, .told-change-cells tbody th { display: block; width: auto; }
+  .told-change-cells tr { padding: calc(8px * var(--density)) 0; border-top: 1px solid var(--line); }
+  .told-change-cells td, .told-change-cells tbody th { border: 0; padding: 0; }
+  .told-change-cells td[data-label]::before { content: attr(data-label) ': '; color: var(--dim); }
+}
+@media (max-width: 760px), (hover: none) {
+  .told-change-acts button { min-height: calc(40px * var(--tall)); }
+}
+/* A run that waits to be let go on (`gopart.tsx`): what it says, its links, how it stands, Approve and Decline. */
+.told-go { font-size: calc(13px * var(--size)); }
+.told-go-says { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.told-go-links { margin: 0; padding-left: 1.2em; overflow-wrap: anywhere; }
+.told-go-standing, .told-go-whynot { margin: 0; overflow-wrap: anywhere; }
+.told-go-acts { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.told-go-acts button { width: auto; min-height: calc(28px * var(--tall)); }
+.run-approval { display: grid; gap: calc(12px * var(--density)); }
+@media (max-width: 760px), (hover: none) {
+  .told-go-acts button { min-height: calc(40px * var(--tall)); }
+}
+/* The row of tabs over a told line's parts, where they are in more than one (`kernel::parts::tabs`); the parts of the
+   tab showing under it, the first of them with no line over it, since the row of tabs is that line. */
+.told-tabs { margin-top: 16px; border-bottom: 1px solid var(--line); }
+.told-tab-panel > .told-part:first-child { margin-top: 0; }
+.told-tabs + .told-tab-panel > .told-part:first-child { border-top: 0; }
+/* Rows of a table (`views/toldread.tsx`): a table of its own as wide as its columns need up to the part's width, each
+   cell one line cut where it does not fit; and where the part is narrow (a phone) a row's cells under its first, each
+   said with its column, so that nothing scrolls sideways. */
+.told-rows { container-type: inline-size; font-size: calc(13px * var(--size)); }
+.told-rows-scroll { max-width: 100%; overflow-x: auto; }
+.told-rows-table { width: 100%; border-collapse: collapse; font-size: calc(13px * var(--size)); }
+.told-rows-table th { background: none; border: 0; border-bottom: 1px solid var(--line); text-align: left; font-weight: 600; font-size: calc(12px * var(--size)); color: var(--dim); padding: 0 8px calc(4px * var(--density)); white-space: nowrap; }
+.told-rows-table td { border: 0; border-bottom: 1px solid var(--line); padding: calc(6px * var(--density)) 8px; white-space: nowrap; max-width: 24em; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.told-rows-table th:first-child, .told-rows-table td:first-child { padding-left: 0; }
+.told-rows-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+button.told-row-open { display: inline; height: auto; min-height: 0; padding: 0; border: 0; background: none; font: inherit; color: var(--text); text-align: left; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+button.told-row-open:hover { text-decoration: underline; }
+@container (max-width: 36em) {
+  .told-rows-table thead { display: none; }
+  .told-rows-table, .told-rows-table tbody, .told-rows-table tr, .told-rows-table td { display: block; width: auto; max-width: none; }
+  .told-rows-table tr { border-bottom: 1px solid var(--line); padding: calc(6px * var(--density)) 0; }
+  .told-rows-table td { border: 0; padding: 2px 0; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+  .told-rows-table td.num { text-align: left; }
+  .told-rows-table td[data-label]::before { content: attr(data-label) ': '; color: var(--dim); }
+  button.told-row-open { white-space: normal; overflow-wrap: anywhere; min-height: calc(32px * var(--tall)); }
+}
+/* Runs (`views/toldread.tsx`): a line each, what it is a run of pressed to open its page, how it went, when and how
+   long, wrapping between them where the part is narrow. */
+.told-runs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: calc(4px * var(--density)); font-size: calc(13px * var(--size)); }
+.told-run { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-width: 0; }
+.told-run-open { overflow-wrap: anywhere; }
+.told-run.failed .told-run-went { color: var(--bad); }
+/* Measurements: a line each, its name, its latest value and the median of its last few. */
+.told-measures-list { margin: 0; display: flex; flex-direction: column; gap: calc(4px * var(--density)); font-size: calc(13px * var(--size)); }
+.told-measure { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-width: 0; }
+.told-measure dt { font-weight: 600; overflow-wrap: anywhere; }
+.told-measure dd { margin: 0; }
