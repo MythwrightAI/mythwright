@@ -99,8 +99,10 @@ ceilings, one test binary per crate) are at the end.
   where texts are found (`texts::library`: a project's own before shared
   ones before shipped ones), and what a conductor keeps of texts, as
   methods of one keeper (`texts::Texts`: `reach`, `pinned`, `vouched`,
-  `taking`), plus `behind`, `known`, `compiled`, `listed`, `forked` and
-  `texts::ran` (functions of a text and plain values the runner asks).
+  `taking`), plus `behind`, `known`, `compiled`, `listed`, `forked`,
+  `remembered` (a check given again where its catalog answers what it
+  asked as before) and `texts::ran` (functions of a text and plain
+  values the runner asks).
   No engine and no registry; it calls back through `texts::Runner`,
   which `Engine` implements. Something new kept of texts is a method of
   `texts::Texts` (handed the runner only to ask who is above whom or to

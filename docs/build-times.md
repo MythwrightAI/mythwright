@@ -934,6 +934,104 @@ The line of the history written after all of it
 107.6 s, against the 150 s a run may take: 50.6 s the API's suite,
 30.2 s the runner's and 13.5 s the command line's.
 
+## Where the API's suite's time was on 2026-11-26
+
+A run of every test (`cargo xtask build-times`, in a lane of eight
+processors) took 201.6 s, 130.8 s of it the API's suite, with the
+machine at a load of 1.4 before it and 10 to 23 while it ran, most of
+that its own. The suite alone in the lane took 119.0 and 119.8 s, for
+766 and 768 s of processor time: 640 parts in 800 of what the lane
+had, and 85 to 90 in a hundred through most of the run, sampled each
+second from `/proc/stat`. So the time was work, and what was owed for
+it was less of it.
+
+What it was not, each tried first:
+
+- **The longest scenario of the simulation.** The simulation's 44
+  tests took 62 s by themselves, the longest of them 34 s, so the
+  suite was not waiting on its longest test. Sixteen tests at a time
+  in place of eight (61.4 s), 24 and 32 plays at a time in place of 16
+  (62.9 and 62.3 s), and a rest of 100 ms in place of 400 before and
+  after each play (63.5 s) each changed nothing: the processors were
+  busy. Sharing a scenario's places between tests would have bought
+  as little, and was not done.
+- **Waiting on the clock.** Every test outside the simulation run
+  alone, six at a time, came to 480 s, 427 s of it on a processor: at
+  most 72 s of waiting in all, nine seconds of the suite on eight
+  threads, most of it in a dozen tests that wait for a factory to be
+  at rest by its silence (`costed`, `timed`) or for a held folder
+  (`folders`, `LOCK_PATIENCE`). Left as it is.
+
+Where the processors' time was, by a sampler loaded beside the test
+program (below): checking blueprint texts, 14 to 19 parts in a hundred
+of the program's own, the same texts again and again; the database
+library, a quarter, a third of that preparing statements and a quarter
+making a new database's tables; reading a text into its tree, a
+twentieth by itself, in `reader`, built unoptimised since it came out
+of `blueprint`; hashing the password of the owner each test's factory
+registers, a twentieth; and JSON, a tenth in the simulation, most of
+it a step's scope copied as each step begins and ends. A play of the
+simulation was 0.8 s of processor time, 0.3 s of it setting its
+factory up.
+
+What was done, each the API's suite alone in a lane of eight
+processors, in alternation with what it was held against, on one
+evening with the machine otherwise at a load of 1 to 14:
+
+| What | Before | After | Processor time |
+|---|---|---|---|
+| `reader` built at `opt-level = 3`, as it was inside `blueprint` | 120.3, 122.6 s | 111.3, 109.8 s | 772, 790 s to 698, 698 s |
+| A check given again where its catalog answers what it asked as before (`texts::remembered`) | 109.7, 111.1 s | 107.0, 108.6 s | 688, 698 s to 664, 671 s |
+| A test's factory hashes passwords with the least the hash takes (`people::Hashing`) | 107.0, 108.6 s | 103.9, 103.8 s | 664, 671 s to 646, 642 s |
+
+No test was taken out, made shorter or made to hold less, and no
+scenario's places changed: as `cargo xtask build-times` counted them,
+the simulation's tests made 594 plays before and 594 after, each test
+as many as before; the places its plays with nothing in their way
+passed came to 8,619 and 8,636, three scenarios passing one fewer or
+nineteen more as the machine ordered what they said.
+
+The line of the history written after it (`docs/build-history.csv`,
+2026-11-26) is a run of every test in 161.7 s with the machine at a
+load of 10 to 15, against 201.6 s before: 101.8 s the API's suite,
+29.1 s the runner's and 16.7 s the command line's. The suite's five
+slowest tests, beside the others, were the A/B scenarios and two of
+going ahead: 25.4, 22.8, 22.8, 21.7 and 20.9 s, where they had been
+33.8, 31.0, 30.8, 29.7 and 28.4 s.
+
+Tried and not kept: a database new to a list of steps given what the
+same steps left the first time, all at once, so that a step adding a
+column did not have the database read every table's description again.
+110.2 and 113.1 s before, 110.3 and 108.3 s with it (689, 692 and 685,
+676 s of processor time): within what two runs of the same differ by,
+for a module in the journal. And remembering every check by its text
+alone, whatever its catalog said, which is wrong: 101.6 and 101.3 s
+where the same program took 112.8 and 111.9 s, so what is left of
+checking, some six parts in a hundred, is the library answering
+whether a blueprint of a name is there, from the disk each time.
+
+Left, each with what it is: statements prepared again each time they
+are asked (`prepare_cached` where a statement is asked often, as
+`runs::runs::put` is at every step: some eight in a hundred); a new
+database's tables, a step that adds a column reading every table again
+(six in a hundred, and not mended by the above); the library asked for
+a blueprint by reading its file (four); a step's scope copied as it
+begins and ends; and a play's factory set up from nothing for each
+place, two fifths of what the simulation asks of the processors.
+
+The sampler, there being no profiler here: a few lines of C loaded
+beside the test program (`LD_PRELOAD`) that set a timer on the
+process's processor time (`setitimer(ITIMER_PROF)`), and at each tick
+write the running thread's stack as `backtrace()` gives it, which
+unwinds by the program's own tables and so needs no frame pointers;
+named afterwards by `addr2line` from each address less where the
+program was loaded (the first mapping of its file in `/proc/<pid>/maps`,
+not the mapping the address is in). It runs in the test's process, so
+what it says is that process's alone: the programs a test starts (git,
+some 21,000 times in the simulation, for 40 s of processor time) are
+counted by a second library loaded the same way, which writes each
+program's own time as it exits.
+
 ## What one card costs, 2026-11-20
 
 Not a build or a test, but the same kind of question, asked of what the
