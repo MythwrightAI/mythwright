@@ -4,7 +4,7 @@ std/arrangement 446
 std/board 226
 std/bot 93
 std/canary-stage 57
-std/cards 355
+std/cards 358
 std/chain 305
 std/chain-wait 219
 std/cleared 65
@@ -33,7 +33,7 @@ std/lane-round 492
 std/later 33
 std/log-feed 65
 std/looked 51
-std/merge 132
+std/merge 139
 std/mockups 61
 std/onward 86
 std/owed 37
@@ -50,12 +50,12 @@ std/proposal 365
 std/proposal-round 186
 std/resumed 66
 std/review 351
-std/reviewing 662
+std/reviewing 672
 std/role 210
 std/rolling 46
 std/rolling-step 34
 std/run 180
-std/segments 173
+std/segments 175
 std/send 92
 std/signin 106
 std/site 96

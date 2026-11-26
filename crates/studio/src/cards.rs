@@ -62,6 +62,7 @@ pub(crate) fn register(registry: &mut Registry, studio: &Studio) {
         .required("from", T::String, "the column it was moved from")
         .required("to", T::String, "the column it was moved to")
         .required("by_hand", T::Bool, "whether somebody moved it, and no blueprint did")
+        .arg("uncounted", T::Bool, "the blueprint that moved it said it sends it back for something other than a verdict on its work: it is not counted")
         .required("worked", T::String, "the column cards are worked in")
         .required("looked", T::String, "the column work is looked over in: a card put from there to where cards are worked was sent back")
         .required("done", T::String, "the column a card is finished in")
@@ -84,8 +85,8 @@ pub(crate) fn register(registry: &mut Registry, studio: &Studio) {
                 None => Vec::new(),
             };
             let columns = Columns { worked: &worked, looked: &looked, done: &done, before: &before };
-            let by_hand = args.get("by_hand").and_then(Value::as_bool).unwrap_or(false);
-            let arrived = came(&word("from"), &word("to"), by_hand, &kept_of(&card), columns);
+            let flag = |key: &str| args.get(key).and_then(Value::as_bool).unwrap_or(false);
+            let arrived = came(&word("from"), &word("to"), flag("by_hand"), flag("uncounted"), &kept_of(&card), columns);
             let holds = match arrived.came {
                 Came::Finished => {
                     let (rows, keeps) = rows(&studio, &card.project).await?;

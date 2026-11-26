@@ -5,12 +5,15 @@
 # The card's branch is merged into the project's own, as a commit of its
 # own that says which card. One worked in the project itself has no
 # branch, and its work is there already. Merged, or with nothing to merge,
-# the card goes on (`on`), and what is said as it goes says so. A branch
-# that no longer merges goes back to whoever worked it, to be brought up
-# to date (`back`): the merge is called off, and the project's branch is
-# as it was. Anything else in the way of a merge is a person's to put
-# right, and the card is left where it is with the sentence that says
-# what (`left`).
+# the card goes on (`on`), and what is said as it goes says so. Where its
+# branch no longer merges, the merge is called off, the project's branch
+# is as it was, and the project's branch is merged into the card's where
+# it was worked (`bring` of `place.merge`): with nothing conflicting that
+# way it is made, and the card's branch goes in; otherwise that merge is
+# left under way and the card goes back to whoever worked it, told which
+# files to put right (`back`), which is no verdict on its work (`behind`).
+# Anything else in the way of a merge is a person's to put right, and the
+# card is left where it is with the sentence that says what (`left`).
 #
 # What its merge follows up is said of the earlier cards it is about, for
 # whatever counts what comes of merged work (a comparison's ways): a card
@@ -22,7 +25,7 @@
 # To put approved work with the rest another way, name a blueprint of the
 # project's own in a row of its `segments` at the order of this one (20).
 blueprint: std/merge
-version: 3
+version: 4
 description: "Merge an approved card's branch into the project's own, and say what that came to: the card goes on, goes back to be brought up to date, or is left for a person."
 # It keeps nothing as it goes: called again where the daemon was stopped
 # in the middle of it, a merge left half made is called off and made
@@ -56,10 +59,10 @@ params:
 
 steps:
   merged:
-    description: Its work is put into the project's own branch, as a commit of its own that says which card. A merge that stops on a conflict is called off, and the project's branch is as it was.
+    description: Its work is put into the project's own branch, as a commit of its own that says which card. A merge that stops on a conflict is called off, and the project's branch is as it was; and the project's branch is merged into the card's where it was worked, left under way where files conflict for whoever worked it to put right.
     allow_failure: true
     do: place.merge
-    with: { item: "${params.item}", message: "${params.item}: ${params.title}" }
+    with: { item: "${params.item}", message: "${params.item}: ${params.title}", bring: true }
 
   then:
     description: What that comes to. Merged, or with nothing to merge, the card goes on. A branch that no longer merges goes back to whoever worked it. Anything else in the way of a merge is a person's to put right.
@@ -70,6 +73,8 @@ steps:
       failed: ${steps.merged.failed}
       why: "${ steps.merged.out.why ?? steps.merged.error ?? '' }"
       conflict: "${ steps.merged.out.said ?? '' }"
+      begun: ${ steps.merged.out.begun ?? false }
+      files: ${ steps.merged.out.files ?? [] }
       item: "${params.item}"
       status: "${params.here}"
       here: "${params.here}"
@@ -130,3 +135,5 @@ steps:
 outputs:
   came: "${steps.then.out.word}"
   says: "${steps.then.out.says}"
+  # It goes back only to be brought up to date: not counted as sent back.
+  behind: ${steps.then.out.behind}

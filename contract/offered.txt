@@ -224,6 +224,7 @@ action board.came
   takes from string needed
   takes to string needed
   takes by_hand bool needed
+  takes uncounted bool
   takes worked string needed
   takes looked string needed
   takes done string needed
@@ -281,6 +282,7 @@ action board.move
   takes note string
   takes decided string
   takes had int
+  takes uncounted bool
   gives status
 
 action board.press
@@ -1087,9 +1089,12 @@ action place.merge
   needs shell
   takes item string needed
   takes message string
+  takes bring bool
   gives came
   gives said
   gives why
+  gives files
+  gives begun
 
 action place.send
   needs shell
@@ -1421,6 +1426,8 @@ action review.verdict
   takes failed bool
   takes why string
   takes conflict string
+  takes begun bool
+  takes files list
   takes by string
   takes words string
   takes approved int
@@ -1431,6 +1438,7 @@ action review.verdict
   gives says
   gives told
   gives word
+  gives behind
 
 action rollout.next
   takes name string needed
@@ -1598,6 +1606,7 @@ action segments.next
   gives at
   gives journey
   gives back
+  gives behind
   gives usual
   gives asked
   gives nth
@@ -2319,6 +2328,7 @@ event board.item.moved
   carries by string always
   carries note string
   carries decided string
+  carries uncounted bool
   carries late bool
   carries through string
 

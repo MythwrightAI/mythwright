@@ -203,7 +203,8 @@ the stand-in program (`crates/hosting/standin`).
   `config.worktree`, a worktree's `commondir`, `gitdir` and `.git` file),
   because the daemon's next `git` runs with no wall. New such files go in
   `as_it_is` or `part_as_it_is`. `std/lane-round` still commits what an agent
-  left uncommitted.
+  left uncommitted. A merge an agent's work needs is begun for it outside the wall
+  and ended by that commit (`place.merge` with `bring`, `fleet.md`).
 - An agent gets another service's key by being handed a secret the factory
   keeps (`agents::keys`, the slot's `secrets`), read at turn start and
   scrubbed from output (`Keys::unsaid`). The application never says what such

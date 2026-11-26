@@ -225,7 +225,7 @@ fn a_move_is_a_card_taken_sent_back_or_finished_by_its_row_and_the_columns_it_is
     ];
     let mut reached = Vec::new();
     for (from, to, by_hand, row, columns, word, settles, rounds, rests) in cases {
-        let arrived = came(from, to, by_hand, &kept(to, row.clone()), columns);
+        let arrived = came(from, to, by_hand, false, &kept(to, row.clone()), columns);
         assert_eq!(
             (arrived.came, arrived.settles, arrived.rounds, arrived.rests),
             (word, settles, rounds, rests),
@@ -236,6 +236,18 @@ fn a_move_is_a_card_taken_sent_back_or_finished_by_its_row_and_the_columns_it_is
     for word in Came::ALL {
         assert!(reached.contains(word), "no case reaches `{}`", word.word());
     }
+    // Sent back by a blueprint that says it is no verdict on the work (to
+    // be brought up to date): nothing is counted, nor kept. Said of a
+    // person's move, it is not heeded; and a card finished is finished.
+    let row = json!({ "taken": "ready", "rounds": 1 });
+    let uncounted =
+        |from: &str, to: &str, by_hand: bool| came(from, to, by_hand, true, &kept(to, row.clone()), USUAL);
+    assert_eq!(
+        (uncounted("review", "doing", false).came, uncounted("review", "doing", false).rounds),
+        (Came::Elsewhere, None)
+    );
+    assert_eq!(uncounted("review", "doing", true).rounds, Some(2));
+    assert_eq!(uncounted("review", "done", false).came, Came::Finished);
 }
 
 #[test]

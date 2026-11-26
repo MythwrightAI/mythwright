@@ -147,6 +147,35 @@ fn what_an_item_said_to_be_due_a_review_is_owed() {
             OwedCame::Nothing,
         ),
         (
+            "sent back only to be brought up to date, which is counted apart",
+            Owed {
+                rounds: 1,
+                back: vec![
+                    json!({ "card": "shop-1", "at": "12", "behind": true }),
+                    json!({ "card": "shop-1", "at": "30", "behind": "true" }),
+                    json!({ "card": "shop-1", "at": "44", "behind": false }),
+                ],
+                ..card()
+            },
+            OwedCame::Review,
+        ),
+        (
+            "brought up to date as often as is allowed",
+            Owed {
+                back: (0..deciding::reviews::BEHIND)
+                    .map(|at| json!({ "card": "shop-1", "at": at.to_string(), "behind": true }))
+                    .collect(),
+                ..card()
+            },
+            OwedCame::Left {
+                rounds: 3,
+                said: "shop-1 is in review again after its branch was brought up to date with the project's 3 \
+                       times, having no longer merged once it was approved. Nobody was asked this time: it is left \
+                       for a person to look at and merge."
+                    .into(),
+            },
+        ),
+        (
             "kept as the card itself, as a text from before kept it",
             Owed { kept: vec![json!("shop-1")], ..card() },
             OwedCame::Nothing,
@@ -239,6 +268,32 @@ fn what_a_verdict_on_an_item_comes_to_and_what_is_said_of_it() {
                  What git said: CONFLICT in total.rs"
                     .into(),
             ),
+            "",
+        ),
+        (
+            "its branch no longer merges, and the project's is being merged into it for whoever worked it",
+            Verdict {
+                merged: "conflict".into(),
+                conflict: "CONFLICT in total.rs".into(),
+                begun: true,
+                files: vec!["total.rs".into(), "cart.rs".into()],
+                ..passed()
+            },
+            VerdictCame::Back(
+                "It was approved, and its branch lane/shop-1 no longer merges into the project's branch as that \
+                 is now. The project's branch is being merged into yours where you work, and that merge is under \
+                 way for you: what conflicts is marked in total.rs, cart.rs, as git marks it. Put each right, \
+                 keeping what both sides meant, and leave no marker. Change files and nothing else: do not run git \
+                 to commit, merge or call the merge off. What you leave is committed as the end of that merge, and \
+                 it is looked at again. What git said: CONFLICT in total.rs"
+                    .into(),
+            ),
+            "",
+        ),
+        (
+            "and where that could not be begun, it is a person's to put right",
+            Verdict { merged: "conflict".into(), why: "its place holds changes that were never committed".into(), ..passed() },
+            stuck("its place holds changes that were never committed"),
             "",
         ),
         (

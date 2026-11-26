@@ -182,10 +182,21 @@ pub struct Arrived {
 /// again. And put from where work is looked over in any column that
 /// stands before that one, it was sent back as well: where a card that
 /// did not pass goes is a stage's to say, and it may say where cards
-/// wait to be worked.
-pub fn came(from: &str, to: &str, by_hand: bool, kept: &Kept, columns: Columns<'_>) -> Arrived {
+/// wait to be worked. But a card sent back for something other than a
+/// verdict on its work (`uncounted`, said with the move: to be brought up
+/// to date) is not counted, and nothing is kept of it.
+pub fn came(
+    from: &str,
+    to: &str,
+    by_hand: bool,
+    uncounted: bool,
+    kept: &Kept,
+    columns: Columns<'_>,
+) -> Arrived {
     let came = if to == columns.done {
         Came::Finished
+    } else if uncounted && !by_hand {
+        Came::Elsewhere
     } else if from == columns.looked && columns.before.contains(&to) {
         Came::Back
     } else if to != columns.worked {

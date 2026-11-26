@@ -3637,6 +3637,13 @@
                       "boolean"
                     ]
                   },
+                  "uncounted": {
+                    "description": "the blueprint that moved it said it sends it back for something other than a verdict on its work: it is not counted",
+                    "type": [
+                      "boolean",
+                      "string"
+                    ]
+                  },
                   "worked": {
                     "description": "the column cards are worked in Needed.",
                     "type": [
@@ -5226,6 +5233,13 @@
                       "string",
                       "number",
                       "boolean"
+                    ]
+                  },
+                  "uncounted": {
+                    "description": "it is sent back for something other than a verdict on its work, such as to be brought up to date: said with the move, and not counted among the times it was sent back",
+                    "type": [
+                      "boolean",
+                      "string"
                     ]
                   }
                 }
@@ -6936,6 +6950,13 @@
                   "^\\.\\.\\.$": {}
                 },
                 "properties": {
+                  "bring": {
+                    "description": "where it no longer merges, the project's branch is merged into the item's, in its place: made at once where nothing conflicts that way, and the item's merged again; otherwise left under way with each file that conflicts marked, for whoever works the item to put right, which the commit that keeps their work ends (`place.keep`)",
+                    "type": [
+                      "boolean",
+                      "string"
+                    ]
+                  },
                   "item": {
                     "description": "what the work is known by, such as a card's id: its place is `.lanes/<item>`, its branch `lane/<item>` Needed.",
                     "type": [
@@ -8607,7 +8628,7 @@
                     ]
                   },
                   "back": {
-                    "description": "the items sent back from here, once for each time, as whoever asks keeps them",
+                    "description": "the items sent back from here, once for each time, as whoever asks keeps them; one that says `behind` went back only to be brought up to date with the project's branch, and is counted apart",
                     "type": [
                       "array",
                       "string"
@@ -8804,6 +8825,13 @@
                       "string"
                     ]
                   },
+                  "begun": {
+                    "description": "where it no longer merged: the project's branch is being merged into the item's where it was worked, for whoever works it",
+                    "type": [
+                      "boolean",
+                      "string"
+                    ]
+                  },
                   "by": {
                     "description": "who decided it",
                     "type": [
@@ -8832,6 +8860,13 @@
                     "description": "asking that failed outright",
                     "type": [
                       "boolean",
+                      "string"
+                    ]
+                  },
+                  "files": {
+                    "description": "and the files that conflict there",
+                    "type": [
+                      "array",
                       "string"
                     ]
                   },

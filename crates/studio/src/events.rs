@@ -101,6 +101,7 @@ pub fn events() -> Vec<EventSpec> {
             .field("by", String, "who moved it, as an actor")
             .maybe("note", String, "what was said as it was moved")
             .maybe("decided", String, "the agent whose decision the move was (`agent:<name>`), where a blueprint moved it as an agent decided")
+            .maybe("uncounted", Bool, "that a blueprint sent it back for something other than a verdict on its work (to be brought up to date), which is not counted among the times it was sent back")
             .maybe(
                 "late",
                 Bool,

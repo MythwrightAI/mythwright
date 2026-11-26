@@ -207,6 +207,7 @@ async fn what_a_blueprints_step_does_to_a_record_is_said_of_the_blueprint() {
         decided: None,
         had: None,
         doing: None,
+        uncounted: false,
     };
     let november = records
         .add("shop", "sprints", data(json!({ "title": "November" })), &ada(), Some(&step))
@@ -267,6 +268,7 @@ async fn what_is_said_on_a_record_is_kept_in_its_history_whatever_it_is_a_record
         decided: None,
         had: None,
         doing: None,
+        uncounted: false,
     };
 
     let on_card =
@@ -349,6 +351,7 @@ async fn what_is_said_is_private_unless_it_is_marked_public_and_said_with_a_key_
         decided: None,
         had: None,
         doing: None,
+        uncounted: false,
     };
 
     records.comment(&sprint.id, "Between us.", false, &ada(), None).await.unwrap();
@@ -694,6 +697,7 @@ async fn a_step_that_moves_a_card_an_agent_decided_is_the_agents_and_leaves_a_ca
         decided: Some("agent:shop-lead-1".into()),
         had: Some(0),
         doing: None,
+        uncounted: false,
     };
     let moved =
         board.move_through(&card.id, "ready", None, Some("Not yet."), &ada(), Some(&rung)).await.unwrap();

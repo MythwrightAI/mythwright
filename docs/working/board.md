@@ -55,7 +55,13 @@ reviews, segments and its tables) is in `fleet.md`.
 - A card counts how many times it was sent back from review (`rounds`,
   counted by `std/cards` on the move and kept on the card). Whatever caps
   a loop between agents reads that and ends by leaving the card to a
-  person: a loop between two agents always has a number in it.
+  person: a loop between two agents always has a number in it. A move
+  that sends a card back for something other than a verdict on its work
+  says so (`uncounted` of `board.move`, said on `board.item.moved`, read
+  by `board.came`) and is not counted; the only one is a card going back
+  to be brought up to date (`fleet.md`, *Reviews and councils*), which
+  has a cap of its own. Something new that sends a card back and is no
+  verdict says `uncounted`, and is bounded where it is kept.
 
 ## A card's row and its events
 

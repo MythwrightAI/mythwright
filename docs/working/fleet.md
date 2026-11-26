@@ -405,6 +405,31 @@ the simulation, stopped at each point and restarted.
   gives an instance its live children with their keys and params.
 - `in_flight` (a row of `stages`, read by `std/reviewing`) decides what
   becomes of a review in session, and nothing else.
+- **An approved branch that no longer merges is brought up to date for
+  its worker**, which behind its wall reads the repository's own files
+  and cannot write them (so it can neither begin a merge nor end one).
+  `std/merge` asks `place.merge` with `bring` (`crates/places/src/
+  merged.rs`): the project's merge is called off, and the project's
+  branch is merged into the card's in its place. With nothing conflicting
+  that way it is made and the card's branch merged again, and the card
+  goes on with nobody asked. Otherwise it is left under way (`MERGE_HEAD`
+  in the place) and the card goes back, told the files and to change
+  files only (`review.verdict`, `begun`, `files`); `place.keep` ends the
+  merge with the worker's commit, even where nothing else changed, and
+  refuses one with git's markers left in (`unkept`, so the card is given
+  again as unkept work is). Asked again after a stop, a merge of the
+  project's branch as it is now, under way with files to put right, is
+  found as it was (`conflicted.rs` in the API suite, both places).
+- Going back for that is no verdict (`behind` of `review.verdict`, passed
+  on by `segments.next` and `std/segments`): the stage keeps it in `back`
+  marked `behind` and moves the card with `uncounted`, so neither the
+  stage's count nor the card's `rounds` has it. `review.owed` counts those
+  apart and leaves the card after `reviews::BEHIND` (3) of them, so a
+  project's branch that keeps moving in the way cannot loop it.
+- A card left for a person having been sent back as often as allowed is
+  kept with the limit it was left under (`most`); a row whose `rounds`
+  changes drops those entries (`on_update` of `std/reviewing`), and its
+  look at the column has each looked at, or left, by the new limit.
 
 ## Blocks a stage calls to decide
 

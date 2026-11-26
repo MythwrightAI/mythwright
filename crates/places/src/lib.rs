@@ -64,6 +64,7 @@ pub mod branches;
 mod follows;
 mod forwarded;
 mod gathered;
+mod merged;
 mod registered;
 pub mod seen;
 mod taken;
@@ -659,13 +660,30 @@ async fn keep(it: &Place, args: &Fields) -> ActionResult {
     // Everything the agent left is put forward; whether that is anything
     // is what git answers with: 1 is that there is something to commit.
     it.does(&at, &["add", "-A"]).await?;
+    let unkept = |why: String, said: &str, named: bool| {
+        if !flag(args, "unkept_ok", false) {
+            return Err(ActionError::new(why));
+        }
+        it.note("what was left could not be committed");
+        Ok(
+            json!({ "placed": true, "committed": false, "at": "", "unkept": why, "said": said.trim(), "named": named }),
+        )
+    };
+    // A merge begun in its place for whoever worked it (`place.merge`) is
+    // ended by this commit, whether or not anything is left to commit; but
+    // not with what git marked as conflicting still in it, which is theirs
+    // to put right.
+    let merging = it.ask(&at, &["rev-parse", "--verify", "--quiet", "MERGE_HEAD"]).await?.ok();
+    if merging && let Some((why, said)) = merged::marked(it, &at).await? {
+        return unkept(why, &said, true);
+    }
     let staged = it.ask(&at, &["diff", "--cached", "--quiet"]).await?;
     let committed = match staged.code {
-        Some(0) => {
+        Some(0) if !merging => {
             it.note("nothing left uncommitted");
             false
         }
-        Some(1) => {
+        Some(0 | 1) => {
             // The item's title and the agent's name are an argument each,
             // so that nothing written on an item is run. The address is
             // nobody's: `.invalid` can never be a real one.
@@ -674,18 +692,11 @@ async fn keep(it: &Place, args: &Fields) -> ActionResult {
             let message = text(args, "message").unwrap_or_else(|| it.item.clone());
             let made = it.ask(&at, &["commit", "--quiet", &author, "-m", &message]).await?;
             if !made.ok() {
-                if !flag(args, "unkept_ok", false) {
-                    return Err(ActionError::new(made.why()));
-                }
                 // Whoever did the work can put right what is in the work's
                 // way, and cannot tell git who commits here: which it is,
                 // is said, so that nobody is asked for what is not theirs.
                 let named = it.ask(&at, &["var", "GIT_COMMITTER_IDENT"]).await?.ok();
-                it.note("what was left could not be committed");
-                return Ok(json!({
-                    "placed": true, "committed": false, "at": "", "unkept": made.why(),
-                    "said": made.words().trim(), "named": named,
-                }));
+                return unkept(made.why(), &made.words(), named);
             }
             it.note("committed what was left uncommitted");
             true
@@ -735,91 +746,6 @@ async fn send(it: &Place, args: &Fields) -> ActionResult {
     let with = key.map(|key| format!(", sent with the key {key}")).unwrap_or_default();
     it.note(&format!("{branch} is on {remote}{with}"));
     Ok(json!({ "branch": branch, "remote": remote, "key": key.unwrap_or_default() }))
-}
-
-/// The item's work is put into the branch the project's folder has checked
-/// out, as a commit of its own that says which item: in a last line of its
-/// own (`Item: shop-12`), as git writes `Signed-off-by:`.
-async fn merge(it: &Place, args: &Fields) -> ActionResult {
-    let came = |how: &str, said: &str, why: &str| Ok(json!({ "came": how, "said": said, "why": why }));
-    let (project, branch) = (&it.project, it.branch());
-    let under_way = ["rev-parse", "--verify", "--quiet", "MERGE_HEAD"];
-    // One worked in the project itself has no branch of its own, and its
-    // work is there already.
-    if !it.ask(project, &["rev-parse", "--verify", "--quiet", &format!("refs/heads/{branch}")]).await?.ok() {
-        return came("nothing", "", "");
-    }
-    let _turn = it.turn().await?;
-    // A merge already under way in the project's folder is somebody
-    // else's, and is not this one's to call off. But for one of this
-    // item's own branch: nobody else merges that, so it is this merge,
-    // cut off before it was committed. It is called off, and made again.
-    let theirs = it.ask(project, &under_way).await?;
-    if theirs.ok() {
-        let own =
-            it.ask(project, &["rev-parse", "--verify", "--quiet", &format!("refs/heads/{branch}")]).await?;
-        let cut_off = own.ok() && own.out.trim() == theirs.out.trim();
-        if !cut_off || !it.ask(project, &["merge", "--abort"]).await?.ok() {
-            let why = "a merge is already under way in the project's folder: finish it, or call it off with \
-                       `git merge --abort`";
-            return came("stuck", "", why);
-        }
-        it.note(
-            "a merge of this branch was cut off before it was committed; it was called off and is made again",
-        );
-    }
-    // What somebody has put forward in the project's folder and not
-    // committed is theirs, and git would refuse to merge over it. It is
-    // said in words of our own, and is also what tells, after a merge
-    // that failed, that whatever is then put forward is that merge's.
-    let staged = ["diff", "--cached", "--quiet"];
-    if it.ask(project, &staged).await?.is(1) {
-        let why = "changes are put forward in the project's folder and not committed (`git status` shows them): \
-                   commit them, or take them back with `git restore --staged .`";
-        return came("stuck", "", why);
-    }
-    let message = text(args, "message").unwrap_or_else(|| branch.clone());
-    // Its last line says which item, for whatever follows its work up
-    // later (`place.follows`): long after the branch is gone.
-    let item = format!("{}: {}", follows::ITEM, it.item);
-    let mut waited = git::Waited::default();
-    loop {
-        let asked = ["merge", "--no-ff", "--no-edit", "-m", &message, "-m", &item, &branch];
-        let mut merged = it.ask_once(project, &asked).await?;
-        if merged.ok() {
-            return came("merged", &merged.out, "");
-        }
-        // It stopped with the merge under way. Where that is on a conflict
-        // (something is left unmerged) the two do not go together, and it
-        // is called off for whoever worked the item to put right.
-        let conflict = it.ask(project, &under_way).await?.ok()
-            && !it.ask(project, &["ls-files", "--unmerged"]).await?.out.trim().is_empty();
-        // Whatever stopped it, the project's files and its index are put
-        // back as they were. Git writes the merged files and then makes the
-        // commit, and may be refused between the two (a lock another git
-        // took just then, a commit it cannot sign): left so, the next
-        // merge here would be refused for changes nobody made.
-        if it.ask(project, &under_way).await?.ok() {
-            it.ask(project, &["merge", "--abort"]).await?;
-        } else if it.ask(project, &staged).await?.is(1) {
-            it.note("the merge that failed had changed the project's files: they are put back as they were");
-            it.ask(project, &["reset", "--quiet", "--merge", "HEAD"]).await?;
-        }
-        if conflict {
-            return came("conflict", &merged.out, "");
-        }
-        // Refused a lock that another git holds, it is made again when
-        // that git has had a moment, for as long as such a lock is waited
-        // for. Anything else in the way is a person's to put right.
-        match git::lock_met(&merged.err) {
-            Some(lock) if !waited.spent() => it.waits_for(&lock, &mut waited).await?,
-            Some(lock) => {
-                merged.err = format!("{}\n{}", merged.err, git::lock_kept(&lock));
-                return came("stuck", &merged.out, &merged.words());
-            }
-            None => return came("stuck", &merged.out, &merged.words()),
-        }
-    }
 }
 
 /// Its worktree is removed, and its branch with it when nothing

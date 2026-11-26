@@ -9,7 +9,7 @@ use kernel::{BoxFut, Fields};
 use serde_json::json;
 
 use super::{
-    Place, Places, changed, clear, follows, forwarded, gathered, head, keep, make, merge, send, taken,
+    Place, Places, changed, clear, follows, forwarded, gathered, head, keep, make, merged, send, taken,
 };
 
 fn add<F, Fut>(registry: &mut Registry, places: &Places, spec: ActionSpec, run: F)
@@ -73,7 +73,7 @@ pub fn register(registry: &mut Registry, places: &Places) {
             .output("placed", "whether the item has a worktree of its own")
             .output("committed", "whether anything was left to commit, and was committed")
             .output("at", "where its branch is now")
-            .output("unkept", "with `unkept_ok`: why, in a line, where what was left could not be committed; empty otherwise")
+            .output("unkept", "with `unkept_ok`: why, in a line, where what was left could not be committed (where a merge is under way in its place, that what git marked as conflicting is left in it); empty otherwise")
             .output("said", "and all that git said of it, for whoever is to put it right")
             .output("named", "whether git knows who to commit as there, which is not whoever did the work's to put right")
             // Stood in: nothing was left to commit, and nothing is wrong.
@@ -99,12 +99,15 @@ pub fn register(registry: &mut Registry, places: &Places) {
         places,
         of_a_place("place.merge", "Merge an item's branch into the branch the project's folder has checked out.")
             .arg("message", T::String, "what the merge's commit says (default: the branch); a last line that says which item is put after it, `Item: <item>`")
+            .arg("bring", T::Bool, "where it no longer merges, the project's branch is merged into the item's, in its place: made at once where nothing conflicts that way, and the item's merged again; otherwise left under way with each file that conflicts marked, for whoever works the item to put right, which the commit that keeps their work ends (`place.keep`)")
             .output("came", "`merged`; `nothing`, the item having no branch of its own; `conflict`, called off and the project's branch as it was; or `stuck`")
             .output("said", "what git said of the merge")
-            .output("why", "what is in the way, when it is `stuck`")
+            .output("why", "what is in the way, when it is `stuck`; and with `bring`, why the project's branch was not merged into the item's, when it is `conflict` and that is not under way")
+            .output("files", "with `bring`, where it is `conflict`: the files that conflict, under way in the item's place")
+            .output("begun", "with `bring`, where it is `conflict`: whether the merge of the project's branch is under way in the item's place")
             // Stood in: the item has no branch of its own to merge.
-            .stands(json!({ "came": "nothing", "said": "", "why": "" })),
-        |it, args| async move { merge(&it, &args).await },
+            .stands(json!({ "came": "nothing", "said": "", "why": "", "files": [], "begun": false })),
+        |it, args| async move { merged::merge(&it, &args).await },
     );
     add(
         registry,

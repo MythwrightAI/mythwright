@@ -85,6 +85,10 @@ pub struct Through {
     /// on a record, which the step looks for by it where it is done
     /// again after a stop (`crate::left`). Nothing for no step's doing.
     pub doing: Option<String>,
+    /// It sends a card back for something other than a verdict on its
+    /// work, which whatever counts how often a card was sent back leaves
+    /// out: said with the move.
+    pub uncounted: bool,
 }
 
 /// Where an event about a card comes from, and what it says did it.
@@ -903,6 +907,9 @@ impl Board {
             });
             if let Some(note) = note.map(str::trim).filter(|note| !note.is_empty()) {
                 data["note"] = json!(note);
+            }
+            if through.is_some_and(|through| through.uncounted) {
+                data["uncounted"] = json!(true);
             }
             let told = match (through, said) {
                 (None, Some(said)) => (Source::actor(said), data),

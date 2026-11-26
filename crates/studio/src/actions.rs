@@ -51,6 +51,7 @@ pub(crate) fn through(cx: &ActionCx) -> crate::board::Through {
         decided: None,
         had: None,
         doing: Some(cx.doing().to_string()),
+        uncounted: false,
     }
 }
 
@@ -214,6 +215,7 @@ pub(crate) fn kept(registry: &mut Registry, studio: &Studio) {
             .arg("note", T::String, "what is said as it is moved, such as why it is sent back from review; kept in the card's history")
             .arg("decided", T::String, "the agent whose decision the move is (`agent:<name>`), said with it and in the card's history; it gives nobody anything")
             .arg("had", T::Int, "how many times the card had been moved when whoever moves it looked (`moved` of the card, its count): where it has been moved since, it is left where it is and nothing is said")
+            .arg("uncounted", T::Bool, "it is sent back for something other than a verdict on its work, such as to be brought up to date: said with the move, and not counted among the times it was sent back")
             .capability("board:write")
             .output("status", "the column it is now in")
             .idempotent(),
@@ -221,7 +223,8 @@ pub(crate) fn kept(registry: &mut Registry, studio: &Studio) {
             let (id, to) = (text(&args, "id").unwrap_or_default(), text(&args, "to").unwrap_or_default());
             let decided = text(&args, "decided").filter(|by| by.strip_prefix("agent:").is_some_and(|name| !name.is_empty()));
             let had = args.get("had").and_then(Value::as_u64);
-            let (note, through) = (text(&args, "note"), crate::board::Through { decided, had, ..through(&cx) });
+            let uncounted = args.get("uncounted").and_then(Value::as_bool).unwrap_or(false);
+            let (note, through) = (text(&args, "note"), crate::board::Through { decided, had, uncounted, ..through(&cx) });
             let moved = studio.board.move_through(&id, &to, None, note.as_deref(), cx.principal(), Some(&through));
             Ok(item_value(&moved.await?))
         },

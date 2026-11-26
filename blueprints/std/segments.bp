@@ -24,7 +24,7 @@
 # the stage says are done at most in one going through (its `most`, five
 # where it says none).
 blueprint: std/segments
-version: 6
+version: 7
 description: "Go through the things done with a card where it is reviewed, from the first of them or from where its review was: each is called in order, until there is a review to begin or the list has ended."
 # It keeps nothing as it goes: called again where the daemon was stopped
 # in the middle of it, it begins where it was told to and finds done what
@@ -161,8 +161,10 @@ outputs:
   came: "${steps.last.out.word}"
   says: "${steps.last.out.says}"
   begins: ${steps.last.out.spawns}
-  # Whether it ended by itself, with a word for the stage to act on.
+  # Whether it ended by itself, with a word for the stage to act on; and,
+  # for `back`, whether only to be brought up to date (`std/merge`).
   ends: ${steps.last.out.tells}
+  behind: ${ steps.last.out.behind ?? false }
   # Where in the list: of the review to begin, or of what said the word.
   row: "${ steps.last.out.at[0] }"
   order: ${ steps.last.out.at[1] }
