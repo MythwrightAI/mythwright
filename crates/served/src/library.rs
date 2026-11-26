@@ -35,7 +35,9 @@
 
 use std::path::{Path as FilePath, PathBuf};
 
-use axum::http::header::{CACHE_CONTROL, CONTENT_SECURITY_POLICY, CONTENT_TYPE, X_CONTENT_TYPE_OPTIONS};
+use axum::http::header::{
+    CACHE_CONTROL, CONTENT_SECURITY_POLICY, CONTENT_TYPE, REFERRER_POLICY, X_CONTENT_TYPE_OPTIONS,
+};
 use axum::response::{IntoResponse, Redirect, Response};
 use hosting::Watch;
 use journal::Journal;
@@ -140,6 +142,9 @@ fn html(page: String) -> Response {
         (X_CONTENT_TYPE_OPTIONS, "nosniff"),
         (CONTENT_SECURITY_POLICY, PAGE_POLICY),
         (CACHE_CONTROL, "no-cache"),
+        // The address holds what the page was asked with (`by`): it is
+        // told to nobody the page sends its reader on to.
+        (REFERRER_POLICY, "no-referrer"),
     ];
     (headers, page).into_response()
 }
@@ -223,6 +228,7 @@ pub async fn page(
         (CONTENT_TYPE, kind),
         (X_CONTENT_TYPE_OPTIONS, "nosniff"),
         (CONTENT_SECURITY_POLICY, "sandbox; default-src 'none'; style-src 'unsafe-inline'"),
+        (REFERRER_POLICY, "no-referrer"),
     ];
     Ok((headers, bytes).into_response())
 }

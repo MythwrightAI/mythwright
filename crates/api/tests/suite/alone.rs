@@ -103,6 +103,8 @@ async fn a_librarys_pages_and_a_mockups_address_count_the_cookie_only_with_what_
     for path in pages {
         let shown = asked(&format!("{path}?{by}")).send().await.unwrap();
         assert_eq!(shown.status(), StatusCode::OK, "{path}");
+        // Its address holds what it was asked with: told to no page it leads on to.
+        assert_eq!(shown.headers()["referrer-policy"], "no-referrer", "{path}");
     }
     let private = asked(&format!("/library/life/days/2026-11-14.md?{by}")).send().await.unwrap();
     assert!(private.text().await.unwrap().contains("marmalade"));
