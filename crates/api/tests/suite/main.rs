@@ -446,6 +446,9 @@ fn config(dir: &std::path::Path) -> Config {
         // No test here takes the power away, and waiting for the disk
         // was most of what a node's start and stop took.
         disk: journal::Disk::Unwaited,
+        // Nor guesses a password: hashed as hard, the owner each test
+        // registers was a twentieth of what the suite took.
+        hashing: people::Hashing::Least,
         ..Config::new(dir.join("data"))
     }
 }

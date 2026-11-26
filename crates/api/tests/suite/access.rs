@@ -31,6 +31,30 @@ async fn a_new_installation_says_it_needs_setting_up_and_the_first_person_owns_i
     assert_eq!(error["error"]["kind"], "unauthenticated");
 }
 
+/// What is kept of Ada's password in a factory hashing `hashing`, once
+/// she has registered and signed in with it.
+async fn kept_of_a_password(hashing: people::Hashing) -> String {
+    let rig = Rig::owned(Rig::with("api-hashing", |config, _| config.hashing = hashing).await).await;
+    let login = json!({ "email": "ada@example.com", "password": "correct horse" });
+    let (status, _) = rig.call(Method::POST, "/api/auth/login", None, Some(login)).await;
+    assert_eq!(status, StatusCode::OK, "{hashing:?}");
+    let read = |connection: &mut rusqlite::Connection| {
+        connection
+            .query_row("SELECT password FROM accounts WHERE email = 'ada@example.com'", [], |row| row.get(0))
+    };
+    rig.node().app.journal.db().call(read).await.unwrap()
+}
+
+#[tokio::test]
+async fn a_password_is_kept_as_hard_to_guess_as_the_hash_makes_it_but_in_a_factory_that_is_its_own_test() {
+    // As the hash's defaults make it: what every factory that is run keeps.
+    let hard = kept_of_a_password(people::Hashing::default()).await;
+    assert!(hard.starts_with("$argon2id$v=19$m=19456,t=2,p=1$"), "{hard}");
+    // The least the hash takes, for a test's own factory; it signs in all the same.
+    let least = kept_of_a_password(people::Hashing::Least).await;
+    assert!(least.starts_with("$argon2id$v=19$m=8,t=1,p=1$"), "{least}");
+}
+
 #[tokio::test]
 async fn why_the_daemon_was_started_is_kept_with_its_start_in_the_journal() {
     let said = "The daemon was not running, so the window started it.";

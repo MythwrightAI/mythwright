@@ -185,6 +185,12 @@ pub struct Config {
     /// mostly that waiting otherwise. Never said for a factory that is
     /// run, which always waits.
     pub disk: journal::Disk,
+    /// How hard what is kept of a password is made to guess from
+    /// (`people::Hashing`): the least the hash takes, for a factory that
+    /// is its own test, whose passwords stand against nobody and which
+    /// registers its owner as each test begins. Never said for a factory
+    /// that is run, which hashes as hard as the hash makes it.
+    pub hashing: people::Hashing,
     /// The home of whoever runs the daemon, where it is not the one
     /// their profile says: for a factory that is its own test and
     /// holds walls, whose agents' packages say what their programs keep
@@ -223,6 +229,7 @@ impl Config {
             order: None,
             copying: None,
             disk: journal::Disk::Waited,
+            hashing: people::Hashing::Hard,
             user_home: None,
             makes_owner: false,
         }
@@ -400,6 +407,7 @@ impl Node {
             Studio::open(journal.clone(), searched, projects_dir.clone(), data.join(snapshot::ATTACHMENTS))
                 .await?;
         studio.projects.keeps_out_of(data);
+        studio.identity.hashes(config.hashing);
         // Every write of a topic writes what goes with it, from before anything is written.
         topics::Topics::open(&journal, &studio).await?;
         let hosting = Hosting::new(journal.clone(), logs.clone(), data.join("run")).await?;
