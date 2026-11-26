@@ -3,7 +3,8 @@
 // table whose cells are drawn as the table draws them (a choice as its
 // tag, a day as a day, seconds as a length of time) and whose rows each
 // open their form, with the whole of what they hold, in the drawer beside
-// the page; runs, each with what it is a run of, how it went, when and how
+// the page; runs, the newest drawn above them as the graph of what it ran
+// (`rungraph.tsx`), each with what it is a run of, how it went, when and how
 // long, opening its run's page as a tab here; and measurements, each its
 // latest value beside the median of its last few, written as the
 // measurements page writes what each is of. A part the reader may not
@@ -17,6 +18,7 @@ import { classes, when } from '../util.ts';
 import { labelsSaid, measureSaid, noRows, rowsHead, runAddress, runsHead, secondsSaid, tookSaid, wentSaid } from '../toldread.ts';
 import type { ListedRow, MeasuresPart, RowsColumn, RowsPart, RunsPart } from '../toldread.ts';
 import { openRow } from './records.tsx';
+import { LatestRun } from './rungraph.tsx';
 import { Shown } from './table.tsx';
 
 /** Opens a row in its form in the drawer beside the page: read whole, its table's fields read first where the page has not read them. */
@@ -107,7 +109,10 @@ export function RunsView({ part }: { part: RunsPart }) {
       ) : runs.length === 0 ? (
         <p class="faint">Nothing has run yet.</p>
       ) : (
-        <ol class="told-runs-list">
+        <>
+          {/* The newest, as the graph of what it ran, above them all. */}
+          <LatestRun runs={runs} />
+          <ol class="told-runs-list">
           {runs.map((run) => (
             <li key={run.id} class={classes('told-run', run.status)} data-run={run.id}>
               <a
@@ -127,7 +132,8 @@ export function RunsView({ part }: { part: RunsPart }) {
               <span class="faint told-run-took">{tookSaid(run)}</span>
             </li>
           ))}
-        </ol>
+          </ol>
+        </>
       )}
     </section>
   );

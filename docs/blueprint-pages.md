@@ -506,7 +506,16 @@ which environment and with which branch, what set it off, how it stands and
 how long it took, and its stages: each step at the top of the run, a task
 with the steps inside it, something it called unfolded into its own run.
 
-- **Stages** and **Graph** are its two views.
+- **Stages** and **Graph** are its two views. A run opens on the one the
+  last run was looked at in.
+- On **Graph**, each step's tile says how it went, by a mark, and how long it
+  took or has gone on so far. Clicking a step opens what it wrote beside the
+  graph. In a long run, each straight chain of steps is one tile that says
+  how many steps it holds; click it to open it in place, and click
+  **− 5 steps** (its count) on the band round them to close it again. One
+  holding a step that failed opens by itself.
+- A notification that lists runs (a deployment's, for one) shows the latest
+  of them as its graph above the list.
 - **Copy link** copies an address that opens the run for whoever is signed
   in here.
 - A step's output is drawn from its end; **Show 500 lines earlier** (and the

@@ -100,3 +100,7 @@ button.pipelines-fold { display: flex; align-items: center; gap: 6px; width: 100
   .pipeline-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; }
   .pipeline-strip { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
 }
+/* A step of a run in the drawer beside its graph (`views/rungraph.tsx`): its key, and each time it ran. */
+.step-drawer { min-width: 0; }
+.step-drawer-none { margin: 0; }
+.run-graph { min-width: 0; }

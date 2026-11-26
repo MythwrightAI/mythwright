@@ -165,7 +165,9 @@ part of itself; that one is not run alone.
   compared, nothing in the factory.
 - `sidebyside.mjs`: sandbox tests of several texts side by side, Apply, Compare on real work,
   Fork.
-- `pipelines.mjs`: a run's own page as a pipeline run, and a project's Pipelines page with Run.
+- `pipelines.mjs`: a run's own page as a pipeline run, and a project's Pipelines page with Run;
+  a run's graph with marks and times, a step's output in the drawer, a run as long as a preview's
+  folded, unfolded, under way, failed and at a phone's width, and a told line's Deployment tab.
 - `testruns.mjs`: a segment's command runs recorded into a table named by `record_to`.
 
 ### Tables, board and records
@@ -233,7 +235,8 @@ part of itself; that one is not run alone.
 - `inbox.mjs`: the inbox place on the rail, its lines, counts and reading.
 - `told.mjs`: what a fleet tells whoever applied it, a told line's page, links in its words.
 - `reviewed.mjs`: a told line's parts: cards with Pass, Fail and Discuss; runs `toldtabs.mjs`.
-- `toldtabs.mjs`: a told line's page in tabs: runs, rows, measurements.
+- `toldtabs.mjs`: a told line's page in tabs: runs, the newest as its graph above them, rows,
+  measurements.
 - `asked.mjs`: a change an agent asks for and may not make, approved or declined.
 - `goahead.mjs`: a run waiting for a person to let it go on, approved or declined.
 - `tagged.mjs`: somebody named with @ on a card, a record or in a topic's reply, told in their inbox; a name drawn as a mention, with who it is on hover and focus; a page somebody follows, changed, as one line of their inbox.

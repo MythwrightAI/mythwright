@@ -17,7 +17,9 @@
 // twenty thousand drawn and no more with the window before them drawn by
 // Show earlier, the failure said with what it wrote, the call unfolded
 // into its child's run in place; folded and unfolded, and as it was left
-// when another tab was shown and it again; its graph lit; the pipeline's
+// when another tab was shown and it again; its graph lit, each tile with a
+// mark of how its step went and how long it took, a tile pressed showing
+// what its step wrote in the drawer; the pipeline's
 // row then with a mark of that run, which opens its page; the run's
 // address copied and opened in a second page by somebody signing in, the
 // tab opened and the bar saying its address; a line told about the
@@ -31,8 +33,17 @@
 // opening the run its own press began and not the other's (`asked` of
 // `pipeline.asked`, `/api/pipelines/begun`); nothing of either
 // page over anything else or scrolling sideways at three widths and a
-// phone's, plainly and with `LOOK="size=largest density=compact"`. The
-// environment variables are those of walkthrough.mjs.
+// phone's, plainly and with `LOOK="size=largest density=compact"`. Then a
+// run as long as a preview's (seventeen steps) looked at as its graph: its
+// two straight chains each one tile, called by its first step and saying
+// how many it holds, the one that waits under way with its time going on,
+// one unfolded in place with a band round its steps and folded again from
+// it, a step's output in the drawer; told that the preview answers, all of
+// it done; a run whose copy fails, opened on its graph as the last was
+// looked at, the fold holding that step open of itself, at a phone's width
+// too; and the line saying the preview is ready, whose Deployment tab draws
+// the latest run's graph above the list of runs. The environment variables
+// are those of walkthrough.mjs.
 import { execFile, spawn } from 'node:child_process';
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -40,7 +51,9 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { chromium } from 'playwright-core';
 import { pageCrowded } from './crowded.mjs';
+import { drawerAtRest } from './drawer.mjs';
 import { endsWithThis } from './ends.mjs';
+import { legendCrossed } from './legended.mjs';
 import { unfoldAll } from './folded.mjs';
 import { saysWhere } from './where.ts';
 
@@ -86,6 +99,40 @@ description: A quick look.
 permissions: [shell]
 steps:
   look: { description: Look., do: shell, with: { cmd: [echo, looked] } }
+`;
+// A run as long as a preview's, and of its shape: seventeen steps, the first five one after another, the build
+// leading both to its copy and to the commits of its train, and the line it tells waiting on three. Its copy
+// served exits with the code it is handed, and it then waits to be told the preview answers.
+const LONG = `blueprint: preview
+description: Builds a branch and serves it on a copy, as a preview does.
+params:
+  code: { type: int, default: 0 }
+steps:
+  table: { description: The table each deploy is kept in., do: shell, with: { cmd: [echo, table] } }
+  began: { description: When this deploy began., do: shell, with: { cmd: [echo, began] } }
+  before: { description: The preview before put away., do: shell, with: { cmd: [echo, before] } }
+  cleared: { description: Its copy cleared., needs: [before], do: shell, with: { cmd: [echo, cleared] } }
+  built: { description: The branch built., needs: [cleared], do: shell, with: { cmd: [echo, built from the branch] } }
+  copy: { description: A copy of this factory., needs: [built], do: shell, with: { cmd: [echo, copied] } }
+  serve: { description: The build serving the copy., needs: [copy], do: shell, with: { cmd: [sh, -c, "echo serving; exit \${params.code}"] } }
+  up: { description: The preview answering., needs: [serve], do: wait, with: { event: preview.up } }
+  staged: { description: The cards moved to staging., needs: [up], do: shell, with: { cmd: [echo, staged] } }
+  held: { description: The cards it holds., needs: [up, staged], do: shell, with: { cmd: [echo, held] } }
+  given: { description: Each given to whoever tries it., needs: [held], do: shell, with: { cmd: [echo, given] } }
+  train: { description: The commits of the train., needs: [built], do: shell, with: { cmd: [echo, train] } }
+  ran: { description: The runs kept on them., needs: [train], do: shell, with: { cmd: [echo, ran] } }
+  simmed: { description: The simulation's scenarios., needs: [train], do: shell, with: { cmd: [echo, simmed] } }
+  checks: { description: What was run on the train., needs: [ran, simmed], do: shell, with: { cmd: [echo, checks] } }
+  told: { description: Whoever applied it told., needs: [up, given, checks], do: shell, with: { cmd: [echo, told] } }
+  kept: { description: This deploy kept as a row., needs: [told], do: shell, with: { cmd: [echo, kept] } }
+`;
+// Tells whoever applies it that the preview is ready, with the runs of every preview in a tab, as the preview's line does.
+const READY = `blueprint: ready
+permissions: [inbox]
+steps:
+  tell:
+    do: inbox.tell
+    with: { to: applier, says: "The preview is ready.", why: preview, parts: [{ kind: runs, key: preview, tab: Deployment }, { kind: links, links: ["http://127.0.0.1:9/"], tab: Links }] }
 `;
 const DEPLOY = `blueprint: pipelines/deploy
 description: Ships what was built.
@@ -222,10 +269,24 @@ try {
   await stage('build').locator('.stage-band').click();
   await stage('build').locator('.stage-inside').waitFor();
 
-  // ---- its graph, lit
+  // ---- its graph, lit: each tile with how its step went and how long it took, a few steps folded into none, and a
+  // step pressed showing what it wrote in the drawer beside it
   await runPage.getByRole('tab', { name: 'Graph', exact: true }).click();
   await runPage.locator('.pipeline-graph svg, .pipeline-graph .canvas-map').first().waitFor();
+  const tiles = runPage.locator('.pipeline-graph .gnode');
+  await tiles.first().waitFor();
+  const stood = await tiles.evaluateAll((all) => all.map((one) => [one.dataset.node, one.dataset.status, one.querySelector('.gwent')?.getAttribute('class'), one.querySelector('.took')?.textContent]));
+  expect(`a tile a step, none folded in a graph of a few, got ${JSON.stringify(stood)}`, stood.length === 7 && (await runPage.locator('.pipeline-graph .gfold').count()) === 0);
+  const tileOf = (key) => stood.find(([node]) => node === `main/${key}`) ?? [];
+  expect(`each tile how its step went, by its mark, got ${JSON.stringify(stood)}`, tileOf('tests')[1] === 'failed' && tileOf('tests')[2].includes('went-failed') && tileOf('lint')[1] === 'ok' && tileOf('lint')[2].includes('went-ok'));
+  expect(`each tile how long its step took, got ${JSON.stringify(stood)}`, stood.every(([, , , took]) => /\d(ms|s)$/.test(took ?? '')));
+  await runPage.locator('.pipeline-graph [data-node="main/lint"] rect.box').click();
+  const drawn = drawerAtRest(page);
+  await drawn.locator('.step-out[data-step="lint"] .step-log', { hasText: 'lint ok' }).waitFor();
+  expect('the tile pressed marked', (await runPage.locator('.pipeline-graph .gnode.selected').getAttribute('data-node')) === 'main/lint');
   await page.screenshot({ path: `${out}/pipelines-2-graph${look}.png` });
+  await drawn.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.locator('.drawer').waitFor({ state: 'detached' });
   await runPage.getByRole('tab', { name: 'Stages', exact: true }).click();
   await stages.waitFor();
 
@@ -328,6 +389,114 @@ try {
   await fromActivity.click();
   await showing.and(page.locator(`[data-key="run:${ran}"]`)).waitFor();
   await runPage.waitFor();
+
+  // ---- a run as long as a preview's, read as a CI run is: its straight chains folded, each tile with how it went and
+  // how long it took, live while it runs; a fold unfolded in place and folded again; a step's output in the drawer
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await writeFile(join(home, 'preview.bp'), LONG);
+  // The run a press of apply began: the newest of the pipeline's own, of those not had yet.
+  const longIds = [];
+  const longRun = async (code) => {
+    const applied = JSON.parse((await cli('apply', join(home, 'preview.bp'), '--project', 'shop', '--key', 'preview', '--param', `code=${code}`, '--force', '--no-wait', '--json')).stdout);
+    for (let tries = 0; ; tries++) {
+      const runs = JSON.parse((await cli('runs', '--instance', applied.instance, '--json')).stdout).runs;
+      const begun = runs.filter((one) => one.flow === 'main' && !longIds.includes(one.id)).sort((a, b) => b.started - a.started)[0];
+      if (begun) {
+        longIds.push(begun.id);
+        return begun.id;
+      }
+      expect(`a run of the long pipeline to have begun, after ${tries} looks`, tries < 400);
+      await new Promise((later) => setTimeout(later, 50));
+    }
+  };
+  const graphOf = runPage.locator('.pipeline-graph');
+  const tileAt = (id) => graphOf.locator(`.gnode[data-node="${id}"]`);
+  const whole = await longRun('0');
+  await page.evaluate((to) => (location.hash = to), `/run/${whole}`);
+  await runPage.waitFor();
+  // Opened on its stages, as the last run was left looked at; its graph pressed, which the next run opens on.
+  await runPage.getByRole('tab', { name: 'Graph', exact: true }).click();
+  await tileAt('fold:main/table').waitFor();
+  const shut = await graphOf.locator('.gnode').evaluateAll((all) => all.map((one) => one.dataset.node));
+  expect(`seventeen steps in eleven tiles, two of them folds, got ${JSON.stringify(shut)}`, shut.length === 11 && shut.filter((one) => one.startsWith('fold:')).length === 2);
+  expect('a fold called by its first step, saying how many it holds', (await tileAt('fold:main/table').locator('text.sub').textContent()) === '5 steps · table → built');
+  // The second fold holds the step that waits: under way, its time going on with nothing said by the daemon.
+  await tileAt('fold:main/copy').and(page.locator('[data-status="running"]')).waitFor();
+  await tileAt('fold:main/table').and(page.locator('[data-status="ok"]')).waitFor();
+  expect('the fold under way marked so', (await tileAt('fold:main/copy').locator('.gwent.went-running').count()) === 1);
+  const ticking = await tileAt('fold:main/copy').locator('.took').textContent();
+  await page.waitForFunction((was) => document.querySelector('.pipeline-graph [data-node="fold:main/copy"] .took')?.textContent !== was, ticking);
+  expect(`the steps after it waiting, got ${await tileAt('main/staged').getAttribute('data-status')}`, (await tileAt('main/staged').getAttribute('data-status')) === 'waiting');
+  expect(`the legend saying what a press does, got ${await graphOf.locator('.canvas-legend').innerText()}`, (await graphOf.locator('.canvas-legend').innerText()).includes('click a fold to open it'));
+  const crossed = await legendCrossed(page, '.pipeline-run');
+  expect(`the band under the graph over no tile: ${crossed.join('; ')}`, crossed.length === 0);
+  await page.screenshot({ path: `${out}/pipelines-6-folded${look}.png`, animations: 'disabled' });
+  // Unfolded in place: its steps where the fold was, round them a band, and what follows moved right.
+  const wasAt = await tileAt('main/train').boundingBox();
+  await tileAt('fold:main/table').locator('rect.box').click();
+  await tileAt('main/began').waitFor();
+  expect('unfolded, the fold is its steps', (await graphOf.locator('.gnode').count()) === 15 && (await graphOf.locator('.gfold-band').count()) === 1);
+  const nowAt = await tileAt('main/train').boundingBox();
+  expect(`what follows the fold moved right of where it was, from ${JSON.stringify(wasAt)} to ${JSON.stringify(nowAt)}`, nowAt.x > wasAt.x);
+  await tileAt('main/began').locator('rect.box').click();
+  await drawn.locator('.step-out[data-step="began"] .step-log', { hasText: 'began' }).waitFor();
+  await page.screenshot({ path: `${out}/pipelines-7-unfolded${look}.png`, animations: 'disabled' });
+  await drawn.getByRole('button', { name: 'Close', exact: true }).click();
+  await page.locator('.drawer').waitFor({ state: 'detached' });
+  await graphOf.locator('.gfold-shut[data-fold="fold:main/table"]').click();
+  await tileAt('fold:main/table').waitFor();
+  expect('folded again', (await graphOf.locator('.gnode').count()) === 11 && (await graphOf.locator('.gfold-band').count()) === 0);
+  // Told that the preview answers: the run ends, and the fold that waited says it went well.
+  await cli('emit', 'preview.up');
+  await page.locator('.pipeline-run .pipeline-facts[data-status="ok"]').waitFor({ timeout: 30_000 });
+  await tileAt('fold:main/copy').and(page.locator('[data-status="ok"]')).waitFor();
+
+  // ---- a run whose copy is not served: the fold holding the step that failed opens itself, the step marked so
+  const broken = await longRun('3');
+  await page.evaluate((to) => (location.hash = to), `/run/${broken}`);
+  await page.locator('.pipeline-run .pipeline-facts[data-status="failed"]').waitFor({ timeout: 30_000 });
+  expect('the run opened on its graph, as the last was looked at, with no press', (await runPage.getByRole('tab', { name: 'Graph', exact: true }).getAttribute('aria-pressed')) === 'true');
+  await tileAt('main/serve').and(page.locator('[data-status="failed"]')).waitFor();
+  expect('the fold that holds it open, its band marked', (await graphOf.locator('.gfold-band.status-failed').count()) === 1 && (await tileAt('main/serve').locator('.gwent.went-failed').count()) === 1);
+  expect(`the steps never come to said so, got ${await tileAt('main/staged').getAttribute('data-status')}`, ['not run', 'cancelled'].includes(await tileAt('main/staged').getAttribute('data-status')));
+  await page.screenshot({ path: `${out}/pipelines-8-failed${look}.png`, animations: 'disabled' });
+  // Opened on a phone: what failed in view there, as it was on the wide page.
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.reload();
+  await tileAt('main/serve').waitFor();
+  // The graph glides to what it follows: read once it is there.
+  await page.waitForFunction(() => {
+    const moved = document.querySelector('.pipeline-graph svg > g');
+    return !!moved && moved.getAnimations().length === 0;
+  });
+  const served = await tileAt('main/serve').locator('rect.box').boundingBox();
+  const mapped = await graphOf.locator('.canvas-map').boundingBox();
+  expect(`the step that failed in view at a phone's width, at ${JSON.stringify(served)} in ${JSON.stringify(mapped)}`, served.x >= mapped.x - 1 && served.x + served.width <= mapped.x + mapped.width + 1);
+  const narrow = await legendCrossed(page, '.pipeline-run');
+  expect(`at a phone's width the band under the graph over no tile: ${narrow.join('; ')}`, narrow.length === 0);
+  const sideways = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(`nothing scrolling sideways at a phone's width, by ${sideways}`, sideways <= 0);
+  await page.screenshot({ path: `${out}/pipelines-9-graph-phone${look}.png`, animations: 'disabled' });
+  await page.setViewportSize({ width: 1280, height: 860 });
+  // Looked at by its stages again, which the runs after it then open on.
+  await runPage.getByRole('tab', { name: 'Stages', exact: true }).click();
+  await runPage.locator('.pipeline-stages').first().waitFor();
+
+  // ---- the line that says the preview is ready: its Deployment tab the latest run's graph above the list of runs
+  await writeFile(join(home, 'ready.bp'), READY);
+  await cli('apply', join(home, 'ready.bp'), '--project', 'shop');
+  const ready = JSON.parse((await cli('inbox', '--json')).stdout).lines.find((line) => (line.says ?? '').includes('The preview is ready.')).id;
+  await page.evaluate((to) => (location.hash = to), `/inbox/${ready}`);
+  const line = page.locator('.inbox-page');
+  await line.locator('.told-tabs [role="tab"]', { hasText: 'Deployment' }).click();
+  const deployed = line.locator('.told-runs');
+  await deployed.locator('.told-run').nth(1).waitFor();
+  const latest = deployed.locator('.told-run-graph');
+  await latest.locator('.gnode[data-node="main/serve"][data-status="failed"]').waitFor();
+  expect('the graph of the latest run, above the list', (await latest.getAttribute('data-run')) === broken && (await deployed.locator('.told-run').first().getAttribute('data-run')) === broken);
+  const [graphBox, listBox] = [await latest.boundingBox(), await deployed.locator('.told-runs-list').boundingBox()];
+  expect('the graph above the list', graphBox.y + graphBox.height <= listBox.y + 1);
+  await page.screenshot({ path: `${out}/pipelines-10-deployment${look}.png`, animations: 'disabled' });
 
   // ---- the project's triggers kept: Run asks them, as whoever presses, and opens the run they begin, or says why not
   await writeFile(join(kept, 'quick.bp'), QUICK);
