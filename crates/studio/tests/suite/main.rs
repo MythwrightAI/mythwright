@@ -25,6 +25,7 @@ mod search;
 mod shown;
 mod steered;
 mod stepped;
+mod stood;
 mod stores;
 mod takes;
 mod trashed;

@@ -243,6 +243,20 @@ with more authority than whoever asked for it.
   the studio suite's `steered.rs`, `snapshots.rs`.
 - A cell of an agent row that gives its program more says what that value
   takes (`permission: full` says `takes: { full: shell }`).
+- A cell whose value lets something with more authority do more beside
+  cells that say what that does says `stands` (`Field::stands`,
+  `crates/studio/src/stood.rs`): while the record says that value, adding
+  it or changing any cell of it takes what the value took, checked on the
+  record as written in `fields::may_set`, so every door that writes cells
+  asks it. In `std/fleet`: an agent's `wall`, `permission`, `reads`,
+  `changes` and `secrets` (as `Agents::ensure` asks of anything said of
+  such a slot; `outlives` and `web` it asks only on turning on, so they do
+  not stand), a stage's `title` (`board:write`: a stage moves its cards as
+  whoever applied the fleet) and `merge` (`projects:write`), and a
+  segment's `command`, `with` and `record_to`. An ask shows such a scope as
+  `Of::Standing`. Declaring a field again so that it does not stand takes
+  holding what it took. Tests: API suite `deputised.rs`, `asked.rs`; the
+  studio suite's `stood.rs`.
 - A cell whose value becomes a param of a blueprint run as whoever
   applied the fleet is guarded at least as the param's own cell:
   `with` of `segments` takes `shell` and `secrets:use`, and may never set

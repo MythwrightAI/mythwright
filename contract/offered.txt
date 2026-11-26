@@ -482,6 +482,7 @@ action collection.ensure
   within fields.*.icon string
   within fields.*.takes any
   within fields.*.unsaid any
+  within fields.*.stands bool
   within fields.*.takes.* each
   within views.* each
   within views.*.kind string
@@ -1217,6 +1218,7 @@ action record.add
   within declaring.*.icon string
   within declaring.*.takes any
   within declaring.*.unsaid any
+  within declaring.*.stands bool
   within declaring.*.takes.* each
   gives id
   gives data

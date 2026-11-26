@@ -56,6 +56,7 @@ pub use ::search;
 mod service;
 pub mod shown;
 pub mod site;
+mod stood;
 mod tables;
 mod takes;
 mod through;

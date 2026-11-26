@@ -77,6 +77,14 @@ pub struct Field {
     /// whoever writes the row.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub takes_each: bool,
+    /// What giving it its value took is asked again of whoever adds the
+    /// record or changes any cell of it, for as long as it says that value
+    /// (`stands`, beside `takes`): for a cell that lets something with
+    /// more authority do more, beside cells that say what that does. An
+    /// agent's row with no wall: what it is told and how many there are of
+    /// it is what runs with no wall ([`crate::stood`]).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub stands: bool,
     /// What such a list stands for where a record says nothing of it
     /// (`unsaid`): the scopes that are given all the same, by whatever
     /// reads the record, and so are asked of whoever writes one that
@@ -272,6 +280,7 @@ pub(crate) fn read(written: Vec<(String, Map<String, Value>)>) -> Result<Vec<Fie
             _ if takes_each => (Takes::default(), std::collections::BTreeMap::new()),
             said => (Takes::read(&name, None, said)?, std::collections::BTreeMap::new()),
         };
+        let stands = crate::stood::read(&name, flag("stands"), takes_each, &takes, &takes_of)?;
         let suggests = match about.get("suggests") {
             None | Some(Value::Null) => Vec::new(),
             Some(Value::Array(words)) if kind == "text" => {
@@ -357,6 +366,7 @@ pub(crate) fn read(written: Vec<(String, Map<String, Value>)>) -> Result<Vec<Fie
             takes,
             takes_of,
             takes_each,
+            stands,
             unsaid,
         });
     }
@@ -515,6 +525,7 @@ fn by_value(
 pub(crate) fn still_guarded(name: &str, was: &[Field], now: &[Field], by: &kernel::Principal) -> Result<()> {
     for field in was {
         let now = now.iter().find(|now| now.name == field.name);
+        crate::stood::still_standing(name, field, now, by)?;
         // What every value took is still held to where every value takes
         // it, and what one value took, where that value or every value
         // does; each scope of several by itself, so that one taken off a
@@ -649,7 +660,8 @@ pub(crate) fn may_set<'a>(
         };
         return Err(Error::denied(format!("{why}: nobody gives what they do not hold")));
     }
-    Ok(())
+    // And what a cell took, while it says so, as `takes: each` is of a list.
+    crate::stood::held(collection, record, by)
 }
 
 /// The scopes a value of a list names, each as it is written.

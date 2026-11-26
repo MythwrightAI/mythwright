@@ -54,6 +54,7 @@ impl Has {
             takes: Default::default(),
             takes_of: std::collections::BTreeMap::new(),
             takes_each: false,
+            stands: false,
             unsaid: Vec::new(),
             hidden: self.own,
             suggests: Vec::new(),

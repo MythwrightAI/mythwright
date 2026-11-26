@@ -163,6 +163,7 @@ std/fleet 25 a7b4e2a40de5f943
 std/fleet 26 7066e74734e4236d
 std/fleet 27 671b3e7759ea4833
 std/fleet 28 3fdc98491b7179f6
+std/fleet 29 01c3ff9f5ccf16bf
 
 std/judge 1 66b26aa2e40e07d6
 std/judge 2 558ceed2829b5135

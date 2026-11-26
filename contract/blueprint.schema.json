@@ -4907,6 +4907,9 @@
                         "said": {
                           "description": "every event about a record of the collection carries what it holds, under `fields` of the event's data, so that a handler is chosen by it with nothing run: a text longer than a kilobyte cut there, and anything else that long left out. Not of a field that is quiet or says what giving it a value takes"
                         },
+                        "stands": {
+                          "description": "with `takes`, what giving it its value took is asked again of whoever adds the record or changes any cell of it, for as long as it says that value: for a cell that lets something with more authority do more, beside cells that say what that does"
+                        },
                         "suggests": {
                           "description": "for a text that takes any word, the usual ones, which are offered to whoever fills it"
                         },
@@ -5488,6 +5491,9 @@
                         },
                         "said": {
                           "description": "every event about a record of the collection carries what it holds, under `fields` of the event's data, so that a handler is chosen by it with nothing run: a text longer than a kilobyte cut there, and anything else that long left out. Not of a field that is quiet or says what giving it a value takes"
+                        },
+                        "stands": {
+                          "description": "with `takes`, what giving it its value took is asked again of whoever adds the record or changes any cell of it, for as long as it says that value: for a cell that lets something with more authority do more, beside cells that say what that does"
                         },
                         "suggests": {
                           "description": "for a text that takes any word, the usual ones, which are offered to whoever fills it"

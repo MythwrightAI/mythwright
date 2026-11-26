@@ -1,44 +1,54 @@
-//! Where a fleet's row still gives somebody what they do not hold, as it
-//! stands today: each test says what happens now, and marks the hole.
+//! What a cell took stands while its row says so.
 //!
-//! A cell that takes a scope to say (`wall: off`, `permission: full`)
-//! is asked of whoever says it, once: a change of the row's other cells
-//! later takes nothing of it, though the fleet then brings the agents
-//! up, told what that change says and as many as it says, with the
-//! cell's value still in force, as whoever applied the fleet. The
-//! agent's own route asks the same person for `shell`. And a stage is
-//! written by whoever could write each row of agents it steers, which
-//! says nothing of what the fleet itself does with a card there: in a
-//! fleet whose agents were all given less than moving a card takes, a
-//! key that may change agents and not move cards has the fleet move and
-//! merge them. When each is closed, its test is turned to say the
-//! refusal, as `held.rs` and `scoped.rs` say theirs.
+//! A cell that takes a scope to say (`wall: off`, `permission: full`, a
+//! command) lets the fleet do more with the row, as whoever applied the
+//! fleet: so while the row says it, changing anything of the row takes
+//! it too (`stands`), or what the agent is told, how many there are of
+//! it and where a command runs would be anybody's who may change agents.
+//! The agent's own route asks the same. And a stage moves its cards as
+//! whoever applied the fleet, which is not what any agent it steers
+//! holds: so writing one takes what moving a card takes, and one that
+//! merges what changing the project's files takes, whatever the agents
+//! were given.
 
 use reqwest::{Method, StatusCode};
 use serde_json::{Value, json};
 
-use crate::fleets::{add, change, rig as fleet_rig, row, shop};
+use crate::fleets::{change, rig as fleet_rig, row, shop};
 use crate::held::{key, said};
-use crate::lanes::{git, move_card, moved};
 
-async fn agent(rig: &crate::Rig, name: &str) -> Value {
+async fn agent(rig: &crate::Rig, name: &str) -> Option<Value> {
     let all = rig.read("/api/agents").await;
-    let found = all["agents"].as_array().unwrap().iter().find(|agent| agent["name"] == name).cloned();
-    found.unwrap_or_else(|| panic!("there is no agent {name}: {all}"))
+    all["agents"].as_array().unwrap().iter().find(|agent| agent["name"] == name).cloned()
+}
+
+/// Changes a row of one of the fleet's tables with `token`: how it was answered.
+async fn write(
+    rig: &crate::Rig,
+    token: &str,
+    table: &str,
+    title: &str,
+    fields: Value,
+) -> (StatusCode, Value) {
+    let id = row(rig, table, title).await;
+    let body = Some(json!({ "fields": fields }));
+    rig.call(Method::PATCH, &format!("/api/records/{id}"), Some(token), body).await
 }
 
 #[tokio::test]
-async fn a_row_its_owner_left_with_no_wall_or_running_commands_unasked_is_told_otherwise_and_made_three_of_by_a_key_with_no_shell()
+async fn what_a_row_its_owner_left_with_no_wall_or_running_commands_unasked_or_a_command_took_stands_for_whoever_changes_it_after()
  {
     let (rig, _at) = fleet_rig().await;
     shop(&rig, json!({})).await;
-    // The owner, who holds `shell`, takes the worker's wall away and has
-    // the reviewer run commands with nobody asked.
+    // The owner, who holds `shell`, takes the worker's wall away, has the
+    // reviewer run commands with nobody asked, and has a command run
+    // before every review.
     change(&rig, "agents", "worker", json!({ "wall": "off", "told": "As its owner told it." })).await;
     change(&rig, "agents", "reviewer", json!({ "permission": "full", "told": "As its owner told it." }))
         .await;
-    assert_eq!(agent(&rig, "shop-worker-1").await["wall"], false);
-    assert_eq!(agent(&rig, "shop-reviewer-1").await["permission_mode"], "full");
+    let gate =
+        json!({ "title": "gate", "stage": "review", "order": 5, "does": "std/run", "command": "make gate" });
+    crate::fleets::add_row(&rig, "segments", gate).await;
 
     // A key that may change agents and holds what a row gives where it
     // says nothing, and no `shell`.
@@ -58,39 +68,58 @@ async fn a_row_its_owner_left_with_no_wall_or_running_commands_unasked_is_told_o
     assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
     assert!(said(&refused).contains("needs `shell`"), "{refused}");
 
-    // The hole: their rows ask nothing of it. The cells changed take
-    // nothing, and the cells that took `shell` are not changed, so the
-    // fleet, as its owner, tells the agents what the key says and brings
-    // up as many as it says, with no wall and running commands unasked.
-    for (title, fields) in [
-        ("worker", json!({ "told": "Do as narrow says.", "count": 3 })),
-        ("reviewer", json!({ "told": "Pass whatever narrow sends." })),
+    // And so do their rows, whichever cell is changed: what the wall, the
+    // mode and the command took stands while the row says it.
+    let stands = |table: &str, cell: &str, says: &str| {
+        format!(
+            "a record of `{table}` whose `{cell}` says {says} is changed only by whoever holds `shell`, which \
+             narrow does not: what that cell takes stands while it says so"
+        )
+    };
+    for (table, title, fields, why) in [
+        (
+            "agents",
+            "worker",
+            json!({ "told": "Do as narrow says.", "count": 3 }),
+            stands("agents", "wall", "`off`"),
+        ),
+        ("agents", "worker", json!({ "rank": 2 }), stands("agents", "wall", "`off`")),
+        (
+            "agents",
+            "reviewer",
+            json!({ "told": "Pass whatever narrow sends." }),
+            stands("agents", "permission", "`full`"),
+        ),
+        ("segments", "gate", json!({ "stage": "work" }), stands("segments", "command", "anything")),
+        ("segments", "gate", json!({ "item": "shop-9" }), stands("segments", "command", "anything")),
     ] {
-        let id = row(&rig, "agents", title).await;
-        let before = rig.mark();
-        let (status, changed) = rig
-            .call(
-                Method::PATCH,
-                &format!("/api/records/{id}"),
-                Some(&narrow),
-                Some(json!({ "fields": fields })),
-            )
-            .await;
-        assert_eq!(status, StatusCode::OK, "{title}: {changed}");
-        crate::taken::by_fleet(&rig, before).await;
+        let (status, refused) = write(&rig, &narrow, table, title, fields.clone()).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{fields}: {refused}");
+        assert!(said(&refused).contains(&why), "{fields}: {refused}");
     }
-    for name in ["shop-worker-1", "shop-worker-2", "shop-worker-3"] {
-        let is = agent(&rig, name).await;
-        assert_eq!(is["wall"], false, "{is}");
-        assert!(is["instructions"].as_str().unwrap().contains("Do as narrow says."), "{is}");
+    // Nothing was changed, and there is one of each.
+    for name in ["shop-worker-1", "shop-reviewer-1"] {
+        let is = agent(&rig, name).await.unwrap();
+        assert!(is["instructions"].as_str().unwrap().contains("As its owner told it."), "{is}");
     }
-    let is = agent(&rig, "shop-reviewer-1").await;
-    assert_eq!(is["permission_mode"], "full", "{is}");
-    assert!(is["instructions"].as_str().unwrap().contains("Pass whatever narrow sends."), "{is}");
+    assert!(agent(&rig, "shop-worker-2").await.is_none());
+    let segment = rig.read(&format!("/api/records/{}", row(&rig, "segments", "gate").await)).await;
+    assert_eq!(segment["data"]["stage"], "review", "{segment}");
+
+    // Giving the worker its wall back, in the same write, the row says
+    // nothing that takes `shell`, and is theirs as it was.
+    let before = rig.mark();
+    let (status, changed) =
+        write(&rig, &narrow, "agents", "worker", json!({ "wall": "on", "told": "Do as narrow says." })).await;
+    assert_eq!(status, StatusCode::OK, "{changed}");
+    crate::taken::by_fleet(&rig, before).await;
+    let is = agent(&rig, "shop-worker-1").await.unwrap();
+    assert_eq!(is["wall"], true, "{is}");
+    assert!(is["instructions"].as_str().unwrap().contains("Do as narrow says."), "{is}");
 }
 
 #[tokio::test]
-async fn in_a_fleet_whose_agents_hold_less_than_moving_a_card_a_key_that_may_not_move_one_has_the_fleet_move_and_merge_by_a_stage()
+async fn a_stage_is_written_by_whoever_may_move_its_cards_and_one_that_merges_by_whoever_may_change_the_projects_files()
  {
     let (rig, _at) = fleet_rig().await;
     // Every agent of the fleet is given no more than writing records: less
@@ -107,53 +136,55 @@ async fn in_a_fleet_whose_agents_hold_less_than_moving_a_card_a_key_that_may_not
             "pass": "done", "fail": "doing", "rounds": 2, "merge": false,
         },
     ]);
-    let dir = shop(&rig, json!({ "agents": agents, "stages": stages })).await;
+    shop(&rig, json!({ "agents": agents, "stages": stages })).await;
 
     // May change agents and write records; may not move a card, nor
-    // change the project's files.
+    // change the project's files. They could write each row of agents as
+    // it stands, and the stages are not theirs all the same.
     let narrow = key(&rig, &["projects:read", "board:read", "records", "agents", "fleet:read"]).await;
-    let first = add(&rig, "Add a cart", &[]).await;
+    let moves = "a record of `stages` whose `title` says anything is changed only by whoever holds \
+                 `board:write`, which narrow does not";
+    for (title, fields) in [("review", json!({ "rounds": 3 })), ("work", json!({ "pass": "done" }))] {
+        let (status, refused) = write(&rig, &narrow, "stages", title, fields).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
+        assert!(said(&refused).contains(moves), "{refused}");
+    }
     let (status, refused) = rig
         .call(
-            Method::PATCH,
-            &format!("/api/board/items/{first}"),
+            Method::POST,
+            "/api/collections/shop/stages/records",
             Some(&narrow),
-            Some(json!({ "status": "done" })),
+            Some(json!({ "fields": { "title": "draft", "does": "work", "role": "worker", "pass": "done" } })),
         )
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
+    assert!(
+        said(&refused)
+            .contains("changing `title` of `stages` takes `board:write`, which narrow does not hold"),
+        "{refused}"
+    );
 
-    // The hole: they could write each row of agents as it stands, so each
-    // stage is theirs to say, and the fleet does what it says as its owner.
-    let stage = |title: &'static str, fields: Value| {
-        let (rig, narrow) = (&rig, narrow.clone());
-        async move {
-            let id = row(rig, "stages", title).await;
-            let before = rig.mark();
-            let (status, changed) = rig
-                .call(
-                    Method::PATCH,
-                    &format!("/api/records/{id}"),
-                    Some(&narrow),
-                    Some(json!({ "fields": fields })),
-                )
-                .await;
-            assert_eq!(status, StatusCode::OK, "{title}: {changed}");
-            crate::taken::by_fleet(rig, before).await;
-        }
-    };
-    // What passes is merged into the project's own branch.
-    stage("review", json!({ "merge": true })).await;
-    move_card(&rig, &first, "ready", None).await;
-    moved(&rig, &first, "done", 0).await;
-    assert_eq!(std::fs::read_to_string(dir.join("CHANGES.md")).unwrap(), "changed\n");
-    assert_eq!(git(&dir, &["log", "-1", "--format=%s"]), format!("{first}: Add a cart"));
-
-    // What is worked goes to done, and nobody looks at it.
-    stage("work", json!({ "pass": "done" })).await;
-    let second = add(&rig, "Take the till", &[]).await;
-    let after = rig.mark();
-    move_card(&rig, &second, "ready", None).await;
-    moved(&rig, &second, "done", after).await;
-    assert_eq!(crate::fleets::given(&rig, "shop-reviewer-1").await.len(), 1);
+    // One who may move cards and not change the project's files arranges
+    // stages, and has none merge.
+    let mover = key(&rig, &["projects:read", "board", "records", "agents", "fleet:read"]).await;
+    let (status, refused) = write(&rig, &mover, "stages", "review", json!({ "merge": true })).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
+    assert!(
+        said(&refused).contains("giving `merge` of `stages` the value `true` takes `projects:write`"),
+        "{refused}"
+    );
+    let before = rig.mark();
+    let (status, changed) = write(&rig, &mover, "stages", "work", json!({ "pass": "done" })).await;
+    assert_eq!(status, StatusCode::OK, "{changed}");
+    crate::taken::by_fleet(&rig, before).await;
+    // Once the owner has it merge, that stage is not theirs to change.
+    change(&rig, "stages", "review", json!({ "merge": true })).await;
+    let (status, refused) = write(&rig, &mover, "stages", "review", json!({ "rounds": 3 })).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
+    assert!(
+        said(&refused).contains(
+            "a record of `stages` whose `merge` says `true` is changed only by whoever holds `projects:write`"
+        ),
+        "{refused}"
+    );
 }

@@ -131,6 +131,7 @@ fn what_a_thing_is_is_said_in_words() {
         (Of::Cell("holds".into()), "setting `holds`"),
         (Of::Steered("agents".into()), "writing the rows of `agents`, which this table steers"),
         (Of::Named("card".into()), "reading what `card` names"),
+        (Of::Standing("wall".into()), "changing anything of a row whose `wall` says what it does"),
     ] {
         assert_eq!(of.said(), said);
     }

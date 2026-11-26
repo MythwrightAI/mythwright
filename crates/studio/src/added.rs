@@ -549,6 +549,7 @@ impl Collections {
             takes: Default::default(),
             takes_of: Default::default(),
             takes_each: false,
+            stands: false,
             unsaid: Vec::new(),
             hidden: false,
             suggests: Vec::new(),

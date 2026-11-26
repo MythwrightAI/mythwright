@@ -105,6 +105,13 @@ pub const FIELDS: &[Row] = &[
          field was a choice is counted from",
     ),
     (
+        "*.stands",
+        "bool",
+        "with `takes`, what giving it its value took is asked again of whoever adds the record or changes any \
+         cell of it, for as long as it says that value: for a cell that lets something with more authority do \
+         more, beside cells that say what that does",
+    ),
+    (
         "*.takes.*",
         "each",
         "a value of the field as it is written, with the scope, or the list of scopes, giving the field that value \

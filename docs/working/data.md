@@ -157,6 +157,18 @@ a new way of writing a record, or anything that deletes.
 - A cell that lets an agent's program do more (`permission: full`) says
   what giving that value takes (`takes: { full: shell }`), or the row is a
   way around the agent's own route.
+- `stands` (`Field::stands`, beside `takes`; `crates/studio/src/stood.rs`)
+  says that what giving a cell its value took is asked again of whoever
+  adds the record or changes any cell of it, while it says that value
+  (for a `takes` of any value, while it says anything). It is checked in
+  `fields::may_set` against the record as it is to be written, so a write
+  that also sets the cell to a value that takes nothing is anybody's who
+  may write the row. Removing a record is not checked. A field that takes
+  nothing cannot stand; with `takes: each` it adds nothing. Declaring a
+  field again so that it does not stand takes holding each scope it took
+  (`stood::still_standing`). Something new whose cell lets more be done
+  with the rest of its row says `stands`, never a Rust check on a table's
+  name.
 - A cell whose value becomes a param of a blueprint run as whoever applied
   the fleet is guarded at least as the param's own cell would be: `with` of
   `segments` takes `shell` and `secrets:use`, and never sets what a row's own
