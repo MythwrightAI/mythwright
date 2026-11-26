@@ -2,9 +2,29 @@
 
 # Releases
 
-What each release of Mythwright is, the newest first. A release is a
-heading of the second level in this file, and the client's list of
-releases under Help is read from those headings.
+What each release of Mythwright is, the newest first, after what is in
+none yet (*Unreleased*). A release is a heading of the second level in
+this file, and the client's list of releases under Help is read from
+those headings.
+
+## Unreleased
+
+What is on the line since 0.1.0 and in no release yet. It becomes the
+next release's notes when that is made.
+
+### Trackers
+
+- A project's cards can be kept in step with a Jira project's issues
+  (`jira/issues`) and with a Notion database's pages
+  (`notion-pages/pages`), a linked ticket at a time (its title, its body,
+  whether it is done and what is said on it), as they are with a
+  repository's issues on GitHub (`github/issues`). The two new packages
+  come with the program and ask the service's web API with curl 8.3 or
+  later. They have been played against stand-ins written from the
+  services' documentation, and not yet against the services.
+- How a package is written for a tracker nobody ships one for, with an
+  example package to copy (`examples/tracker`), is *Keeping a tracker in
+  step* in the guide to extension packages.
 
 ## 0.1.0: a preview
 
@@ -506,16 +526,6 @@ blueprints you write, from this version to the next.
   it, and nothing reads one back.
 - Something outside can say an event to the factory, with a key made
   for that one topic or as a service that signs what it sends.
-- A project's cards are kept in step with tickets kept somewhere else,
-  a linked ticket at a time (its title, its body, whether it is done and
-  what is said on it), by packages that come with the program: a
-  repository's issues on GitHub (`github/issues`), a Jira project's
-  issues (`jira/issues`) and a Notion database's pages
-  (`notion-pages/pages`). The last two ask the service's web API with
-  curl 8.3 or later, and have been played against stand-ins and not yet
-  against the real services. How one is written for a tracker nobody
-  ships a package for, with an example package to copy, is *Keeping a
-  tracker in step* in the guide to extension packages.
 
 ### Devices
 

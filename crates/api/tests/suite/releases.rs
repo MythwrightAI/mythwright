@@ -58,7 +58,12 @@ async fn the_notes_of_each_release_are_read_from_the_daemon_by_anybody_signed_in
 #[test]
 fn the_newest_release_the_notes_tell_of_is_this_program() {
     // A version with no notes is found here: the first heading is what the client says is new.
-    let newest = api::releases::releases(api::releases::NOTES).into_iter().next().expect("a release");
+    // What is on the line and in no release yet is written above it, under `Unreleased`,
+    // and the heading after that is this program's.
+    let newest = api::releases::releases(api::releases::NOTES)
+        .into_iter()
+        .find(|release| release.title != "Unreleased")
+        .expect("a release");
     let version = env!("CARGO_PKG_VERSION");
     assert!(
         newest.title == version || newest.title.starts_with(&format!("{version}:")),

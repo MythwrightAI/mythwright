@@ -44,6 +44,7 @@ What you can do with it today, each covered in more detail below:
 - Keep a project's tables, documents and mockups, with comments, attachments, history and a Trash.
 - Run a project's own pipelines by hand, or when a branch moves, a card reaches a column or a set time comes, under environments with feature flags and approvals.
 - Read a project's repository on its Git page; with the GitHub package, open pull requests and keep issues in sync with cards (tried against one GitHub repository so far).
+- Keep a board's cards in sync with a Jira project's issues or a Notion database's pages, with the packages for them, or with a tracker of your own through a package written from [an example](examples/tracker).
 - Use it in a browser or in its own window, with a theme of your own and nothing sent anywhere.
 
 A whole blueprint can be this short:
@@ -339,6 +340,9 @@ its section *What is not held yet* has the full list.
 - **The GitHub package is tested with a stand-in for its program.**
   Keeping issues in sync with cards has also been tried against GitHub
   itself, but not tested extensively.
+- **The Jira and Notion packages are tested with stand-ins only**,
+  written from those services' documentation: neither has been run
+  against the service itself yet.
 - **A wall is held around an agent's program and nothing else, and on
   Linux only.** Commands a blueprint runs and services it hosts run as
   you, and an agent's program can still reach the network.
