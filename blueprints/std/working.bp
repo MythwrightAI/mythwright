@@ -13,7 +13,7 @@
 # card. The row can be changed while work is under way, and this takes
 # what it now says where it is.
 blueprint: std/working
-version: 13
+version: 14
 description: "What a fleet does with the cards of a column where they are worked: an agent of a role works each when its turn has come, and hands it on."
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 # One thing at a time, but for what takes its turn by a card.
@@ -28,7 +28,7 @@ params:
 
   row:
     type: object
-    description: "The stage's row of the project's `stages`, as the fleet read it, with what the fleet says of every stage beside it: `column`, `role`, `agents` (how many the role has), `pass`, `rounds`, `picks`, `after_restart`, `restarts`, `moved_away`, and `push`, `fetch`, `base`, `remote` and `key`."
+    description: "The stage's row of the project's `stages`, as the fleet read it, with what the fleet says of every stage beside it: `column`, `role`, `agents` (how many the role has), `pass` (and `hands_to`, where that comes to), `next_after`, `rounds`, `picks`, `after_restart`, `restarts`, `moved_away`, and `push`, `fetch`, `base`, `remote` and `key`."
 
 state:
   # Whether the cards that were in its column when its role came to have
@@ -62,6 +62,10 @@ on_update:
   # What is pressed on a card here changed: a card it no longer holds is due.
   - do: set
     when: ${ params.row.agents > 0 && was.params.row.actions != params.row.actions }
+    with: { catch_up: true }
+  # When the next card is taken changed: a card that waited behind others may not now.
+  - do: set
+    when: ${ params.row.agents > 0 && was.params.row.next_after != params.row.next_after }
     with: { catch_up: true }
 
 on:
@@ -240,9 +244,42 @@ on:
         do: emit
         with: { topic: after.asked, card: "${event.data.card}", project: "${params.project}" }
 
+      board:
+        description: "Where the next card is taken only once none worked from here waits unmerged (`next_after`), the board as it is: which of its cards were worked from here, and are in hand or where they were handed on to."
+        when: ${ steps.due.out.came == "turn" && params.row.next_after == "merged" }
+        do: board.list
+        with: { project: "${params.project}" }
+
+      ahead:
+        description: Whether it waits behind such a card.
+        when: ${steps.board.ok}
+        do: work.ahead
+        with:
+          item: "${event.data.card}"
+          status: "${ steps.card.out.status ?? '' }"
+          here: "${params.row.column}"
+          doing: doing
+          hands_to: "${params.row.hands_to}"
+          done: done
+          next_after: "${params.row.next_after}"
+          items: ${steps.board.out.items}
+          waiting: "${ steps.card.out.more.waiting ?? '' }"
+
+      behind:
+        description: One that waits behind others asks for no place, and says why, as one waiting its turn does (`std/cards`). It is due again when one of them goes on from where it waits (`unmerged`).
+        when: ${steps.ahead.out.news}
+        do: emit
+        with:
+          topic: pool.waiting
+          pool: "${params.pool}"
+          project: "${params.project}"
+          about: "${event.data.card}"
+          limit: 1
+          why: "${steps.ahead.out.why}"
+
       turn:
         description: "Its turn is asked for by the card's id: one of the places there are (`std/pool`). When it has one its round begins (`go`); a card that has to wait is a row in this column that says so, and nothing is kept waiting for it."
-        when: ${ steps.due.out.came == "turn" && params.pool != "" }
+        when: ${ steps.due.out.came == "turn" && params.pool != "" && steps.ahead.out.came != "behind" }
         do: emit
         with:
           topic: pool.asked
@@ -253,7 +290,7 @@ on:
 
       at_once:
         description: Where cards take no turns, a card's turn has come when it is due.
-        when: ${ steps.due.out.came == "turn" && params.pool == "" }
+        when: ${ steps.due.out.came == "turn" && params.pool == "" && steps.ahead.out.came != "behind" }
         do: emit
         with:
           topic: pool.granted
@@ -289,6 +326,32 @@ on:
       note: ""
       clear: true
 
+  # Where the next card is taken only once none worked from here waits
+  # unmerged (`next_after`), a card that goes on from where this stage
+  # handed it (passed and merged, sent back, put aside), or is taken off
+  # the board, may be what the cards here waited behind: each is due again.
+  unmerged:
+    event: board.item.moved
+    for: { project: "${params.project}", from: "${params.row.hands_to}" }
+    when: ${ params.row.next_after == "merged" && params.row.agents != 0 }
+    steps:
+      look:
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
+
+  unboarded:
+    event: board.item.removed
+    for: { project: "${params.project}" }
+    when: ${ params.row.next_after == "merged" && params.row.agents != 0 }
+    steps:
+      look:
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
+
   # A card's turn has come: it has one of the places, and a round of it
   # begins (`std/lane-round`). This waits for the round, so what is said
   # of the card meanwhile is taken up when the round is over; and where the
@@ -304,7 +367,40 @@ on:
         do: board.get
         with: { id: "${event.data.as}" }
 
+      board:
+        description: Where the next card is taken only once none worked from here waits unmerged, the board as it is now. A card that was due while none did may have its turn come after another was handed on.
+        when: ${ steps.card.ok && params.row.next_after == "merged" }
+        do: board.list
+        with: { project: "${params.project}" }
+
+      ahead:
+        description: Whether it waits behind a card worked from here that is not merged yet. Then its turn is given back (`gone`) and it says why; it is due again when that card goes on.
+        when: ${steps.board.ok}
+        do: work.ahead
+        with:
+          item: "${event.data.as}"
+          status: "${steps.card.out.status}"
+          here: "${params.row.column}"
+          doing: doing
+          hands_to: "${params.row.hands_to}"
+          done: done
+          next_after: "${params.row.next_after}"
+          items: ${steps.board.out.items}
+          waiting: "${ steps.card.out.more.waiting ?? '' }"
+
+      behind:
+        when: ${steps.ahead.out.news}
+        do: emit
+        with:
+          topic: pool.waiting
+          pool: "${params.pool}"
+          project: "${params.project}"
+          about: "${event.data.as}"
+          limit: 1
+          why: "${steps.ahead.out.why}"
+
       turn:
+        when: ${ steps.ahead.out.came != "behind" }
         description: "What this turn comes to, by what the card's row says and nothing else. A round of it begins; or the turn is given back, because the card is gone or somewhere it is not worked from, or because it is in hand and owed no round. A card can be said to be due twice (the stage's look at its column and the saying of its move may both find it), each asks for its turn, and the second is given when the round has given the first back. And a card that was sent back has its turn come whether or not anything has yet heard of that: its row says where it was moved from and what was said, in the write that moved it, and which of its moves a round has been told of."
         do: work.turn
         with:
@@ -328,7 +424,13 @@ on:
 
       taken:
         description: Said of a card that had to wait, wherever it now is, so that what it waited for comes off it.
-        when: ${ steps.card.ok && (event.data.waited ?? false) }
+        when: ${ steps.card.ok && (event.data.waited ?? false) && steps.ahead.out.came != "behind" }
+        do: emit
+        with: { topic: card.taken, card: "${event.data.as}", project: "${params.project}" }
+
+      caught_up:
+        description: And of a card taken that says it waits for something, having waited behind others (`ahead`) and not for a place.
+        when: ${ steps.turn.out.mine && (steps.card.out.more.waiting ?? "") != "" && !(event.data.waited ?? false) }
         do: emit
         with: { topic: card.taken, card: "${event.data.as}", project: "${params.project}" }
 
@@ -599,6 +701,14 @@ on:
         when: ${ steps.away.out.came == "stop" }
         do: stop
         with: { instance: "round-${event.data.id}", missing_ok: true }
+
+      look:
+        description: Where the next card is taken only once none worked from here waits unmerged, a card taken out of doing may be what the cards here waited behind (`unmerged`).
+        when: ${ params.row.next_after == "merged" && params.row.agents != 0 }
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
 
   # A card that was worked from here is done. No turn is taken to end a
   # round that still has it, since the turn is what the round is waited

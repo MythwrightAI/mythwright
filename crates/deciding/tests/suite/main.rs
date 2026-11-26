@@ -5,6 +5,7 @@
 //! here, no conductor and no agent: what a blueprint does with an answer
 //! is played where the fleet is (the API's suite).
 
+mod ahead;
 mod away;
 mod begun;
 mod chain;

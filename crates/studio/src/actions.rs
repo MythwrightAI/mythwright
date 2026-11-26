@@ -302,7 +302,7 @@ pub(crate) fn kept(registry: &mut Registry, studio: &Studio) {
                  one that names no card of the project is left out",
             )
             .capability("board:read")
-            .output("items", "the cards, each with its `id`, `title` and `status`, in the order of the board")
+            .output("items", "the cards, each with its `id`, `title`, `status` and the rest of what its row says (`more`), in the order of the board")
             .output("ids", "their ids, in the same order")
             .output("count", "how many there are")
             .output("columns", "the board's columns, left to right, whatever was asked for")
@@ -337,7 +337,7 @@ pub(crate) fn kept(registry: &mut Registry, studio: &Studio) {
                 .iter()
                 .filter(|item| only.as_deref().is_none_or(|column| item.status == column))
                 .filter(|item| except.as_deref().is_none_or(|column| item.status != column))
-                .map(|item| json!({ "id": item.id, "title": item.title, "status": item.status }))
+                .map(|item| json!({ "id": item.id, "title": item.title, "status": item.status, "more": item.more }))
                 .collect();
             let ids: Vec<&Value> = items.iter().map(|item| &item["id"]).collect();
             let columns = studio.board.columns(&project).await?;

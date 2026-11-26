@@ -311,6 +311,43 @@ the simulation, stopped at each point and restarted.
   card has its pool place (`go` in `std/working`); a waiting card stays a
   row in `ready`. Its worktree is made by the round too, then and not
   before, so it is cut after the cards it waits on were merged.
+- **When the next card is taken** is a row cell, `next_after`
+  (card 479). `handed`, the default and what was always so: as soon as
+  the last card's round hands it on, so the next card's worktree is cut
+  from the project's branch while the last waits in review, and has
+  nothing of its work (`ordered.rs` in the API suite plays it). The
+  default is kept because `merged` idles the stage's agents while a
+  review waits for a person, and cards that build on each other can say
+  so (`after`). `merged`: a card waiting in the column is taken only once
+  no card the stage took (`taken` is its column) is in `doing` or in the
+  column it hands on to (`hands_to`, given by `std/arrangement`: `pass`,
+  or `review` where that says none). It is one card at a time
+  (`std/arrangement` makes `at_once` at most 1). What is decided is a
+  block, `work.ahead` (`deciding::ahead`, with cases), handed the board's
+  cards whole (`board.list` gives each card's `more`): asked in `begun`
+  before the card asks for a place, and again in `go` as the place is
+  given, since two cards can both be due before either is taken; a card
+  behind gives its place back (`gone`). It says why on itself through
+  `std/cards` (`pool.waiting` with `why`, said once while it says the
+  same), and `caught_up` in `go` takes that off once it is taken. Only a
+  card waiting in the column is held back: a card taken already (sent
+  back, answered, taken up again) goes on, or a stage carried over from
+  `handed` with two cards in review would leave one in `doing` behind the
+  other. What lets a card behind go is looked for, never remembered:
+  the stage looks at its column again (`std/due`) when a card goes on
+  from `hands_to` (`unmerged`), is moved out of `doing` by somebody
+  (`away`), is taken off the board (`unboarded`), or the row's
+  `next_after` changes (`on_update`). Nothing is kept of a card behind
+  but its `waiting`, so a restart finds it as it was
+  (`ordering.rs`, a play stopped about the wait).
+- **A card that comes back to be worked keeps its worktree as it was**
+  (`place.make` answers `there`): it is not brought up to date with the
+  project's branch, which may have moved on since it was cut. Only the
+  remote's own additions to the card's branch are taken in, where the row
+  says `fetch` (`--ff-only`). Under `next_after: merged` nothing moves the
+  project's branch while a card is out, beside a person's own commits.
+  What happens when such a branch no longer merges is the review stage's
+  (card 480).
 - A card somebody moves out of `doing` while its agent works has its round
   stopped where the row says `moved_away: stop` (the default): `away` in
   `std/working`, which no card turn holds up. What a move means is a block

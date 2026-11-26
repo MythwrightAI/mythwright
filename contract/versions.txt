@@ -38,6 +38,7 @@ std/arrangement 14 42412584cee49b63
 std/arrangement 15 9cffcdeb9abb7569
 std/arrangement 16 2499046ccda8f55a
 std/arrangement 17 3aad8c370f4a4ca2
+std/arrangement 18 b909f40d5ed28760
 
 std/board 1 54f0c966c01b0401
 std/board 2 1891e749f10e6dfe
@@ -165,6 +166,7 @@ std/fleet 26 7066e74734e4236d
 std/fleet 27 671b3e7759ea4833
 std/fleet 28 3fdc98491b7179f6
 std/fleet 29 01c3ff9f5ccf16bf
+std/fleet 30 61591c9a382e53cb
 
 std/judge 1 66b26aa2e40e07d6
 std/judge 2 558ceed2829b5135
@@ -511,3 +513,4 @@ std/working 10 a654fa3b526f6662
 std/working 11 4150f90b64e51fd9
 std/working 12 138b7394b793700d
 std/working 13 fa97ee93fb9780c9
+std/working 14 8f3957b5b4b8f2a4

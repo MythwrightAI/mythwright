@@ -578,6 +578,10 @@
           "description": "Say which of a project's feature flags are past the day they were to go, each with whom it is told to and in what words."
         },
         {
+          "const": "work.ahead",
+          "description": "Say whether an item waiting where items are worked may be taken now, or waits behind items worked from there before it that are in hand or handed on and not merged, where the row says the next is taken only once none is."
+        },
+        {
           "const": "timed.read",
           "description": "Read a card's history and say how long it took: from being added to coming to the board's last column, in each column, how often it was sent back, and who worked it, as the row a table of those keeps."
         },
@@ -1227,6 +1231,10 @@
         {
           "const": "flags.due",
           "description": "Say which of a project's feature flags are past the day they were to go, each with whom it is told to and in what words."
+        },
+        {
+          "const": "work.ahead",
+          "description": "Say whether an item waiting where items are worked may be taken now, or waits behind items worked from there before it that are in hand or handed on and not merged, where the row says the next is taken only once none is."
         },
         {
           "const": "timed.read",
@@ -12374,6 +12382,101 @@
                     "type": [
                       "array",
                       "string"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "do": {
+                "const": "work.ahead"
+              }
+            },
+            "required": [
+              "do"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "patternProperties": {
+                  "^\\.\\.\\.$": {}
+                },
+                "properties": {
+                  "doing": {
+                    "description": "the column an item is in while it is in hand Needed.",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "done": {
+                    "description": "the column an item is finished in",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "hands_to": {
+                    "description": "the column a worked item is handed on to",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "here": {
+                    "description": "the column whose items are worked by whoever asks Needed.",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "item": {
+                    "description": "the item Needed.",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "items": {
+                    "description": "the board's items, each with its `id`, `status` and `more.taken`",
+                    "type": [
+                      "array",
+                      "string"
+                    ]
+                  },
+                  "next_after": {
+                    "description": "when the next item is taken: `handed`, as soon as the last is handed on; `merged`, once none worked from here waits unmerged; `handed`, if not said",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "status": {
+                    "description": "the column it is in",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "waiting": {
+                    "description": "what the item says it waits for now",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
                     ]
                   }
                 }

@@ -26,6 +26,7 @@ mod abreast {
     mod envheld;
     mod goplayed;
     mod landing;
+    mod ordering;
     mod pressing;
     mod rolling;
     mod rounded;
@@ -152,6 +153,7 @@ mod named;
 mod noted;
 mod observed;
 mod opened;
+mod ordered;
 mod out_of_hand;
 mod outlined;
 mod outside;

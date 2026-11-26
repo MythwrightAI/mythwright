@@ -86,7 +86,7 @@
 # work and leaves when it has finished what it has in hand); and what
 # becomes of a review in session is its stage's to say (`in_flight`).
 blueprint: std/fleet
-version: 29
+version: 30
 description: The agents that work a project's board and the way work goes through them, kept as two tables of the project and changed by changing a row.
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 
@@ -401,6 +401,13 @@ steps:
         # (if 0 or not said), and never more than that.
         next: { type: choice, of: [first, last, priority] }
         at_once: { type: number }
+        # When the next card is taken, where cards are worked: as soon as
+        # the last is handed on (if it is not said), or only once none
+        # worked from here waits unmerged, in hand or where it was handed
+        # on to (`merged`), which is one card at a time. A card's branch is
+        # cut from the project's as it is when its card is taken, so one
+        # taken while the last is in review has nothing of that one's work.
+        next_after: { type: choice, of: [handed, merged] }
         # The blueprint that reviews one card here, where cards are
         # reviewed, and the one that plans one, where they are planned:
         # the fleet's (`review`, `proposal`), if it is not said. One of the

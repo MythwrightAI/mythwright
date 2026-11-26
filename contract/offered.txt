@@ -1966,6 +1966,21 @@ action wait
   gives ended
   gives gave
 
+action work.ahead
+  takes item string needed
+  takes status string
+  takes here string needed
+  takes doing string needed
+  takes hands_to string
+  takes done string
+  takes next_after string
+  takes items list
+  takes waiting string
+  gives came
+  gives behind
+  gives why
+  gives news
+
 action work.away
   takes from string needed
   takes to string needed

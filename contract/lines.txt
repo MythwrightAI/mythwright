@@ -1,6 +1,6 @@
 std/ab 243
 std/agent 156
-std/arrangement 446
+std/arrangement 451
 std/board 226
 std/bot 93
 std/canary-stage 57
@@ -23,7 +23,7 @@ std/feature-round 187
 std/features 169
 std/flags 165
 std/flags-due 36
-std/fleet 791
+std/fleet 798
 std/judge 161
 std/judge-scores 126
 std/judge-seat 61
@@ -72,4 +72,4 @@ std/topics 71
 std/turn 321
 std/watch 97
 std/work 339
-std/working 660
+std/working 770

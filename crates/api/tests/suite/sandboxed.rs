@@ -585,6 +585,7 @@ const AS_THEY_ARE: &[(&str, &[&str], &str)] = &[
             "work.ended",
             "work.held",
             "work.away",
+            "work.ahead",
             "work.left",
             "work.owed",
             "work.started",

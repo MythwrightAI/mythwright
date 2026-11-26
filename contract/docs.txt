@@ -159,6 +159,7 @@ page actions/triggers.refused.md
 page actions/triggers.timed.md
 page actions/turn.came.md
 page actions/wait.md
+page actions/work.ahead.md
 page actions/work.away.md
 page actions/work.came.md
 page actions/work.due.md

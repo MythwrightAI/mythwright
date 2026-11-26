@@ -2805,7 +2805,7 @@ applied. These actions act on its cards:
 | `board.move` | Moves a card to a column. It may carry a `note`. |
 | `board.update` | Changes a card's fields. |
 | `board.get` | Reads one card. |
-| `board.list` | Reads the cards. With `ids` it reads only the cards named, each found by its id, leaving out those that are gone, and outputs their `ids` beside the `items`. It always outputs the board's `columns`, with the `first` and the `last` (where cards begin and end). |
+| `board.list` | Reads the cards, each with its `id`, `title`, `status` and the rest of what its row says (`more`). With `ids` it reads only the cards named, each found by its id, leaving out those that are gone, and outputs their `ids` beside the `items`. It always outputs the board's `columns`, with the `first` and the `last` (where cards begin and end). |
 
 A move's `note` is what is said as the card is moved. It goes with the
 `board.item.moved` event as `note`, into the card's history, and onto the
@@ -4157,6 +4157,7 @@ row:
 | `needed` | how many of those must approve; more than half, with 0 or nothing |
 | `next` | which waiting card in the column is taken next when there is room: `first` (default), the first to arrive; `last`, the last; `priority`, the one whose `priority` stands highest, and among equals the first to arrive. See *Priority*, below this table |
 | `at_once` | how many cards are taken at once: as many as the role's agents can take (the default, or with 0), and never more. So `1` with two agents is one at a time |
+| `next_after` | where cards are worked, when the next card is taken: `handed` (default), as soon as the last is handed on; `merged`, only once no card worked from here waits unmerged, in `doing` or in the column it was handed on to (`pass`, or `review` where that says none). A card's branch is cut from the project's as it is when the card is taken, so with `handed` a card taken while the one before it is in review has nothing of that one's work. `merged` is one card at a time whatever `at_once` says; a card that waits says so (`waiting`: *no work is being started here for now: shop-1, worked from here, is not merged yet*) and is taken once that card is done, sent back to the column, put aside or taken off the board. A card left for a person in review or in `doing` holds the next back until somebody moves it |
 | `review` | for a review, the blueprint that reviews one card here: the fleet's `review` (`std/review`) by default. One of the project's own takes the params `std/review` takes and says `review.passed`, `review.failed` or `review.undecided`. It runs only as it was vouched for: saved by somebody who holds what the fleet was applied with, as for a blueprint `does` names |
 | `proposal` | for a planning stage, the blueprint that plans one card here: the fleet's `proposal` (`std/proposal`) by default, held to the same rule as `review` |
 | `rounds` | how many times a card may be sent back from here before it is left for a person: 2 by default. The stage counts it wherever it sends the card, so workers and reviewers never go round forever. A card left that way is reported where the stage reports and as an event, `card.left` (`card`, `project`, `rounds`), once each time it is left; that is also a line of the card's history. Raised, a card left under the limit it had is looked at again |
