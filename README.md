@@ -530,7 +530,7 @@ for a newer build or fetches one: there is no update check, ever.
 
 - **Pinned**: a tagged release (`v0.1.0`, `v0.1.1`, …). It changes only
   when you take another. Fixes for a line are released as its patch
-  versions, made on that line's own branch (`release/0.1`) while main
+  versions, made on that line's own branch (`stable/0.1`) while main
   moves on.
 - **Nightly**: the release called `nightly`, built from main each night if
   main has changed and the gate passes on that commit, and replaced by the

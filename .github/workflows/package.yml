@@ -19,7 +19,7 @@
 #
 # These are the pinned releases, one of the two lines (the other is the
 # nightly, `nightly.yml`). A tag is a release wherever it was made: a fix
-# to a pinned line is made on its branch (`release/0.1`), the version
+# to a pinned line is made on its branch (`stable/0.1`), the version
 # there is raised to the next patch (`0.1.1`, with its notes headed so in
 # `docs/releases.md`), and the tag `v0.1.1` pushed from that branch is
 # built here as `v0.1.0` was from main. `CONTRIBUTING.md` says how.

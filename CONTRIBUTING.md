@@ -273,6 +273,22 @@ holds is said in `BUILT_IN` in `xtask/src/notices.rs`.
   the code that reads the words.
 - A security problem is not an issue: [SECURITY.md](SECURITY.md).
 
+## Branches: `release` by day, `main` by night
+
+- **`main`** is what has passed the hosted gate. It is protected: a
+  change reaches it only through a pull request, and only once the check
+  *the gate, on Linux* has passed on it. The nightly is built from it.
+- **`release`** is where finished work lands during the day. Each piece
+  has passed `cargo xtask check` where it was made (and `cargo xtask
+  ways`, where it changes how anything is kept) before it lands.
+- **Each night** that `release` has moved, one pull request takes it to
+  `main`. The hosted gate runs once on it, and it is merged with a merge
+  commit, so what landed that day reads as the commits it was.
+- **Pull requests from outside** are opened against `release`. The gate
+  runs on them as well, once a maintainer has let the workflows run.
+- **A pinned line** has a branch of its own, `stable/<minor>`
+  (`stable/0.1`), as the next section says.
+
 ## Releases: a pinned line and the nightly
 
 There are two lines of what is released, and nothing in the program
@@ -295,18 +311,18 @@ under *Which build*.
   night, and the notes are written for the next pinned version.
 
 A fix that a pinned line is to have is made on main first, as any change
-is, and then carried to the line's branch, which is made from the tag
-the first time:
+is, and then carried to the line's branch, `stable/<minor>`, which is
+made from the tag the first time:
 
 ```sh
-git switch -c release/0.1 v0.1.0       # the first fix only; after that `git switch release/0.1`
+git switch -c stable/0.1 v0.1.0        # the first fix only; after that `git switch stable/0.1`
 git cherry-pick -x <commit>            # each commit of the fix, oldest first
 # Cargo.toml: version = "0.1.1"; docs/releases.md: a heading `## 0.1.1: ...` above 0.1.0,
 # saying what was fixed
 cargo xtask check                      # the whole gate, on the branch, as anywhere
 git commit -am "0.1.1"
 git tag v0.1.1
-git push origin release/0.1 v0.1.1     # the tag makes the release
+git push origin stable/0.1 v0.1.1      # the tag makes the release
 ```
 
 What cannot be carried as it is (main has moved under it) is written

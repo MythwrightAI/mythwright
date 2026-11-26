@@ -520,7 +520,7 @@ of the language. How to try a blueprint without changing what runs is in
   (`package::nightly_version`) is first in the line beside its programs
   (`package::note`) and is reported by the daemon
   (`folders::place::version`, checked in the API suite's `releases.rs`).
-  A fix to a released line is a tag on its branch (`release/0.1`); see
+  A fix to a released line is a tag on its branch (`stable/0.1`); see
   `CONTRIBUTING.md`.
 - `THIRD-PARTY-NOTICES.md` is made by `cargo xtask notices` when a
   dependency changes, and committed; packaging only copies it. Rust half:
