@@ -116,11 +116,20 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use crate::daemon::Daemon;
 use crate::{scratch, soon};
 
-/// The cases of every package here that has any, as (package, case).
+/// The cases of every package here that has any, as (package, case): the
+/// packages that ship, and an example that is a package (`examples/`
+/// beside them, a folder with a manifest), which somebody copies to write
+/// one of their own and which is held the same way.
 fn cases() -> Vec<(PathBuf, PathBuf)> {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../extensions");
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let shipped = std::fs::read_dir(repo.join("extensions")).unwrap().flatten().map(|entry| entry.path());
+    let examples = std::fs::read_dir(repo.join("examples"))
+        .unwrap()
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|example| example.join("extension.yaml").is_file());
     let mut found = Vec::new();
-    for package in std::fs::read_dir(dir).unwrap().flatten().map(|entry| entry.path()) {
+    for package in shipped.chain(examples) {
         for example in std::fs::read_dir(package.join("examples")).into_iter().flatten().flatten() {
             if example.file_name().to_string_lossy().ends_with(".case.json") {
                 found.push((package.clone(), example.path()));

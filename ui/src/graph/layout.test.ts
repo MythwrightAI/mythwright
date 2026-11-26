@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Graph, GraphNode } from '../api.ts';
-import { around, fit, fitBox, layout, NODE_H, NODE_W } from './layout.ts';
+import { around, fit, fitBox, fitLeast, layout, NODE_H, NODE_W } from './layout.ts';
 
 function node(id: string, layer: number): GraphNode {
   const [group, name] = id.split('/') as [string, string];
@@ -192,4 +192,14 @@ test('a box is fitted in the middle of what it is drawn in, as large as there is
   assert.equal(view.y + (50 + 50) * view.k, 150);
   const small = fitBox({ x: 0, y: 0, w: 2000, h: 100 }, { width: 400, height: 300 }, 0);
   assert.equal(small.k, 0.2);
+});
+
+test('a graph that fits at the least it is drawn at is fitted whole, and one that does not is drawn at that from its start', () => {
+  const viewport = { width: 1000, height: 600 };
+  const cases: [string, { width: number; height: number }, { k: number; x: number; y: number }][] = [
+    ['small enough to fit', { width: 600, height: 200 }, fit({ width: 600, height: 200 }, viewport)],
+    ['too wide: from its left, at the least', { width: 3000, height: 200 }, { k: 0.75, x: 32, y: 64 }],
+    ['too wide and too tall: from its top left', { width: 3000, height: 2000 }, { k: 0.75, x: 32, y: 32 }],
+  ];
+  for (const [said, size, fitted] of cases) assert.deepEqual(fitLeast(size, viewport, 0.75), fitted, said);
 });

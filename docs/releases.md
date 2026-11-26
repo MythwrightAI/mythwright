@@ -2,9 +2,29 @@
 
 # Releases
 
-What each release of Mythwright is, the newest first. A release is a
-heading of the second level in this file, and the client's list of
-releases under Help is read from those headings.
+What each release of Mythwright is, the newest first, after what is in
+none yet (*Unreleased*). A release is a heading of the second level in
+this file, and the client's list of releases under Help is read from
+those headings.
+
+## Unreleased
+
+What is on the line since 0.1.0 and in no release yet. It becomes the
+next release's notes when that is made.
+
+### Trackers
+
+- A project's cards can be kept in step with a Jira project's issues
+  (`jira/issues`) and with a Notion database's pages
+  (`notion-pages/pages`), a linked ticket at a time (its title, its body,
+  whether it is done and what is said on it), as they are with a
+  repository's issues on GitHub (`github/issues`). The two new packages
+  come with the program and ask the service's web API with curl 8.3 or
+  later. They have been played against stand-ins written from the
+  services' documentation, and not yet against the services.
+- How a package is written for a tracker nobody ships one for, with an
+  example package to copy (`examples/tracker`), is *Keeping a tracker in
+  step* in the guide to extension packages.
 
 ## 0.1.0: a preview
 

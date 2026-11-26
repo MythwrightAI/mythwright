@@ -1,0 +1,23 @@
+{
+  "says": "Told a label that links cards, a card given it by somebody who holds what linking takes has an issue made for it, and a card given another is left here. Told a label that links issues, an issue of the Jira project that has it has a card made for it when Jira is next asked what changed, and one that has not is left there.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "ada@example.com:t0ken"}},
+    {"run": ["secret", "set", "jira-key", "--file", "{here}/key.txt"]},
+    {"apply": "issues", "project": "shop", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "jira-key", "out_label": "public", "in_label": "factory"}, "sets_off": "look"},
+    {"ran": ["{curl} {api}/myself", "{curl} {changed}"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"run": ["board", "set", "shop-1", "labels=public"], "sets_off": "keep"},
+    {"ran": ["{curl} {marked}shop-1%22&fields=summary&maxResults=1", "{curl} {post} {\"fields\":{\"project\":{\"key\":\"SHOP\"},\"issuetype\":{\"name\":\"Task\"},\"summary\":\"Add a cart\",\"description\":\"Customers need one.\",\"labels\":[\"card-shop-1\"]}} {api}/issue", "{curl} {api}/issue/SHOP-1{whole}"]},
+    {"run": ["board", "add", "shop", "Fix the footer"]},
+    {"run": ["board", "set", "shop-2", "labels=later"], "sets_off": "labelled"},
+    {"ran": []},
+    {"given": {"issues/SHOP-2/summary": "Sell gift cards", "issues/SHOP-2/labels": "factory", "issues/SHOP-2/updated": "s5", "issues/SHOP-3/summary": "Not for here", "issues/SHOP-3/labels": "later", "issues/SHOP-3/updated": "s6"}},
+    {"run": ["emit", "jira.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["{curl} {changed}", "{curl} {api}/issue/SHOP-2{whole}", "{curl} {api}/issue/SHOP-2{whole}", "{curl} {api}/issue/SHOP-2{whole}"]},
+    {"run": ["record", "show", "shop-3"], "says": "title: Sell gift cards"},
+    {"run": ["record", "show", "shop-links-2"], "says": "issue: SHOP-2"}
+  ]
+}

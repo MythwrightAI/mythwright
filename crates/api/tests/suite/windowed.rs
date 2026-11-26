@@ -109,13 +109,29 @@ fn ids(window: &Value) -> Vec<String> {
     window["rows"].as_array().unwrap().iter().map(|row| row["id"].as_str().unwrap().to_string()).collect()
 }
 
+/// Another table of the shop declared from another thread, while this
+/// one does nothing: whatever on this one hears that it was declared, and
+/// reads the shop's database for it, is asked only once this thread next
+/// waits. So it is when this one is slow to come to it, which a machine
+/// with work to spare for the rest does not show.
+fn declared_aside(rig: &Rig) {
+    let collections = rig.node().app.studio.collections.clone();
+    let spec = studio::collections::Spec::read(&json!({ "title": { "type": "text" } }), &Value::Null, None);
+    let system = kernel::Principal::system();
+    let declaring = collections.ensure("shop", "aside", spec.unwrap(), None, &system);
+    std::thread::scope(|scope| {
+        scope.spawn(|| {
+            let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+            runtime.block_on(declaring).unwrap();
+        });
+    });
+}
+
 /// The same read of both tables: what the larger costs, and what each read.
 async fn both(rig: &Rig, steps: &AtomicU64, asked: &str) -> ((u64, u64), (Value, Value)) {
     let mut cost = Vec::new();
     let mut read = Vec::new();
     for table in ["few", "many"] {
-        // Read once to have every statement's tables known, then counted.
-        window(rig, table, asked).await;
         let before = steps.load(Ordering::SeqCst);
         read.push(window(rig, table, asked).await);
         cost.push(steps.load(Ordering::SeqCst) - before);
@@ -127,7 +143,12 @@ async fn both(rig: &Rig, steps: &AtomicU64, asked: &str) -> ((u64, u64), (Value,
 #[tokio::test]
 async fn the_first_page_of_a_view_and_a_page_from_the_middle_cost_the_same_beside_a_hundred_rows_as_beside_many()
  {
-    let rig = Rig::new().await;
+    // On a clock of its own, which nothing moves: what the factory does
+    // on a clock (measurements written out every ten seconds, to the
+    // factory's database, which keeps the shop's where there is one
+    // journal) is not done while the reads are counted.
+    let clock = Arc::new(kernel::ManualClock::new());
+    let rig = Rig::owned(Rig::with("api-windowed", move |config, _| config.clock = Some(clock)).await).await;
     rig.send("/api/projects", json!({ "name": "Shop" })).await;
     // Planted before the tables are declared, as a factory from before
     // would hold them: how many rows a table has is counted as the daemon
@@ -156,6 +177,22 @@ async fn the_first_page_of_a_view_and_a_page_from_the_middle_cost_the_same_besid
         ("about a row", "around=30&limit=50".into()),
         ("about a row, by a number", "around=30&sort=points&limit=50".into()),
     ];
+    // Each read once before any is counted, so that every statement's tables are known.
+    for (_, asked) in &reads {
+        for table in ["few", "many"] {
+            window(&rig, table, asked).await;
+        }
+    }
+    // Nothing is counted until the factory is at rest: what was said as
+    // the tables were set up is heard by more than one thing that reads
+    // the shop's tables for it (the keeper of records' histories, what
+    // follows the libraries' folders), each in its own time, and one slow
+    // to come to it is counted with a read. Here the last of it is said
+    // from another thread, so that without the rest three such readings
+    // fall in the first read counted (1715 steps beside 1502).
+    declared_aside(&rig);
+    crate::simulation::rested(&rig).await;
+    let from = rig.mark();
     for (what, asked) in &reads {
         let ((few, many), (read_few, read_many)) = both(&rig, &steps, asked).await;
         assert!(!read_many["rows"].as_array().unwrap().is_empty(), "{what}");
@@ -173,6 +210,11 @@ async fn the_first_page_of_a_view_and_a_page_from_the_middle_cost_the_same_besid
             rows()
         );
     }
+    // And nothing the reads did set anything else going: nothing was said.
+    let said = rig.said(journal::EventQuery { after: from, ..Default::default() }).await;
+    let topics: Vec<&str> = said.iter().map(|event| event.topic.as_str()).collect();
+    assert!(topics.is_empty(), "said while the reads were counted: {topics:?}");
+
     // Back from the middle, by a number: what came before it.
     let up = window(&rig, "many", "sort=points&limit=50").await;
     let after = up["after"].as_str().unwrap();

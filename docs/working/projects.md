@@ -19,6 +19,13 @@ environment holds.
   unless whoever added it said what it starts with and left its library out
   (`Projects::create_with`). A test of a library clears the folder first, or
   counts those two files.
+- A file written through the factory is said once, by whoever wrote it. It
+  is held (`projects::writing`) from before it is on the disk until it is
+  written down as the project's, and a look over the folder
+  (`Projects::scan`) says nothing of a held file: one between the two said
+  a plan was the system's, and its cards named no agent (card 475,
+  `looked.rs` in the studio suite). Something new that writes a project's
+  file through the factory holds it the same way.
 
 ## What a project starts with: `std/project`
 

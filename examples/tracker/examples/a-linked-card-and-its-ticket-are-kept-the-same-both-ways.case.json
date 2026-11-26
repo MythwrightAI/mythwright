@@ -1,0 +1,29 @@
+{
+  "says": "A card linked by a row of `links` has a ticket made for it by the tracker's own command. Its title changed here goes out, and the ticket's changed in the tracker comes in when the tracker is next asked what changed; a card moved to the board's last column has its ticket closed, and a ticket opened again in the tracker has its card moved to the first. A link that names a ticket has a card made for it, filled as the ticket stands.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "tickets", "project": "shop", "sets_off": "look"},
+    {"ran": ["whoami", "changed --json"]},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"ran": ["find --mark=shop-1 --json", "new --mark=shop-1 --title=Add a cart --body=Customers need one. --json", "show T-1 --json"]},
+    {"holds": {"tickets/T-1": {"title": "Add a cart", "body": "Customers need one.", "mark": "shop-1", "stamp": "t1"}}},
+    {"run": ["board", "set", "shop-1", "title=Add a basket"], "sets_off": "keep"},
+    {"ran": ["show T-1 --json", "edit T-1 --title=Add a basket"]},
+    {"given": {"tickets/T-1/title": "Add a trolley", "tickets/T-1/stamp": "s9"}},
+    {"run": ["emit", "tracker.look", "project=shop"], "sets_off": "keep"},
+    {"ran": ["changed --json", "show T-1 --json"]},
+    {"run": ["record", "show", "shop-1"], "says": "title: Add a trolley"},
+    {"run": ["board", "move", "shop-1", "done"], "sets_off": "keep"},
+    {"ran": ["show T-1 --json", "close T-1"]},
+    {"given": {"tickets/T-1/state": null, "tickets/T-1/stamp": "s10"}},
+    {"run": ["emit", "tracker.look", "project=shop"], "sets_off": "keep"},
+    {"run": ["record", "show", "shop-1"], "says": "status: backlog"},
+    {"given": {"tickets/T-7/title": "Fix the footer", "tickets/T-7/body": "It overlaps the cart.", "tickets/T-7/stamp": "s1"}},
+    {"run": ["record", "add", "shop", "links", "ticket=T-7"], "sets_off": "bring"},
+    {"run": ["record", "show", "shop-2"], "says": "title: Fix the footer"},
+    {"run": ["record", "show", "shop-links-2"], "says": "card: shop-2"}
+  ]
+}

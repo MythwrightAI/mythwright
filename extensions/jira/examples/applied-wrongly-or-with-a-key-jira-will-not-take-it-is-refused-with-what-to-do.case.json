@@ -1,0 +1,20 @@
+{
+  "says": "Applied to no project, told a site that is no address of one, told to take a side or somebody's changes it has no word for, told a key the factory does not keep, or handed a key Jira will not take, it is refused in a sentence that says what to do instead, and the program is not asked as anybody else.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "ada@example.com:t0ken"}},
+    {"run": ["secret", "set", "jira-key", "--file", "{here}/key.txt"]},
+    {"apply": "issues", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "jira-key"}, "fails": "so it is applied to a project: --project <project>"},
+    {"apply": "issues", "project": "shop", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "jira-key", "prefer": "newest"}, "fails": "`prefer` is which side is taken where a ticket changed on both, `here` or `there`; it is `newest`."},
+    {"apply": "issues", "project": "shop", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "jira-key", "takes_in": "friends"}, "fails": "`takes_in` is whose changes of an issue in Jira are taken into its card, `everyone`, `trusted` or `nobody`; it is `friends`."},
+    {"apply": "issues", "project": "shop", "params": {"site": "acme.atlassian.net", "jira_project": "SHOP", "key": "jira-key"}, "fails": "`site` is the address of your Jira site, as https://acme.atlassian.net, with nothing after its name; it is `acme.atlassian.net`."},
+    {"ran": []},
+    {"apply": "issues", "project": "shop", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "nobodys"}, "fails": "there is no secret called `nobodys`"},
+    {"ran": []},
+    {"given": {"bad-key": ""}},
+    {"apply": "issues", "project": "shop", "params": {"site": "https://acme.example", "jira_project": "SHOP", "key": "jira-key"}, "fails": "Jira did not take the key the program was handed."},
+    {"ran": ["{curl} {api}/myself"]}
+  ]
+}

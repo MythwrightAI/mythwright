@@ -1,0 +1,88 @@
+# What a blueprint can depend on of this package: its actions. Written by a
+# test, never by hand, as the application's own is (contract/offered.txt).
+
+action jira.account
+  needs extensions:jira
+  takes site string needed
+  gives name
+
+action jira.changed
+  needs extensions:jira
+  takes project string needed
+  takes site string needed
+  gives issues
+
+action jira.close
+  needs extensions:jira
+  takes issue string needed
+  takes site string needed
+
+action jira.edit
+  needs extensions:jira
+  takes body string
+  takes issue string needed
+  takes sends list needed
+  takes site string needed
+  takes title string
+
+action jira.find
+  needs extensions:jira
+  takes card string needed
+  takes project string needed
+  takes site string needed
+  gives found
+  gives issue
+  gives url
+
+action jira.issue
+  needs extensions:jira
+  takes issue string needed
+  takes site string needed
+  gives author
+  gives body
+  gives closed
+  gives issue
+  gives labels
+  gives said
+  gives stamp
+  gives title
+  gives trusted
+  gives url
+
+action jira.open
+  needs extensions:jira
+  makes title an issue
+  takes body string
+  takes card string needed
+  takes project string needed
+  takes site string needed
+  takes title string needed
+  takes type string
+  gives issue
+  gives url
+
+action jira.reopen
+  needs extensions:jira
+  takes issue string needed
+  takes site string needed
+
+action jira.said-find
+  needs extensions:jira
+  takes issue string needed
+  takes mark int needed
+  takes site string needed
+  gives found
+
+action jira.say
+  needs extensions:jira
+  takes body string needed
+  takes issue string needed
+  takes mark int needed
+  takes site string needed
+  gives url
+
+action jira.transitions
+  needs extensions:jira
+  takes issue string needed
+  takes site string needed
+  gives transitions

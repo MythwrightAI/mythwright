@@ -123,3 +123,19 @@ export function tile(node: Said, taken = 0, room: Room = LETTERS): Tile {
 export function tileHeight(nodes: Pick<GraphNode, 'description'>[]): number {
   return nodes.some((node) => says(node.description) !== '') ? TILE_H_SAID : TILE_H;
 }
+
+/** How tall the line at a tile's foot is that says how its step went and how long it took, where the graph is of a run. */
+export const FOOT_H = 18;
+
+/**
+ * What the foot of a run's tile says beside its mark: how long its step
+ * took, or has gone on until `now`; that it was skipped or cancelled; for
+ * one not begun, that it waits while the run goes on and that it never
+ * ran once the run is over.
+ */
+export function tookSaid(ran: { status: string; started: number; finished: number | null } | undefined, going: boolean, now: number, took: (ms: number) => string): string {
+  if (!ran) return going ? 'waiting' : 'not run';
+  // Stopped where it was, or never come to: how long it had gone on says nothing.
+  if (ran.status === 'skipped' || ran.status === 'cancelled') return ran.status;
+  return took((ran.finished ?? Math.max(now, ran.started)) - ran.started);
+}

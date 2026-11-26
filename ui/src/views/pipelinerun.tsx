@@ -2,7 +2,9 @@
 // address (`#/run/<id>`): what ran and how it stands, and its stages
 // (`staged.ts`), each with its steps' status and time and the whole of what
 // each step wrote, read a page at a time from its first line through the
-// run's log route. A `call` stage unfolds into its child's run, in place.
+// run's log route (`stepout.tsx`). A `call` stage unfolds into its child's
+// run, in place. Or its graph (`rungraph.tsx`), each step a tile with how it
+// went and how long it took, a step pressed showing its output in the drawer.
 //
 // It reads once and follows what the daemon says of the run (`run.*` and
 // `step.*`, read again where the stream says it fell behind: those are
@@ -13,22 +15,22 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { hrefOf, linkTo } from '../address.ts';
 import { api, ApiError } from '../api.ts';
-import type { Graph, Instance, LogLine, Run, Step } from '../api.ts';
+import type { Graph, Instance, Run } from '../api.ts';
 import { coalesce } from '../events.ts';
 import { keptFrom, letGo } from '../gave.ts';
 import { namesOf } from '../envsheld.ts';
 import { underSaid } from '../projectenvs.ts';
 import { tell } from '../running.ts';
-import { graphOf, logBetween, runIs, runsOf, tailLog } from '../runread.ts';
-import { stepSays } from '../runsaid.ts';
-import { childAt, childRun, drawnOf, earlierAsked, earlierSaid, earlierThan, failedAt, stageCalled, stagesOf, stageTook, WINDOW } from '../staged.ts';
+import { graphOf, runIs, runsOf } from '../runread.ts';
+import { childAt, childRun, failedAt, stageCalled, stagesOf, stageTook } from '../staged.ts';
 import { scrollsItself } from '../returned.ts';
 import { Badge, Empty, Pills, useEvents } from '../ui.tsx';
-import { baseStep, classes, duration, when } from '../util.ts';
-import { GraphView } from '../graph/view.tsx';
+import { classes, duration, when } from '../util.ts';
 import { copy } from './pagehead.tsx';
 import { useKept, useKeptRef } from './returned.tsx';
+import { keepRunView, RunGraph, runViewKept } from './rungraph.tsx';
 import { Running, WithRunning } from './running.tsx';
+import { StepOut } from './stepout.tsx';
 import { openTab } from '../store.ts';
 import { signs } from './signs.tsx';
 // What a run waits for a person to let it go on with, drawn under its head: Approve and Decline, by the run.
@@ -39,9 +41,6 @@ const VIEWS: ['stages' | 'graph', string][] = [
   ['stages', 'Stages'],
   ['graph', 'Graph'],
 ];
-
-/** What is said under the graph: it is looked at here, and a step is read in its stage. */
-const GRAPH_SAYS = ['drag to move', 'scroll to zoom'];
 
 /** How deep a call is unfolded into its child's run, and its child's, in place: past it the child is a link. */
 const DEEPEST = 5;
@@ -71,7 +70,12 @@ export function PipelineRun({ id }: { id: string }) {
   const [kept, setRead] = useKept<Read | null>('pipelinerun.read', null);
   const read = kept?.run.id === id ? kept : null;
   const [missing, setMissing] = useState('');
-  const [view, setView] = useKept<'stages' | 'graph'>('pipelinerun.view', 'stages');
+  // A run opens on the view the last one was looked at in, in this browser: its stages, or its graph.
+  const [view, setKeptView] = useKept<'stages' | 'graph'>('pipelinerun.view', runViewKept());
+  const setView = (next: 'stages' | 'graph') => {
+    keepRunView(next);
+    setKeptView(next);
+  };
   // What is folded is kept by the tab, by run and stage, for a child's run too: everything starts unfolded, so that a run is read whole.
   const [folded, setFolded] = useKept<string[]>('pipelinerun.folded', []);
   const folds: Folds = { folded, set: setFolded };
@@ -100,7 +104,6 @@ export function PipelineRun({ id }: { id: string }) {
   const handed = (name: string) => (typeof instance.params?.[name] === 'string' ? (instance.params[name] as string) : null);
   const [branch, commit] = [handed('branch'), handed('commit')];
   const began = run.event && typeof run.event === 'object' && 'topic' in run.event ? String((run.event as { topic: unknown }).topic) : null;
-  const statuses = Object.fromEntries((run.steps ?? []).map((one) => [`${run.flow}/${baseStep(one.step)}`, one.status]));
   const link = linkTo({ kind: 'run', id });
   return (
     <div class="pipeline-run">
@@ -148,9 +151,7 @@ export function PipelineRun({ id }: { id: string }) {
         {keptFrom(run) && <p class="faint">{keptFrom(run)}</p>}
         {letGo(run) && <p class="faint">{letGo(run)}</p>}
         {view === 'graph' && graph ? (
-          <div class="pipeline-graph">
-            <GraphView graph={graph} statuses={statuses} selected={null} onSelect={() => {}} legend={GRAPH_SAYS} />
-          </div>
+          <RunGraph run={run} graph={graph} />
         ) : (
           <Stages run={run} graph={graph} now={now} depth={0} folds={folds} />
         )}
@@ -263,112 +264,6 @@ function Stages({ run, graph, now, depth, folds }: { run: Run; graph: Graph | nu
         );
       })}
     </ol>
-  );
-}
-
-/** One step of a stage: how it stands, how long it took, why it failed, and the whole of what it wrote. */
-function StepOut({ run, step, graph, kept, alone }: { run: Run; step: Step; graph: Graph | null; kept: boolean; alone?: boolean }) {
-  const says = stepSays(graph ? { graph, revision: run.revision } : null, run, step.step);
-  return (
-    <div class="step-out" data-step={step.step} data-status={step.status}>
-      {!alone && (
-        <div class="step-out-line">
-          <Badge status={step.status}>{step.tolerated && step.status === 'failed' ? 'failed, let fail' : step.status}</Badge>
-          <span class="step-out-name">
-            {says && <span class="step-says">{says}</span>}
-            <code class={says ? 'step-key' : undefined}>{step.step}</code>
-          </span>
-          <span class="step-out-took">{step.finished ? duration(step.finished - step.started) : ''}</span>
-        </div>
-      )}
-      {step.error && <pre class="code-box error-text step-error">{step.error}</pre>}
-      {kept ? null : <StepLog run={run.id} step={step.step} going={step.status === 'running'} />}
-    </div>
-  );
-}
-
-/** What of a step's output the page has: its last lines read and written since, how many it draws at most, and where its beginning was let go. */
-interface Tail {
-  lines: LogLine[];
-  most: number;
-  let_go: string | null;
-}
-
-/**
- * What a step wrote, drawn from its end a window at a time (`WINDOW`):
- * the last lines kept are read from the end of its file, those written
- * as it goes are added and the oldest drawn let go past the window, and
- * Show earlier reads the window before the first that is drawn. However
- * long the output, so many lines are drawn and no more.
- */
-function StepLog({ run, step, going }: { run: string; step: string; going: boolean }) {
-  // Kept by the tab, by run and step: shown again at once when the tab is, and read again behind.
-  const [tail, setTail] = useKept<Tail | null>(`pipelinerun.log:${run}/${step}`, null);
-  const most = tail?.most ?? WINDOW;
-  const box = useRef<HTMLDivElement>(null);
-  const [earlier, setEarlier] = useState(false);
-  const read = useMemo(
-    () =>
-      coalesce(
-        () =>
-          void tailLog(run, step, most)
-            .then((got) => setTail((was) => ({ lines: got.lines, let_go: got.let_go, most: was?.most ?? WINDOW })))
-            .catch(() => setTail((was) => was ?? { lines: [], let_go: null, most: WINDOW })),
-        60,
-      ),
-    [run, step, most],
-  );
-  useEffect(read, [run, step]);
-  // A step that ends after the page read it has what it wrote at the end read too.
-  useEffect(() => {
-    if (!going) read();
-  }, [going]);
-  useEvents(
-    'log.line',
-    (event) => {
-      if (event.source?.run !== run || event.source?.step !== step) return;
-      setTail((known) => {
-        const lines: LogLine[] = known?.lines ?? [];
-        const now = known?.most ?? WINDOW;
-        const added = [...lines, { line: (lines.at(-1)?.line ?? 0) + 1, ts: event.ts, stream: event.data.stream, text: event.data.text }];
-        return { let_go: known?.let_go ?? null, most: now, lines: drawnOf(added, now) };
-      });
-    },
-    [run, step],
-    read,
-  );
-  // Read the first time, it shows its end: what was written last is what is read first.
-  const first = useRef(tail === null);
-  useLayoutEffect(() => {
-    if (!first.current || !tail || !box.current) return;
-    first.current = false;
-    box.current.scrollTop = box.current.scrollHeight;
-  }, [tail]);
-  if (!tail) return <div class="log step-log faint">Reading what it wrote</div>;
-  if (tail.lines.length === 0) return <p class="faint step-log-none">{tail.let_go ?? (going ? 'Nothing written yet.' : 'It wrote nothing.')}</p>;
-  const before = earlierThan(tail.lines);
-  const showEarlier = async () => {
-    const asked = earlierAsked(tail.lines[0]!.line, WINDOW);
-    if (!asked) return;
-    setEarlier(true);
-    const got = await logBetween(run, step, asked.after, asked.limit).catch(() => []);
-    setEarlier(false);
-    setTail((was) => (was ? { ...was, lines: [...got, ...was.lines], most: was.most + got.length } : was));
-  };
-  return (
-    <div class="log step-log" ref={box} data-lines={tail.lines.length} data-first={tail.lines[0]!.line}>
-      {tail.let_go && before === 0 && <div class="s">{tail.let_go}</div>}
-      {before > 0 && (
-        <button type="button" class="ghost link step-log-earlier" disabled={earlier} onClick={() => void showEarlier()}>
-          {earlier ? 'Reading what came before' : earlierSaid(before, WINDOW)}
-        </button>
-      )}
-      {tail.lines.map((line) => (
-        <div key={line.line} class={line.stream === 'e' ? 'e' : line.stream === 's' ? 's' : ''}>
-          {line.text || ' '}
-        </div>
-      ))}
-    </div>
   );
 }
 

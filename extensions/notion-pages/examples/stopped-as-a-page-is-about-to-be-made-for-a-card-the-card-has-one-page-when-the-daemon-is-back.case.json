@@ -1,0 +1,16 @@
+{
+  "says": "A daemon stopped as the step that makes a page for a card begins has not asked the program, and cannot say so afterwards: back, the step is not done twice, the page is looked for by the card in its mark, found not to be there, and made. The card has one page, and its link says which.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "secret_n0tion"}},
+    {"run": ["secret", "set", "notion-key", "--file", "{here}/key.txt"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "pages", "project": "shop", "params": {"database": "{database}", "key": "notion-key"}, "sets_off": "look"},
+    {"stopped_at": "open", "of": "pages", "by": {"run": ["record", "add", "shop", "links", "card=shop-1"]}, "sets_off": "keep"},
+    {"holds": {"pages/aaaaaaaa-0000-0000-0000-000000000001": {"title": "Add a cart", "body": "Customers need one.", "card": "shop-1", "edited": "t1"}, "pages/aaaaaaaa-0000-0000-0000-000000000002": {}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "page: {made}"},
+    {"run": ["record", "show", "shop-links-1"], "says": "agreed_title: Add a cart"}
+  ]
+}

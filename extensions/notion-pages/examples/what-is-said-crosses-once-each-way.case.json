@@ -1,0 +1,23 @@
+{
+  "says": "Something said on a linked page is said on its card once, its pieces put together, with who said it and where the page is, and never as public. Something said on the card stays here unless it is marked public, and then it is said on the page once, with its mark, and is not brought back as something said there.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"given": {"key.txt": "secret_n0tion"}},
+    {"run": ["secret", "set", "notion-key", "--file", "{here}/key.txt"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "pages", "project": "shop", "params": {"database": "{database}", "key": "notion-key"}, "sets_off": "look"},
+    {"run": ["record", "add", "shop", "links", "card=shop-1"], "sets_off": "keep"},
+    {"given": {"comments/aaaaaaaa-0000-0000-0000-000000000001/1": "Bo\nIs this \n|\nstill wanted?"}},
+    {"run": ["emit", "notion.look", "project=shop"], "sets_off": "keep"},
+    {"run": ["board", "history", "shop-1"], "says": "Bo said in Notion:\n\nIs this still wanted?\n\nhttps://notion.example/{made}"},
+    {"run": ["record", "show", "shop-links-1"], "says": "came: c-1"},
+    {"run": ["record", "comment", "shop-1", "Between", "us:", "the", "supplier", "is", "late."]},
+    {"given": {"calls": null}},
+    {"run": ["record", "comment", "shop-1", "--public", "Shipping", "on", "Friday."], "sets_off": "say"},
+    {"ran": ["{curl} {api}/comments?block_id={made}&page_size=100", "{curl} {post} {\"parent\":{\"page_id\":\"{made}\"},\"rich_text\":[{\"text\":{\"content\":\"Ada said:\\n\\nShipping on Friday.\\n\\n[said {any}]\"}}]} {api}/comments", "{curl} {api}/comments?block_id={made}&page_size=100"]},
+    {"run": ["emit", "notion.look", "project=shop"], "sets_off": "keep"},
+    {"run": ["record", "show", "shop-links-1"], "says": "came: c-1, c-2"}
+  ]
+}

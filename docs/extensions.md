@@ -814,6 +814,228 @@ how little of that is the application's:
   that may answer an agent asks the board itself (`board.said`), for
   those whose words it was told to take.
 
+The packages `jira` and `notion-pages` do the same for a Jira project's
+issues and a Notion database's pages; what the three share, and how one
+is written for another tracker, is *Keeping a tracker in step*, below.
+
+## Keeping a tracker in step
+
+Three packages here keep the cards of a project in step with tickets kept
+somewhere else: `github/issues` (a repository's issues on GitHub),
+`jira/issues` (a Jira project's issues) and `notion-pages/pages` (a Notion
+database's pages); and `examples/tracker` is the shape of one for a
+tracker nobody ships a package for (*A tracker of one's own*, below).
+Nothing in the application knows a tracker, and nothing holds the three to
+one another: each is its own manifest, with its own copy of the
+blueprint. What they have in common is this pattern, which is what a
+fourth is written to, with `github/issues` as the worked example and the
+other two said where they differ.
+
+### The actions it declares
+
+Each is one way of running the package's program, as any package's action
+is (*Actions a package brings*, above):
+
+| What it does | `github` | `jira` | `notion-pages` | Done again after a stop |
+|---|---|---|---|---|
+| Says that the program is there and the service takes who it acts as, as the blueprint is applied | `account` | `account` | `account` (and that the database is shared with it) | yes |
+| Lists what changed last, each with when it changed | `changed` | `changed` | `changed` | yes |
+| Finds the ticket made for a card, by the mark it carries | `issue-find` | `find` | `find` | yes |
+| Reads one ticket whole, as it is: its title, body, whether it is closed, when it changed, where it is read, what was said on it, and who wrote it | `issue` | `issue` | `page` (with `comments` done first) | yes |
+| Makes a ticket for a card, carrying the card's mark | `issue-open` | `open` | `open` | **no** |
+| Changes its title, its body or both, as it is told which | `issue-edit` | `edit` | `edit` | yes |
+| Closes it, and opens it again | `issue-close`, `issue-reopen` | `close`, `reopen` (each by a way its workflow offers, `transitions` first) | `tick` | yes |
+| Says something on it, carrying the mark of what said it here | `say` | `say` | `say` | **no** |
+| Finds whether that was said, by its mark | `said-find` | `said-find` | `said-find` | yes |
+
+The two that are not done again are the two a service cannot be asked
+twice for without there being two of them. Each therefore carries a mark it
+is found again by: under an issue's body, `<!-- card shop-1 -->` on
+GitHub, a label `card-shop-1` in Jira, the card in a text property
+(`Card`) of a Notion database; and under a thing said, the number of the
+event here that said it (`<!-- said 812 -->`, `{anchor:said-812}`,
+`[said 812]`). What a card says reaches the program as one argument after
+the option it belongs to, or inside a body of JSON after `--data-binary`,
+so that none of it can be taken for an option.
+
+What reads a ticket shapes it so that the blueprint names its parts and
+works nothing out: `title`, `body`, `closed`, `stamp`, `url`, `said` (each
+thing said with an `id`), and where the service says who wrote it,
+`author` and whether the ticket as it stands is `trusted`. GitHub's
+program shapes what it prints itself (`--jq`); for Jira and Notion the
+action's own `out` does it from what the service answers.
+
+### The table of links
+
+Nothing crosses unless it is linked. A link is a row of the project's
+table `links`, which the blueprint declares as it is applied:
+
+| Field | |
+|---|---|
+| `card` | The card, a record of the board. |
+| `issue` (`page` for Notion) | The ticket there: its number, key or id. |
+| `url` | Where the ticket is read. |
+| `agreed_title`, `agreed_body`, `agreed_closed` | What the two last agreed on, which tells which side moved. Kept quiet and hidden. |
+| `came` | What was said there and has been said here, by its name there. |
+| `sent` | What was said here and has been said there (GitHub's). |
+| `seen` | When the ticket had last changed as the two were last brought together, as the service says it, so that a look at what changed reads only what did. Notion says it to the minute, so its package keeps none and reads each linked page it is told of. |
+| `state` | `bringing` while a card is being made for a ticket. |
+| `held`, `held_by` | A change there that is not taken, and whose (GitHub's and Jira's). |
+
+A row that names a card has a ticket made for it; one that names a ticket
+has a card made for it, filled as the ticket stands; one that names both
+ties two that were there. The table `takes` what running the package's
+program takes (`extensions:<package>`), since adding a row makes a card's
+words public; and naming a record in it takes being able to read it.
+
+### What links a ticket besides a row
+
+A label on a card (`out_label`) links it for whoever labelled it, only
+where they hold what linking takes now (`actor.holds`), and the channel is
+told where they do not. A label on the ticket there (`in_label` on GitHub
+and Jira), or a tick in a checkbox of a Notion database (`in_property`),
+links it the next time the service is asked what changed, read from the
+ticket as it is and never from what a call said of it. Left unsaid,
+only a row links.
+
+### What crosses, and what decides it
+
+The blueprint reads the card and the ticket as they are and asks
+`sides.cross` ([blueprints.md](blueprints.md), *Built-in actions*), handed
+`here` and `there` (the title and the body of each), `last` (what the link
+says they agreed on), `prefer`, `takes` and, where whose changes are taken
+goes by standing, `trusted`. It answers what goes out (`sends`, `goes`),
+what comes in (`takes`, `comes`) and what the two agree on afterwards; the
+blueprint edits the ticket with what goes, updates the card with what
+comes, and writes what is agreed, doing nothing it worked out itself.
+Whether it is closed is asked the same way, a card being closed by being
+in the column `closed` says (the board's last unless said). What was said
+on the ticket and not yet on the card is `sides.owed`, handed what was
+said and the names the link keeps; each is said on the card once, with who
+said it and where, never as public. What is said on a card goes the other
+way only where whoever said it marked it public and holds what linking
+takes. Something a person there says that may answer what an agent asked
+on the card is asked of the board (`board.said`), as a person's words on
+the card are: what a blueprint says on a card answers nothing by itself.
+
+### Who has standing there
+
+Whose changes of a ticket's title and body come into the card, and whose
+words may answer an agent, is the blueprint's `takes_in`, since a card's
+words are what an agent works from:
+
+| | `trusted` | `everyone` | `nobody` |
+|---|---|---|---|
+| `github/issues` | The default: somebody GitHub says has standing in the repository (its owner, a member, a collaborator). A change by anybody else is held in the link until somebody here says `take` or `keep`. | Anybody who can write there. | Nobody: the card's words change only here. |
+| `jira/issues` | The default: anybody but a customer of a service desk, as Jira says of each account (`accountType`); a change of an issue a customer reported is held. | Anybody the site lets write there. | Nobody. |
+| `notion-pages/pages` | Refused: Notion says nothing that can be read of whether somebody is a member or a guest. | The default: anybody the database is shared with. | Nobody. |
+
+Whatever the setting, what is said there is said on the card with whose
+words they are, so that a person or an agent reading it knows.
+
+### Hearing what changed: the caller and the timer
+
+What changes on the board is heard as it happens. What changes at the
+service is heard one of two ways, and either way the ticket is then read
+whole as it is: of what a call says, only which ticket it is about is
+taken.
+
+- **As it happens**, where the service can reach the factory: its webhook
+  is a caller of the factory's, which takes a call only where it is signed
+  with a secret the two share (`mw caller set`; [blueprints.md](blueprints.md),
+  *Callers*), and says it as an event the blueprint hears from outside
+  (`issues.called`, `jira.called`, `notion.called`; a handler that says
+  `outside: true`). A call about another repository, project or database
+  is passed over.
+- **On a timer**, where it cannot: applied with `timer`, the blueprint
+  spawns a small one of its own (`github/issues-timer`,
+  `jira/issues-timer`, `notion-pages/pages-timer`) whose handler polls the
+  action that lists what changed once a minute and has the blueprint look
+  when the answer is another than the time before.
+
+And each looks once by itself, as it is applied and each time the daemon
+comes back (`instance.active`, `system.started`): what changed while
+nothing was listening is seen then. Anybody who may say the event has it
+look at once (`mw emit jira.look project=shop`).
+
+### Stopped in the middle
+
+A daemon that stops as the step that makes a ticket begins cannot say
+afterwards whether the program was asked, and the step is not done again
+(it says so as a failure). So the blueprint looks for the ticket by the
+card's mark, makes it only where it is not there, and looks again after a
+making that failed; a card has one ticket wherever the daemon stopped.
+`github/issues` looks again after every making; Jira's and Notion's look
+again only after one that failed, since their search may not list a
+ticket made a moment before, and take where it is from what the making
+answered. What is said from here is found again by its mark the same way.
+A card is added for a ticket by a step that is the same done twice
+(`board.add`): a daemon stopped as it is added does it again when it is
+back and finds the card it added. It is written down as being made first
+all the same (`state: bringing`): a run cut short another way leaves the
+link for a person, saying so, and makes no second card.
+
+### Where it says what it did
+
+In a channel of the project (`channel`, the one called what the project is
+unless said), which it makes sure of as it is applied. Nothing it does
+rests on that being said: a line that cannot be posted is let be.
+
+## A tracker of one's own
+
+A tracker nobody ships a package for is reached by a package somebody
+writes for it, in the same shape. `examples/tracker` is one: a package for
+a made-up tracker reached by a command of its owner's (`tracker`), whose
+blueprint keeps a ticket's title, body and whether it is closed in step
+with a linked card. It is held as the packages that ship are, by its cases
+beside a stand-in for the command, which the application's tests play.
+
+1. **Say the command.** `program: tracker` at the top, and `install:` what
+   to do where it is not on the daemon's device. It may be any program on
+   the daemon's path: the tracker's own command line, or a small one its
+   owner wrote over the tracker's web API. It is run with the arguments
+   written in the manifest and no shell. Where it needs a key, it reads it
+   from a variable the blueprint names in `env` (`TRACKER_TOKEN: { secret:
+   "${params.key}" }`), never from an argument.
+2. **Declare the actions** in the table above, each as the command takes
+   it: `account`, `changed`, `find`, `ticket`, `open`, `edit`, `close` and
+   `reopen`. Give each `args` (what a card says after the `=` of an option,
+   so that none of it is taken for an option), `answer: json` where it
+   prints JSON, `fails` for what an answer that is not understood comes
+   to, and `out` with the names the blueprint reads (`ticket`, `url`,
+   `title`, `body`, `closed`, `stamp`). Say `repeatable: true` of every one
+   but `open`: making a ticket carries the card it is made for (`--mark`)
+   and `find` finds it by that.
+3. **Copy the blueprint and point it at those actions.** `tracker/tickets`
+   is `github/issues` cut to its first part: the table of links, a link
+   made by a row, the title and the body crossing by `sides.cross`,
+   whether it is closed crossing the same way, a look at what changed as
+   it starts, on a timer (`tracker/tickets-timer`) or when a caller says
+   `tracker.called`, and the making of a ticket looked for again after a
+   stop. Its topics are its own (`tracker.out`, `tracker.due`, ...), heard
+   only from its own tree where they are its own work (`scope: own`).
+4. **Add the rest as the tracker has it**, a handler and an action at a
+   time, from `github/issues`: a label that links, what is said crossing
+   both ways (`say`, `said-find`, `sides.owed`), whose changes are taken
+   where the tracker says who has standing, and the words of somebody
+   there that may answer an agent (`board.said`).
+5. **Hold it with cases.** Beside the manifest, `examples/stand-in.sh`
+   answers as the command does, writes down how it was called, and keeps
+   what the tracker would hold as files of its own folder; each
+   `<what is true>.case.json` is the steps that show it (*Examples keep a
+   package honest*, below). The cases of `examples/tracker` make a ticket
+   for a linked card, carry a title each way, close and open both sides,
+   make a card for a linked ticket, and stop the daemon as a ticket is
+   about to be made.
+
+Then, with the command on the daemon's device:
+
+```sh
+mw extension add examples/tracker
+mw apply tracker/tickets --project shop
+mw record add shop links card=shop-12
+```
+
 ## What a package shows of a repository
 
 A project whose folder is a git repository of its own has a **Git**
@@ -924,6 +1146,10 @@ and a stand-in for an agent's program, where a case is about what an
 agent is then asked. Long text a package's program is asked can be
 written once, in `examples/words.json`, and referred to by name in its
 cases.
+
+An example that is a package (a folder of the repository's `examples/`
+with a manifest in it, as `examples/tracker`) has cases and a stand-in
+the same way, and they are played with the rest.
 
 ## The rule
 

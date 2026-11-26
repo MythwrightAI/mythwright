@@ -124,7 +124,7 @@ pub const SCENARIOS: &[Scenario] = &[
         answers: "asked",
         acts: r#"[
             { "apply": {} },
-            { "answer": { "asked": 1, "fails": "curl: (7) Failed to connect to localhost port 8080" } },
+            { "answer": { "asked": 1, "fails": "Connecting to localhost:8080... failed: Connection refused." } },
             { "advance": { "by": "2s" } },
             { "answer": { "asked": 2, "gives": { "code": 0, "stdout": "ok" } } }
         ]"#,

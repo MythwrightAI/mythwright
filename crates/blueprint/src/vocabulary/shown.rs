@@ -124,7 +124,7 @@ permissions: [shell]
 steps:
   fetch:
     do: shell
-    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }
+    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }
     retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }
 ";
 

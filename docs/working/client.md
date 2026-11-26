@@ -262,6 +262,23 @@ that is not a single page. The side panel and page heads are in `client-panels.m
 - A run the reader may not be told the trigger of arrives without step output and its logs are
   refused (`kept_from`); the page says so above the steps (`keptFrom` in `ui/src/gave.ts`) and
   offers no log.
+- A run drawn as a graph is `RunGraph` (`ui/src/views/rungraph.tsx`), on a run's page (Graph) and
+  above a told line's runs (`LatestRun`, the newest of them). Each tile has at its foot a mark of
+  how its step went, told apart by shape as well as colour, and how long it took (`tookSaid` in
+  `graph/tile.ts`); a step pressed opens what it wrote in the drawer (`StepOut` of
+  `views/stepout.tsx`, which the drawer reads and follows itself). How a step stands comes from the
+  run as read again on `run.*` and `step.*`; how long one under way has gone on is the page's own
+  clock, drawn again once a second only while something runs and asking the daemon nothing
+  (`useSeconds`). That is the client's one timer on a run; nothing is read on it.
+- In a group of ten nodes or more, each straight chain of three steps or more (each with only the
+  next after it, the next with only it before) is one tile (`graph/folds.ts`, with its cases):
+  called by what its keys begin with alike, else by its first step, saying how many it holds;
+  pressed, it unfolds in place with a band round its steps, whose top edge folds it again. A fold
+  holding a step that failed is open until the reader shuts it; which the reader opened or shut is
+  kept by the tab. Folded, the layers after it are worked out again by the daemon's rule. It is a
+  way of drawing only: a graph of fewer nodes, and the blueprint page's, are drawn as before.
+- A run's page opens on the view the last run was looked at in, in this browser
+  (`client.run.view`): its stages, or its graph.
 
 ## Pages, code blocks and path links
 

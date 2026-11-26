@@ -168,3 +168,14 @@ export function fit(size: { width: number; height: number }, viewport: { width: 
     y: Math.max(margin, Math.min(margin * 2, (viewport.height - size.height * scale) / 2)),
   };
 }
+
+/**
+ * The whole fitted as `fit` does, but drawn no smaller than `least`: a
+ * graph too wide for that is drawn at `least` from its start, its left,
+ * and the rest is reached by moving it, so that its words stay readable.
+ */
+export function fitLeast(size: { width: number; height: number }, viewport: { width: number; height: number }, least: number, margin = 32) {
+  const whole = fit(size, viewport, margin);
+  if (whole.k >= least) return whole;
+  return { k: least, x: margin, y: Math.max(margin, Math.min(margin * 2, (viewport.height - size.height * least) / 2)) };
+}

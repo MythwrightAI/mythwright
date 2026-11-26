@@ -1,0 +1,83 @@
+# What a blueprint can depend on of this package: its actions. Written by a
+# test, never by hand, as the application's own is (contract/offered.txt).
+
+action notion-pages.account
+  needs extensions:notion-pages
+  takes database string needed
+  gives title
+
+action notion-pages.changed
+  needs extensions:notion-pages
+  takes database string needed
+  gives pages
+
+action notion-pages.comments
+  needs extensions:notion-pages
+  takes page string needed
+  gives said
+
+action notion-pages.edit
+  needs extensions:notion-pages
+  takes body string
+  takes body_property string
+  takes page string needed
+  takes sends list needed
+  takes title string
+  takes title_property string
+
+action notion-pages.find
+  needs extensions:notion-pages
+  takes card string needed
+  takes database string needed
+  takes mark string needed
+  gives found
+  gives page
+  gives url
+
+action notion-pages.open
+  needs extensions:notion-pages
+  makes title a page
+  takes body string
+  takes body_property string
+  takes card string needed
+  takes database string needed
+  takes mark string needed
+  takes title string needed
+  takes title_property string
+  gives page
+  gives url
+
+action notion-pages.page
+  needs extensions:notion-pages
+  takes body string
+  takes done string
+  takes page string needed
+  takes ticked string
+  takes title string
+  gives body
+  gives closed
+  gives page
+  gives said
+  gives stamp
+  gives ticked
+  gives title
+  gives url
+
+action notion-pages.said-find
+  needs extensions:notion-pages
+  takes mark int needed
+  takes page string needed
+  gives found
+
+action notion-pages.say
+  needs extensions:notion-pages
+  takes body string needed
+  takes mark int needed
+  takes page string needed
+  gives id
+
+action notion-pages.tick
+  needs extensions:notion-pages
+  takes closed bool needed
+  takes done string
+  takes page string needed

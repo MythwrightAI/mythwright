@@ -1,0 +1,1232 @@
+# The cards of a project kept in step with the pages of a Notion database
+# they are linked with, a ticket at a time.
+#
+# Nothing in the application knows this service or how it is reached.
+# Everything about it is in this file. It is `github/issues` of the
+# package beside this one, done for a Notion database: the same table of
+# links, the same blocks that say what crosses (`sides.cross`,
+# `sides.owed`), and the same care where the daemon is stopped in the
+# middle of something that cannot be done twice. A page's title is a
+# card's title, a text property of the database is its body, and a tick
+# in a checkbox of the database is its being done.
+extension: notion-pages
+title: Notion
+description: Keep the cards of a project that are linked with a page of a Notion database in step with it.
+
+# The program its actions run: curl, asking Notion's web API. Notion has
+# no command line of its own. It needs curl 8.3 or later, which reads the
+# integration's secret from the environment (`--variable`) and writes it
+# into a header itself (`--expand-header`), so that the secret is in no
+# argument. The version of Notion's API asked is written with each
+# request (`Notion-Version`), so that a version Notion brings later
+# changes nothing here until this is changed for it.
+program: curl
+install: "Install curl 8.3 or later (https://curl.se). Make an integration in Notion, share the database with it, and hand the factory its secret (`key`)."
+
+# Each way the program is run, with no shell. What is written on a card
+# reaches Notion inside the body of a request, as JSON the program is
+# handed as one argument after `--data-binary`. The names of the
+# database's properties are said by whoever applies the blueprint, and
+# reach Notion the same way.
+actions:
+  account:
+    description: See that Notion can be reached, takes the integration's secret the program is handed, and lets the integration see the database.
+    with:
+      database: { type: string, required: true, description: "The id of the database." }
+    refuse:
+      - when: ${ !matches(with.database, "^[0-9a-f-]{32,36}$") }
+        says: "`database` is the id of a Notion database, the 32 letters and digits in its address; it is `${ with.database }`."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["https://api.notion.com/v1/databases/${ with.database }"]
+    answer: json
+    fails:
+      - when: ${ code == 2 && contains(stderr, "is unknown") }
+        says: "The program `curl` on this device is older than 8.3, which came with what this asks of it (`--variable`, `--expand-header`). Install a newer one, and do this again."
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is an integration's secret that is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no database ${ with.database } that the integration may see. Share the database with the integration (Connections, in its menu), and do this again."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached. See that this device can reach api.notion.com."
+      - when: ${ code == 0 && (answer == null || answer.id == null) }
+        says: "Notion did not say what the database is in a way this understands."
+    out:
+      title: ${ join(pluck(answer.title ?? [], "plain_text"), "") }
+    repeatable: true
+
+  changed:
+    description: List the pages of a Notion database that were edited last, each with its id, when it was edited and its properties. What a factory that Notion cannot reach asks on a timer.
+    with:
+      database: { type: string, required: true, description: "The id of the database." }
+    refuse:
+      - when: ${ !matches(with.database, "^[0-9a-f-]{32,36}$") }
+        says: "`database` is the id of a Notion database, the 32 letters and digits in its address; it is `${ with.database }`."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["--request", "POST", "--header", "Content-Type: application/json", "--data-binary"]
+      - ['{"sorts":[{"timestamp":"last_edited_time","direction":"descending"}],"page_size":10}']
+      - ["https://api.notion.com/v1/databases/${ with.database }/query"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no database ${ with.database } that the integration may see. Share the database with the integration (Connections, in its menu)."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached."
+      - when: ${ code == 0 && (answer == null || answer.results == null) }
+        says: "Notion did not say which pages were edited in a way this understands, so nothing was looked at."
+    out:
+      pages: ${ answer.results }
+    repeatable: true
+
+  find:
+    description: Find the page of a Notion database that was made for a card, by the property that marks it.
+    with:
+      database: { type: string, required: true, description: "The id of the database." }
+      mark: { type: string, required: true, description: "The text property of the database that holds the card a page was made for." }
+      card: { type: string, required: true, description: "The card." }
+    refuse:
+      - when: ${ !matches(with.card, "^[a-z0-9][a-z0-9:_-]*$") }
+        says: "`${ with.card }` is not a card's id, so no page can carry its mark."
+      - when: ${ !matches(with.database, "^[0-9a-f-]{32,36}$") }
+        says: "`database` is the id of a Notion database, the 32 letters and digits in its address; it is `${ with.database }`."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["--request", "POST", "--header", "Content-Type: application/json", "--data-binary"]
+      - ['{"filter":{"property":${ json(with.mark) },"rich_text":{"equals":${ json(with.card) }}},"page_size":1}']
+      - ["https://api.notion.com/v1/databases/${ with.database }/query"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "400") }
+        says: "The Notion database has no text property called ${ with.mark }, which marks the page made for a card. Add one, or say another with `mark_property`."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no database ${ with.database } that the integration may see. Share the database with the integration (Connections, in its menu)."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached."
+      - when: ${ code == 0 && (answer == null || answer.results == null) }
+        says: "Notion did not say which pages there are in a way this understands, so none was made for ${ with.card }."
+    out:
+      found: ${ len(answer.results) > 0 }
+      page: ${ answer.results[0].id }
+      url: ${ answer.results[0].url }
+    repeatable: true
+
+  comments:
+    description: List what was said on a page of Notion's, in order.
+    with:
+      page: { type: string, required: true, description: "The id of the page." }
+    refuse:
+      - when: ${ !matches(with.page, "^[0-9a-f-]{32,36}$") }
+        says: "`${ with.page }` is not the id of a page of Notion's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["https://api.notion.com/v1/comments?block_id=${ with.page }&page_size=100"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "403") }
+        says: "Notion would not say what was said on page ${ with.page }: give the integration leave to read comments (Capabilities, in its settings)."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no page ${ with.page } that the integration may see."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached."
+      - when: ${ code == 0 && (answer == null || answer.results == null) }
+        says: "Notion did not say what was said on page ${ with.page } in a way this understands."
+    out:
+      said: ${ answer.results }
+    repeatable: true
+
+  page:
+    description: Read a page of a Notion database as it is now, with what was said on it.
+    first: comments
+    with:
+      page: { type: string, required: true, description: "The id of the page." }
+      title: { type: string, default: Name, description: "The database's title property." }
+      body: { type: string, default: Description, description: "The text property of the database that is a card's body." }
+      done: { type: string, default: Done, description: "The checkbox property of the database that says a page is done." }
+      ticked: { type: string, default: "", description: "A checkbox property of the database whose tick links a page; none where nothing links so." }
+    refuse:
+      - when: ${ !matches(with.page, "^[0-9a-f-]{32,36}$") }
+        says: "`${ with.page }` is not the id of a page of Notion's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["https://api.notion.com/v1/pages/${ with.page }"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no page ${ with.page } that the integration may see."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached."
+      - when: ${ code == 0 && (answer == null || answer.id == null) }
+        says: "Notion did not say what page ${ with.page } is in a way this understands, so nothing was done with it."
+      - when: ${ code == 0 && answer.properties[with.title].title == null }
+        says: "The Notion database has no title property called ${ with.title }. Say which it is with `title_property`."
+      - when: ${ code == 0 && answer.properties[with.body].rich_text == null }
+        says: "The Notion database has no text property called ${ with.body }, which is a card's body. Add one, or say another with `body_property`."
+      - when: ${ code == 0 && answer.properties[with.done].checkbox == null }
+        says: "The Notion database has no checkbox property called ${ with.done }, which says a page is done. Add one, or say another with `done_property`."
+    out:
+      page: ${ answer.id }
+      url: ${ answer.url }
+      title: ${ join(pluck(answer.properties[with.title].title, "plain_text"), "") }
+      body: ${ join(pluck(answer.properties[with.body].rich_text, "plain_text"), "") }
+      closed: ${ answer.properties[with.done].checkbox == true }
+      ticked: ${ with.ticked != "" && answer.properties[with.ticked].checkbox == true }
+      stamp: ${ answer.last_edited_time ?? "" }
+      said: ${ first.said }
+    repeatable: true
+
+  open:
+    description: Make a page in a Notion database for a card, with the card's title and body and the card in the property that marks it. It does not look whether the card has one already; `find` does.
+    makes: { what: a page, named: title }
+    with:
+      database: { type: string, required: true, description: "The id of the database." }
+      card: { type: string, required: true, description: "The card it is made for." }
+      title: { type: string, required: true, description: "The page's title." }
+      body: { type: string, default: "", description: "What its body property says." }
+      title_property: { type: string, default: Name, description: "The database's title property." }
+      body_property: { type: string, default: Description, description: "The text property that is a card's body." }
+      mark: { type: string, required: true, description: "The text property that holds the card a page was made for." }
+    refuse:
+      - when: ${ trim(with.title) == "" }
+        says: "A page needs a title."
+      - when: ${ len(with.title) > 2000 || len(with.body) > 2000 }
+        says: "Notion takes at most 2000 letters in one piece of text, and the card's title or body is longer. Make it shorter, and do this again."
+      - when: ${ !matches(with.card, "^[a-z0-9][a-z0-9:_-]*$") }
+        says: "`${ with.card }` is not a card's id, so no page can carry its mark."
+      - when: ${ !matches(with.database, "^[0-9a-f-]{32,36}$") }
+        says: "`database` is the id of a Notion database, the 32 letters and digits in its address; it is `${ with.database }`."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["--request", "POST", "--header", "Content-Type: application/json", "--data-binary"]
+      - ['{"parent":{"database_id":${ json(with.database) }},"properties":{${ json(with.title_property) }:{"title":[{"text":{"content":${ json(trim(with.title)) }}}]},${ json(with.body_property) }:{"rich_text":${ with.body == "" ? "[]" : "[{\"text\":{\"content\":" + json(with.body) + "}}]" }},${ json(with.mark) }:{"rich_text":[{"text":{"content":${ json(with.card) }}}]}}}']
+      - ["https://api.notion.com/v1/pages"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "400") }
+        says: "Notion would not make the page: ${ stdout }"
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no database ${ with.database } that the integration may see. Share the database with the integration (Connections, in its menu)."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached."
+      - when: ${ code == 0 && (answer == null || answer.id == null) }
+        says: "Notion did not say which page it made. Look in the database for one whose ${ with.mark } is ${ with.card }."
+    out:
+      page: ${ answer.id }
+      url: ${ answer.url }
+
+  edit:
+    description: Give a page another title, another body, or both. What is not sent is left as it is there.
+    with:
+      page: { type: string, required: true, description: "The id of the page." }
+      sends: { type: list, required: true, description: "Which of `title` and `body` are sent." }
+      title: { type: string, default: "", description: "Its title from now, where that is sent." }
+      body: { type: string, default: "", description: "Its body from now, where that is sent." }
+      title_property: { type: string, default: Name, description: "The database's title property." }
+      body_property: { type: string, default: Description, description: "The text property that is a card's body." }
+    refuse:
+      - when: ${ "title" in with.sends && trim(with.title) == "" }
+        says: "A page needs a title, and the card it is linked with has none."
+      - when: ${ len(with.title) > 2000 || len(with.body) > 2000 }
+        says: "Notion takes at most 2000 letters in one piece of text, and the card's title or body is longer. Make it shorter, and do this again."
+      - when: ${ !matches(with.page, "^[0-9a-f-]{32,36}$") }
+        says: "`${ with.page }` is not the id of a page of Notion's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["--request", "PATCH", "--header", "Content-Type: application/json", "--data-binary"]
+      - when: ${ "title" in with.sends && "body" in with.sends }
+        args: ['{"properties":{${ json(with.title_property) }:{"title":[{"text":{"content":${ json(trim(with.title)) }}}]},${ json(with.body_property) }:{"rich_text":${ with.body == "" ? "[]" : "[{\"text\":{\"content\":" + json(with.body) + "}}]" }}}}']
+      - when: ${ "title" in with.sends && !("body" in with.sends) }
+        args: ['{"properties":{${ json(with.title_property) }:{"title":[{"text":{"content":${ json(trim(with.title)) }}}]}}}']
+      - when: ${ "body" in with.sends && !("title" in with.sends) }
+        args: ['{"properties":{${ json(with.body_property) }:{"rich_text":${ with.body == "" ? "[]" : "[{\"text\":{\"content\":" + json(with.body) + "}}]" }}}}']
+      - ["https://api.notion.com/v1/pages/${ with.page }"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no page ${ with.page } that the integration may see."
+      - when: ${ code == 22 }
+        says: "Notion would not change page ${ with.page }: ${ stdout }"
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached."
+    repeatable: true
+
+  tick:
+    description: Tick or untick the checkbox of a page that says it is done.
+    with:
+      page: { type: string, required: true, description: "The id of the page." }
+      done: { type: string, default: Done, description: "The checkbox property that says a page is done." }
+      closed: { type: bool, required: true, description: "Whether it is done from now." }
+    refuse:
+      - when: ${ !matches(with.page, "^[0-9a-f-]{32,36}$") }
+        says: "`${ with.page }` is not the id of a page of Notion's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["--request", "PATCH", "--header", "Content-Type: application/json", "--data-binary"]
+      - ['{"properties":{${ json(with.done) }:{"checkbox":${ with.closed ? "true" : "false" }}}}']
+      - ["https://api.notion.com/v1/pages/${ with.page }"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no page ${ with.page } that the integration may see."
+      - when: ${ code == 22 }
+        says: "Notion would not change page ${ with.page }: ${ stdout }"
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached."
+    repeatable: true
+
+  said-find:
+    description: Find whether something was said on a page from here, by the mark it carries.
+    with:
+      page: { type: string, required: true, description: "The id of the page." }
+      mark: { type: int, required: true, description: "What marks the thing said: the number of the event here that said it." }
+    refuse:
+      - when: ${ !matches(with.page, "^[0-9a-f-]{32,36}$") }
+        says: "`${ with.page }` is not the id of a page of Notion's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["https://api.notion.com/v1/comments?block_id=${ with.page }&page_size=100"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no page ${ with.page } that the integration may see."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached."
+      - when: ${ code == 0 && (answer == null || answer.results == null) }
+        says: "Notion did not say what was said on page ${ with.page } in a way this understands, so nothing was said there."
+    out:
+      found: ${ contains(json(answer.results), "[said " + string(with.mark) + "]") }
+    repeatable: true
+
+  say:
+    description: Say something on a page, with a mark by which it is found again. It does not look whether it was said already; `said-find` does.
+    with:
+      page: { type: string, required: true, description: "The id of the page." }
+      mark: { type: int, required: true, description: "What marks the thing said: the number of the event here that said it." }
+      body: { type: string, required: true, description: "What is said." }
+    refuse:
+      - when: ${ trim(with.body) == "" }
+        says: "There is nothing to say."
+      - when: ${ len(with.body) > 1900 }
+        says: "Notion takes at most 2000 letters in one piece of text, and what was said is longer, so it was not said there."
+      - when: ${ !matches(with.page, "^[0-9a-f-]{32,36}$") }
+        says: "`${ with.page }` is not the id of a page of Notion's."
+    args:
+      - ["--silent", "--show-error", "--fail-with-body", "--variable", "%NOTION_KEY", "--expand-header", "Authorization: Bearer {{NOTION_KEY}}", "--header", "Notion-Version: 2022-06-28", "--header", "Accept: application/json"]
+      - ["--request", "POST", "--header", "Content-Type: application/json", "--data-binary"]
+      - ['{"parent":{"page_id":${ json(with.page) }},"rich_text":[{"text":{"content":${ json(with.body + "\n\n[said " + string(with.mark) + "]") }}}]}']
+      - ["https://api.notion.com/v1/comments"]
+    answer: json
+    fails:
+      - when: ${ code == 22 && contains(stderr, "401") }
+        says: "Notion did not take the secret the program was handed. See that the secret `key` names is still good, and set it again."
+      - when: ${ code == 22 && contains(stderr, "403") }
+        says: "Notion would not have the integration say something on page ${ with.page }: give it leave to insert comments (Capabilities, in its settings)."
+      - when: ${ code == 22 && contains(stderr, "404") }
+        says: "Notion has no page ${ with.page } that the integration may see."
+      - when: ${ code == 6 || code == 7 || code == 28 }
+        says: "Notion could not be reached."
+      - when: ${ code == 0 && (answer == null || answer.id == null) }
+        says: "Notion did not say that it kept what was said on page ${ with.page }."
+    out:
+      id: ${ answer.id }
+
+blueprints:
+  pages: |
+    # Keeps the cards of one project that are linked with a page of a
+    # Notion database in step with it, a ticket at a time. It is
+    # `github/issues`, done for a Notion database: what is said there of
+    # how it does what it does is so here, but where this says otherwise.
+    #
+    # Nothing crosses unless it is linked. A link is a row of the
+    # project's table `links`, which names a card, a page's id, or both:
+    # a row that names a card has a page made for it; one that names a
+    # page has a card made for it; one that names both ties two tickets
+    # that were there already. Adding a row takes what running the
+    # program takes (`extensions:notion-pages`). A card is linked for
+    # somebody who labels it, where this was told a label for that
+    # (`out_label`), and a page by being ticked in a checkbox of the
+    # database, where this was told one (`in_property`).
+    #
+    # Of a linked ticket the title, the body (a text property of the
+    # database) and whether it is done (a checkbox of the database) are
+    # kept the same on both sides. Which side moved is told by what the
+    # two last agreed on, which the link keeps (`sides.cross`). What is
+    # said on the page is said on the card, once each, and never as
+    # public. What is said on the card stays here unless whoever said it
+    # marked it public and holds what linking takes; then it is said on
+    # the page, once.
+    #
+    # Notion says nothing this can read of whether whoever changed a page
+    # or said something on it is a member of the workspace or a guest, so
+    # whose changes are taken is everyone's or nobody's (`takes_in`).
+    #
+    # What changed in Notion is heard as it happens where Notion can reach
+    # this factory: a caller says `notion.called`. Where it cannot, apply
+    # this with `timer`, and it asks once a minute. Notion says when a
+    # page was edited to the minute, so each of the pages edited last that
+    # is linked is read again as it is, whether or not it was read in the
+    # same minute.
+    #
+    # Nothing here removes anything, on the board or in Notion; a link
+    # that is taken away stops its ticket being kept in step, and leaves
+    # both as they are.
+    blueprint: notion-pages/pages
+    version: 1
+    description: Keep the cards of this project that are linked with a page of a Notion database in step with it, a ticket at a time.
+    permissions: [extensions:notion-pages, board, records, projects, channels:write, blueprints, emit, secrets]
+
+    params:
+      database: { type: string, required: true, description: "The id of the Notion database whose pages are kept in step with this project's cards: the 32 letters and digits in its address." }
+      key: { type: string, required: true, description: "A secret the factory keeps that the program acts as in Notion: the secret of an integration the database is shared with, with leave to read, insert and update content and to read and insert comments." }
+      title_property: { type: string, default: Name, description: "The database's title property, which is a card's title." }
+      body_property: { type: string, default: Description, description: "A text property of the database that is a card's body." }
+      done_property: { type: string, default: Done, description: "A checkbox property of the database that says a page is done." }
+      mark_property: { type: string, default: Card, description: "A text property of the database that holds the card a page was made for, by which it is found again." }
+      in_property: { type: string, default: "", description: "A checkbox property of the database that links a page: a page ticked there has a card made for it. Left empty, a page is linked only by a row of `links`." }
+      channel: { type: string, default: "", description: "Where to say that a ticket was linked, or that something could not be done. Left empty, the channel called what the project is." }
+      out_label: { type: string, default: "", description: "A label that links a card: a card given it has a page made for it, where whoever labelled it holds `extensions:notion-pages`. Left empty, a card is linked only by a row of `links`." }
+      closed: { type: string, default: "", description: "The column a card is put in when its page is ticked done, and whose cards have their page ticked. Left empty, the board's last." }
+      reopened: { type: string, default: "", description: "The column a card is put in when its page is no longer ticked done, or made for a page that is not. Left empty, the board's first." }
+      prefer: { type: string, default: here, description: "Which side is taken where a ticket changed on both since they last agreed: `here` or `there`." }
+      takes_in: { type: string, default: everyone, description: "Whose changes of a page's title or body in Notion are taken into its card once the two are linked, and whose words there may answer what an agent asked on the card: `everyone` who may write in the database; or `nobody`, so that the card's words are changed only here." }
+      timer: { type: bool, default: false, description: "Whether to ask Notion once a minute what changed, for a factory Notion cannot reach." }
+
+    env:
+      NOTION_KEY: { secret: "${params.key}" }
+
+    state:
+      channel: ""  # where it says things
+      closed: ""  # the column of a card whose page is done
+      reopened: ""  # the column of a card whose page is not
+
+    steps:
+      project:
+        description: It keeps one project's tickets.
+        do: fail
+        when: ${ instance.project == null }
+        with: { message: "This keeps one project's cards in step with the pages of a Notion database, so it is applied to a project: --project <project>." }
+
+      sided:
+        description: Which side is taken is one of two words.
+        do: fail
+        when: ${ !(params.prefer in ["here", "there"]) }
+        with: { message: "`prefer` is which side is taken where a ticket changed on both, `here` or `there`; it is `${params.prefer}`." }
+
+      taken:
+        description: Whose changes there are taken is one of two words.
+        do: fail
+        when: ${ !(params.takes_in in ["everyone", "nobody"]) }
+        with: { message: "`takes_in` is whose changes of a page in Notion are taken into its card, `everyone` or `nobody`: Notion says nothing this can read of who has standing in a workspace. It is `${params.takes_in}`." }
+
+      reports:
+        description: The channel it reports in is there, made now where it was not.
+        do: channel.ensure
+        with: { name: "${params.channel}", otherwise: "${instance.project}", project: "${instance.project}" }
+
+      said_in:
+        do: set
+        with: { channel: "${steps.reports.out.id}" }
+
+      account:
+        description: Notion is reached, takes the integration's secret and lets it see the database. Said now, and not when the first ticket is linked.
+        do: notion-pages.account
+        timeout: 1m
+        with: { database: "${params.database}" }
+
+      board:
+        description: The project's board, whose first and last columns are where a card begins and ends unless another is said.
+        do: board.list
+
+      ends:
+        when: ${ params.closed != "" }
+        do: set
+        with: { closed: "${params.closed}" }
+
+      ends_last:
+        when: ${ params.closed == "" }
+        do: set
+        with: { closed: "${steps.board.out.last}" }
+
+      begins:
+        when: ${ params.reopened != "" }
+        do: set
+        with: { reopened: "${params.reopened}" }
+
+      begins_first:
+        when: ${ params.reopened == "" }
+        do: set
+        with: { reopened: "${steps.board.out.first}" }
+
+      links:
+        description: "The tickets that are linked, a row each. Adding one makes a ticket public, so it takes what running the program takes."
+        do: collection.ensure
+        with:
+          name: links
+          takes: extensions:notion-pages
+          fields:
+            # The card, the page's id, or both.
+            card: { type: record, of: board }
+            page: { type: text }
+            url: { type: text }
+            # What the two last agreed on: what tells which side moved.
+            agreed_title: { type: text, quiet: true, hidden: true }
+            agreed_body: { type: text, quiet: true, hidden: true }
+            agreed_closed: { type: flag, quiet: true, hidden: true }
+            # What was said there and has been said here, by its id there.
+            came: { type: list, quiet: true, hidden: true }
+            # `bringing`, while a card is being made for the page.
+            state: { type: text, quiet: true }
+
+      asks:
+        description: Asked on a timer, for a factory Notion cannot reach.
+        when: ${params.timer}
+        spawn: notion-pages/pages-timer
+        as: timer
+        with: { database: "${params.database}", key: "${params.key}" }
+
+      asks_not:
+        when: ${ !params.timer }
+        do: stop
+        with: { instance: timer, missing_ok: true }
+
+    on:
+      # A row of `links` was added or changed by somebody: what it names
+      # says what is owed.
+      linked:
+        event: record.*
+        for: { project: "${instance.project}", collection: links }
+        when: ${ event.topic in ["record.created", "record.updated"] && event.data.through == null }
+        turn: "${event.data.id}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.id}" }
+
+          out:
+            description: It names a card and no page. One is made.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") != "" && (steps.link.out.data.page ?? "") == "" }
+            do: emit
+            with: { topic: notion.out, project: "${instance.project}", link: "${event.data.id}" }
+
+          in:
+            description: It names a page and no card. One is made.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") == "" && (steps.link.out.data.page ?? "") != "" }
+            do: emit
+            with: { topic: notion.in, project: "${instance.project}", link: "${event.data.id}" }
+
+          both:
+            description: It names both. They are brought together.
+            when: ${ steps.link.ok && (steps.link.out.data.card ?? "") != "" && (steps.link.out.data.page ?? "") != "" }
+            do: emit
+            with: { topic: notion.due, project: "${instance.project}", link: "${event.data.id}" }
+
+      # A card's title or body was changed, by anything but this.
+      reworded:
+        event: board.item.updated
+        for: { project: "${instance.project}" }
+        when: ${ event.data.reworded && event.data.through != "notion-pages/pages" }
+        steps:
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", page: { said: true } } }
+
+          due:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with: { topic: notion.due, project: "${instance.project}", link: "${item}" }
+
+      # A card came to the column of the closed, or left it.
+      moved:
+        event: board.item.moved
+        for: { project: "${instance.project}" }
+        when: ${ event.data.to == state.closed || event.data.from == state.closed }
+        steps:
+          mine:
+            description: What this moved is not looked at again.
+            when: ${ event.data.through == "notion-pages/pages" }
+            do: end
+
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", page: { said: true } } }
+
+          due:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with: { topic: notion.due, project: "${instance.project}", link: "${item}" }
+
+      # A card was added, or its labels changed, where a label links.
+      added:
+        event: board.item.created
+        for: { project: "${instance.project}" }
+        when: ${ params.out_label != "" && event.data.through != "notion-pages/pages" }
+        steps:
+          labelled:
+            do: emit
+            with: { topic: notion.labelled, project: "${instance.project}", card: "${event.data.id}", actor: "${event.source.actor}" }
+
+      relabelled:
+        event: board.item.updated
+        for: { project: "${instance.project}" }
+        when: ${ params.out_label != "" && "labels" in event.data.changed && event.data.through != "notion-pages/pages" }
+        steps:
+          labelled:
+            do: emit
+            with: { topic: notion.labelled, project: "${instance.project}", card: "${event.data.id}", actor: "${event.source.actor}" }
+
+      # A card that may have the label that links, linked for whoever
+      # labelled it: so they are asked for what linking takes.
+      labelled:
+        event: notion.labelled
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.card}"
+        steps:
+          card:
+            allow_failure: true
+            do: board.get
+            with: { id: "${event.data.card}" }
+
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.card}" } }
+
+          may:
+            description: Whether whoever labelled it holds what making a ticket public takes, now.
+            when: ${ steps.card.ok && params.out_label in steps.card.out.labels && steps.link.out.those[0] == null }
+            allow_failure: true
+            do: actor.holds
+            with: { actor: "${event.data.actor}", scope: "extensions:notion-pages" }
+
+          add:
+            when: ${ steps.may.out.holds == true }
+            do: record.add
+            with: { collection: links, fields: { card: "${event.data.card}" } }
+
+          out:
+            when: ${steps.add.ok}
+            do: emit
+            with: { topic: notion.out, project: "${instance.project}", link: "${steps.add.out.id}" }
+
+          left:
+            description: Labelled by somebody who may not make a ticket public, it stays here, and that is said.
+            when: ${ steps.may.out.holds == false }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${event.data.card} has the label ${params.out_label}, and was not linked with a page in Notion: whoever labelled it does not hold `extensions:notion-pages`, which making a ticket public takes. Somebody who does can link it with a row of the project's `links`."
+
+      # Something was said on a card and marked public, by somebody and
+      # not by a blueprint.
+      said:
+        event: record.commented
+        for: { project: "${instance.project}", collection: board }
+        when: ${ event.data.public == true && event.data.through == null }
+        steps:
+          link:
+            do: rows.read
+            with: { collection: links, saying: { card: "${event.data.id}", page: { said: true } } }
+
+          say:
+            for_each: ${steps.link.out.those}
+            do: emit
+            with:
+              topic: notion.said
+              project: "${instance.project}"
+              link: "${item}"
+              card: "${event.data.id}"
+              body: "${event.data.body}"
+              mark: "${event.seq}"
+              actor: "${event.source.actor}"
+
+      # Notion said something happened to a page of the database. Of what
+      # it says only which page is taken: the page is read as it is.
+      called:
+        event: notion.called
+        outside: true
+        when: ${ event.data.entity.type == "page" && event.data.data.parent.id == params.database }
+        steps:
+          heard:
+            do: emit
+            with: { topic: notion.heard, project: "${instance.project}", page: "${event.data.entity.id}" }
+
+      # When this starts, is applied again, or the daemon comes back, it
+      # looks once: what changed while nothing was listening is seen then.
+      first:
+        event: instance.active
+        scope: own
+        when: ${ event.source.instance == instance.id }
+        steps:
+          look:
+            do: emit
+            with: { topic: notion.look, project: "${instance.project}" }
+
+      started:
+        event: system.started
+        steps:
+          look:
+            do: emit
+            with: { topic: notion.look, project: "${instance.project}" }
+
+      # Asked what changed: as this starts, on a timer, or by anybody who
+      # says so.
+      look:
+        event: notion.look
+        for: { project: "${instance.project}" }
+        steps:
+          changed:
+            do: notion-pages.changed
+            timeout: 2m
+            with: { database: "${params.database}" }
+
+          heard:
+            for_each: ${steps.changed.out.pages}
+            do: emit
+            with:
+              topic: notion.heard
+              project: "${instance.project}"
+              page: "${item.id}"
+              ticked: "${ item.properties[params.in_property].checkbox ?? false }"
+
+      # A page may have changed.
+      heard:
+        event: notion.heard
+        for: { project: "${instance.project}" }
+        turn: "page-${event.data.page}"
+        steps:
+          linked:
+            do: rows.read
+            with: { collection: links, saying: { page: "${event.data.page}" } }
+
+          news:
+            description: Its link, where it is linked with a card.
+            do: rows.read
+            with: { collection: links, saying: { page: "${event.data.page}", card: { said: true } } }
+
+          due:
+            for_each: ${steps.news.out.those}
+            do: emit
+            with: { topic: notion.due, project: "${instance.project}", link: "${item}" }
+
+          called:
+            description: Linked with nothing, where a tick links. Heard of with no word of its tick, the page as it is now says whether it is ticked.
+            when: ${ params.in_property != "" && steps.linked.out.those[0] == null && event.data.ticked == null }
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.page
+            with: { page: "${event.data.page}", title: "${params.title_property}", body: "${params.body_property}", done: "${params.done_property}", ticked: "${params.in_property}" }
+
+          listed:
+            description: Listed as ticked, it is read as it is all the same, and that says whether it is.
+            when: ${ params.in_property != "" && steps.linked.out.those[0] == null && event.data.ticked == true }
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.page
+            with: { page: "${event.data.page}", title: "${params.title_property}", body: "${params.body_property}", done: "${params.done_property}", ticked: "${params.in_property}" }
+
+          add:
+            when: ${ (steps.called.out.ticked ?? steps.listed.out.ticked ?? false) == true }
+            do: record.add
+            with: { collection: links, fields: { page: "${event.data.page}", url: "${ steps.called.out.url ?? steps.listed.out.url }" } }
+
+          in:
+            when: ${steps.add.ok}
+            do: emit
+            with: { topic: notion.in, project: "${instance.project}", link: "${steps.add.out.id}" }
+
+      # A link names a card and no page: one is made for it, unless one
+      # that carries the card in its mark is there already. A page that was
+      # made is said by Notion as it is made, and is not looked for again
+      # then.
+      make:
+        event: notion.out
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${steps.link.failed}
+            do: end
+
+          made:
+            when: ${ (steps.link.out.data.page ?? "") != "" }
+            do: end
+
+          card:
+            do: board.get
+            with: { id: "${steps.link.out.data.card}" }
+
+          found:
+            description: A page that carries the card in its mark was made for it before, by a run the daemon stopped in.
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.find
+            with: { database: "${params.database}", mark: "${params.mark_property}", card: "${steps.link.out.data.card}" }
+
+          open:
+            when: ${ steps.found.ok && !steps.found.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.open
+            with: { database: "${params.database}", mark: "${params.mark_property}", title_property: "${params.title_property}", body_property: "${params.body_property}", card: "${steps.link.out.data.card}", title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+
+          there:
+            description: Making it failed, or the daemon stopped in that step, which is not done twice and says so as a failure whether or not the page had been made. It is looked for by its mark.
+            when: ${steps.open.failed}
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.find
+            with: { database: "${params.database}", mark: "${params.mark_property}", card: "${steps.link.out.data.card}" }
+
+          again:
+            description: Not there, though making it was tried: it was not made, and is made now.
+            when: ${ steps.open.failed && steps.there.ok && !steps.there.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.open
+            with: { database: "${params.database}", mark: "${params.mark_property}", title_property: "${params.title_property}", body_property: "${params.body_property}", card: "${steps.link.out.data.card}", title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+
+          keep:
+            description: The link says which page it is, and what the two agree on.
+            when: ${ (steps.again.out.page ?? steps.open.out.page ?? steps.there.out.page ?? steps.found.out.page ?? "") != "" }
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                page: "${ steps.again.out.page ?? steps.open.out.page ?? steps.there.out.page ?? steps.found.out.page }"
+                url: "${ steps.again.out.url ?? steps.open.out.url ?? steps.there.out.url ?? steps.found.out.url }"
+                agreed_title: "${steps.card.out.title}"
+                agreed_body: "${steps.card.out.body}"
+                agreed_closed: false
+
+          told:
+            when: ${steps.keep.ok}
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card} is linked with a page in Notion: ${ steps.again.out.url ?? steps.open.out.url ?? steps.there.out.url ?? steps.found.out.url }"
+
+          due:
+            description: And is brought together with it, a card that is closed already included.
+            when: ${steps.keep.ok}
+            do: emit
+            with: { topic: notion.due, project: "${instance.project}", link: "${event.data.link}" }
+
+          trouble:
+            description: Said only where no page is there for it in the end.
+            when: ${ !steps.keep.ok }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card}: no page was made for it in Notion: ${ steps.found.error ?? steps.again.error ?? steps.there.error ?? steps.open.error }"
+
+      # A link names a page and no card: one is made for it. A daemon
+      # that stops as the card is added has the step done again when it
+      # is back, which finds the card it added (adding one is the same
+      # done twice). That a card is being made is written first all the
+      # same: a run cut short another way (what applied this stopped
+      # under it) leaves the link saying so with no card, and a link
+      # found so is left for a person and not given a second card.
+      bring:
+        event: notion.in
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${steps.link.failed}
+            do: end
+
+          brought:
+            when: ${ (steps.link.out.data.card ?? "") != "" }
+            do: end
+
+          half:
+            when: ${ steps.link.out.data.state == "bringing" }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "The link ${event.data.link} with page ${steps.link.out.data.page} was left half made: a card may have been added for it as the daemon stopped. Name that card in the link, or empty the link's `state` to have one made."
+
+          left:
+            when: ${ steps.link.out.data.state == "bringing" }
+            do: end
+
+          page:
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.page
+            with: { page: "${steps.link.out.data.page}", title: "${params.title_property}", body: "${params.body_property}", done: "${params.done_property}" }
+
+          trouble:
+            when: ${steps.page.failed}
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "No card was made for page ${steps.link.out.data.page} in Notion: ${steps.page.error}"
+
+          unread:
+            when: ${steps.page.failed}
+            do: end
+
+          bringing:
+            do: record.update
+            with: { id: "${event.data.link}", fields: { state: bringing } }
+
+          open:
+            when: ${ !steps.page.out.closed }
+            do: board.add
+            with: { title: "${steps.page.out.title}", body: "${steps.page.out.body}", status: "${state.reopened}" }
+
+          shut:
+            when: ${steps.page.out.closed}
+            do: board.add
+            with: { title: "${steps.page.out.title}", body: "${steps.page.out.body}", status: "${state.closed}" }
+
+          keep:
+            description: The link says which card it is, and what the two agree on.
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                card: "${ steps.open.out.id ?? steps.shut.out.id }"
+                url: "${steps.page.out.url}"
+                state: ""
+                agreed_title: "${steps.page.out.title}"
+                agreed_body: "${steps.page.out.body}"
+                agreed_closed: "${steps.page.out.closed}"
+
+          told:
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${ steps.open.out.id ?? steps.shut.out.id } was made for a page in Notion: ${steps.page.out.url}"
+
+          due:
+            description: And what was said on the page is said on the card.
+            do: emit
+            with: { topic: notion.due, project: "${instance.project}", link: "${event.data.link}" }
+
+      # A linked ticket is brought together: what moved on either side
+      # since the two last agreed crosses, and what was said on the page
+      # is said on the card.
+      keep:
+        event: notion.due
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            description: A link that was taken away keeps nothing in step.
+            when: ${steps.link.failed}
+            do: end
+
+          half:
+            when: ${ (steps.link.out.data.card ?? "") == "" || (steps.link.out.data.page ?? "") == "" }
+            do: end
+
+          card:
+            allow_failure: true
+            do: board.get
+            with: { id: "${steps.link.out.data.card}" }
+
+          off:
+            description: A card that was taken off the board is not put back, and its page is left as it is.
+            when: ${steps.card.failed}
+            do: end
+
+          there:
+            description: The page as it is now.
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.page
+            with: { page: "${steps.link.out.data.page}", title: "${params.title_property}", body: "${params.body_property}", done: "${params.done_property}" }
+
+          trouble:
+            when: ${steps.there.failed}
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "${steps.link.out.data.card} was not brought together with its page in Notion: ${steps.there.error}"
+
+          unread:
+            when: ${steps.there.failed}
+            do: end
+
+          words:
+            description: Which of the title and the body moved, on which side, and whether what moved there is taken.
+            do: sides.cross
+            with:
+              here: { title: "${steps.card.out.title}", body: "${steps.card.out.body}" }
+              there: { title: "${steps.there.out.title}", body: "${steps.there.out.body}" }
+              last: { title: "${steps.link.out.data.agreed_title}", body: "${steps.link.out.data.agreed_body}" }
+              prefer: "${params.prefer}"
+              takes: "${params.takes_in}"
+
+          edit:
+            description: What moved here is said there, and what did not is left as it is there.
+            when: ${ steps.words.out.came in ["out", "both"] }
+            timeout: 2m
+            do: notion-pages.edit
+            with:
+              page: "${steps.link.out.data.page}"
+              sends: "${steps.words.out.sends}"
+              title: "${ steps.words.out.goes.title ?? '' }"
+              body: "${ steps.words.out.goes.body ?? '' }"
+              title_property: "${params.title_property}"
+              body_property: "${params.body_property}"
+
+          take_title:
+            description: What moved there, and is taken, is said here.
+            when: ${ "title" in steps.words.out.takes }
+            do: board.update
+            with: { id: "${steps.link.out.data.card}", title: "${steps.words.out.comes.title}" }
+
+          take_body:
+            when: ${ "body" in steps.words.out.takes }
+            do: board.update
+            with: { id: "${steps.link.out.data.card}", body: "${ steps.words.out.comes.body ?? '' }" }
+
+          agree:
+            description: What the two agree on, as one write.
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields:
+                agreed_title: "${steps.words.out.agreed.title}"
+                agreed_body: "${ steps.words.out.agreed.body ?? '' }"
+
+          shut:
+            description: Whether it is done, the same way. A card is done by being in the column that was said, and a page by being ticked.
+            do: sides.cross
+            with:
+              here: { closed: "${ steps.card.out.status == state.closed }" }
+              there: { closed: "${steps.there.out.closed}" }
+              last: { closed: "${steps.link.out.data.agreed_closed}" }
+              prefer: "${params.prefer}"
+
+          tick:
+            when: ${ steps.shut.out.goes.closed != null }
+            timeout: 2m
+            do: notion-pages.tick
+            with: { page: "${steps.link.out.data.page}", done: "${params.done_property}", closed: "${steps.shut.out.goes.closed}" }
+
+          closed:
+            when: ${ steps.shut.out.comes.closed == true }
+            do: board.move
+            with: { id: "${steps.link.out.data.card}", to: "${state.closed}", note: "its page in Notion was ticked done" }
+
+          reopened:
+            when: ${ steps.shut.out.comes.closed == false }
+            do: board.move
+            with: { id: "${steps.link.out.data.card}", to: "${state.reopened}", note: "its page in Notion was no longer ticked done" }
+
+          agreed:
+            do: record.update
+            with:
+              id: "${event.data.link}"
+              fields: { agreed_closed: "${steps.shut.out.agreed.closed}", url: "${steps.there.out.url}" }
+
+          owed:
+            description: What was said on the page and has not been said on the card.
+            do: sides.owed
+            with:
+              things: "${steps.there.out.said}"
+              had: "${ steps.link.out.data.came ?? [] }"
+
+          hear:
+            description: Each is said on the card, with who said it there, never as public, and then kept as said. What was said from here carries its mark, and is kept as said and not said back. Whether it may answer what an agent asked on the card goes by whose words are taken.
+            for_each: ${steps.owed.out.those}
+            task:
+              said:
+                when: ${ !("[said " in item.rich_text[0].plain_text) }
+                do: record.comment
+                with:
+                  id: "${steps.link.out.data.card}"
+                  body: "${ item.display_name.resolved_name ?? 'Somebody' } said in Notion:\n\n${ join(pluck(item.rich_text, 'plain_text'), '') }\n\n${steps.there.out.url}"
+
+              kept:
+                do: record.update
+                with: { id: "${event.data.link}", fields: { came: "${item.kept}" } }
+
+              anybodys:
+                when: ${ params.takes_in == "everyone" && !("[said " in item.rich_text[0].plain_text) }
+                do: emit
+                with: { topic: notion.answered, project: "${instance.project}", card: "${steps.link.out.data.card}", by: "${item.created_by.id}", body: "${ join(pluck(item.rich_text, 'plain_text'), '') }" }
+
+      # Something said on a page by somebody whose words are taken:
+      # whether it answers what an agent asked on the card is asked of
+      # the board, as it is of what a person says on the card.
+      answered:
+        event: notion.answered
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.card}"
+        steps:
+          what:
+            description: Whether it answers what was asked on the card.
+            do: board.said
+            with: { id: "${event.data.card}", by: "notion:${event.data.by}" }
+
+          taken:
+            when: ${ steps.what.out.came == "answer" }
+            do: board.update
+            with: { id: "${event.data.card}", fields: { question: "" } }
+
+          answer:
+            when: ${ steps.what.out.came == "answer" }
+            do: emit
+            with:
+              topic: card.answered
+              card: "${event.data.card}"
+              project: "${instance.project}"
+              asker: "${steps.what.out.asker}"
+              body: "${event.data.body}"
+
+      # Something said on a linked card and marked public is said on its
+      # page, once, for whoever said it: so they are asked for what making
+      # something public takes.
+      say:
+        event: notion.said
+        scope: own
+        for: { project: "${instance.project}" }
+        turn: "${event.data.link}"
+        steps:
+          link:
+            allow_failure: true
+            do: record.get
+            with: { id: "${event.data.link}" }
+
+          gone:
+            when: ${steps.link.failed}
+            do: end
+
+          may:
+            description: Whether whoever said it holds what making something public takes, now.
+            allow_failure: true
+            do: actor.holds
+            with: { actor: "${event.data.actor}", scope: "extensions:notion-pages" }
+
+          kept_here:
+            when: ${ !(steps.may.out.holds ?? false) }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "Something said on ${event.data.card} was marked public and was not said on its page in Notion: whoever said it does not hold `extensions:notion-pages`, which making something public takes."
+
+          not:
+            when: ${ !(steps.may.out.holds ?? false) }
+            do: end
+
+          found:
+            description: Said there before, by a run the daemon stopped in, it carries the mark.
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.said-find
+            with: { page: "${steps.link.out.data.page}", mark: "${event.data.mark}" }
+
+          say:
+            when: ${ steps.found.ok && !steps.found.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.say
+            with:
+              page: "${steps.link.out.data.page}"
+              mark: "${event.data.mark}"
+              body: "${steps.may.out.name} said:\n\n${event.data.body}"
+
+          there:
+            description: Looked for again by its mark, whether saying it went well or not. A step the daemon stopped in is not done twice, and says so as a failure, whether or not it had been said.
+            when: ${ steps.say.ok || steps.say.failed }
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.said-find
+            with: { page: "${steps.link.out.data.page}", mark: "${event.data.mark}" }
+
+          again:
+            description: Not there, though saying it was tried: it was not said, and is said now.
+            when: ${ steps.say.failed && steps.there.ok && !steps.there.out.found }
+            allow_failure: true
+            timeout: 2m
+            do: notion-pages.say
+            with:
+              page: "${steps.link.out.data.page}"
+              mark: "${event.data.mark}"
+              body: "${steps.may.out.name} said:\n\n${event.data.body}"
+
+          trouble:
+            description: Said only where nothing on the page carries the mark in the end.
+            when: ${ !(steps.found.out.found ?? false) && !(steps.there.out.found ?? false) && !steps.again.ok }
+            allow_failure: true
+            do: channel.post
+            with:
+              channel: "${state.channel}"
+              body: "What was said publicly on ${event.data.card} was not said on its page in Notion: ${ steps.found.error ?? steps.again.error ?? steps.say.error ?? steps.there.error }"
+
+  pages-timer: |
+    # Asks Notion once a minute which pages of the database were edited
+    # last, for a factory that Notion cannot reach, and has
+    # `notion-pages/pages` look when any were. It is started by that where
+    # it was applied with `timer`, and stopped by it where it was not.
+    blueprint: notion-pages/pages-timer
+    version: 1
+    description: Ask Notion once a minute which pages of a database were edited, and have what keeps them in step look.
+    permissions: [extensions:notion-pages, emit, secrets]
+
+    params:
+      database: { type: string, required: true, description: "The id of the database." }
+      key: { type: string, required: true, description: "A secret the factory keeps that the program acts as in Notion." }
+
+    env:
+      NOTION_KEY: { secret: "${params.key}" }
+
+    on:
+      asked:
+        poll:
+          every: 1m
+          do: notion-pages.changed
+          with: { database: "${params.database}" }
+        steps:
+          look:
+            do: emit
+            with: { topic: notion.look, project: "${instance.project}" }

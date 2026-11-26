@@ -1,0 +1,13 @@
+{
+  "says": "A daemon stopped as the step that makes a ticket for a card begins cannot say afterwards whether the command was asked: back, the step is not done twice, the ticket is looked for by the card it was made for, found not to be there, and made. The card has one ticket.",
+  "steps": [
+    {"run": ["project", "create", "--bare", "Shop"]},
+    {"run": ["apply", "std/board", "--project", "shop"]},
+    {"run": ["channel", "create", "shop", "--project", "shop"]},
+    {"run": ["board", "add", "shop", "Add a cart", "--body", "Customers need one."]},
+    {"apply": "tickets", "project": "shop", "sets_off": "look"},
+    {"stopped_at": "open", "of": "tickets", "by": {"run": ["record", "add", "shop", "links", "card=shop-1"]}, "sets_off": "keep"},
+    {"holds": {"tickets/T-1": {"title": "Add a cart", "body": "Customers need one.", "mark": "shop-1", "stamp": "t1"}, "tickets/T-2": {}}},
+    {"run": ["record", "show", "shop-links-1"], "says": "ticket: T-1"}
+  ]
+}

@@ -442,7 +442,7 @@
         },
         {
           "after": "names, each a step",
-          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
           "help": "The work, as a graph of steps. Runs once, when an instance starts.",
           "name": "steps",
           "value": {
@@ -683,11 +683,11 @@
           "task"
         ]
       ],
-      "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+      "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
       "fields": [
         {
           "after": "an action",
-          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
           "help": "The action the step runs, by its name, with what it is handed under `with`: what most steps are.",
           "name": "do",
           "value": {
@@ -724,7 +724,7 @@
         },
         {
           "after": "arguments",
-          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
           "help": "What the action named beside it is handed, or the params the blueprint named beside it is started with: each by its name.",
           "name": "with",
           "value": {
@@ -761,7 +761,7 @@
         },
         {
           "after": "a number, or a mapping",
-          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
           "help": "Try again after a failure: a count, or `max`, `backoff` and `factor`. For a step that may fail for a moment, such as one that asks something over the network.",
           "name": "retry",
           "value": {
@@ -945,11 +945,11 @@
     },
     {
       "alternatives": [],
-      "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+      "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
       "fields": [
         {
           "after": "a number",
-          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
           "help": "How many times to try again after the first.",
           "name": "max",
           "value": {
@@ -958,7 +958,7 @@
         },
         {
           "after": "a length of time, such as 30s or 5m",
-          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
           "help": "How long to wait before trying again. 1s unless said.",
           "name": "backoff",
           "value": {
@@ -967,7 +967,7 @@
         },
         {
           "after": "a number",
-          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
           "help": "What each wait is multiplied by to make the next. 2 unless said.",
           "name": "factor",
           "value": {
@@ -976,7 +976,7 @@
         },
         {
           "after": "a length of time, such as 30s or 5m",
-          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [curl, -fsS, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
+          "example": "blueprint: health\npermissions: [shell]\n\nsteps:\n  fetch:\n    do: shell\n    with: { cmd: [wget, -qO-, \"http://localhost:8080/health\"] }\n    retry: { max: 3, backoff: 2s, factor: 2, max_backoff: 30s }\n",
           "help": "The longest a wait may grow to. 5m unless said.",
           "name": "max_backoff",
           "value": {

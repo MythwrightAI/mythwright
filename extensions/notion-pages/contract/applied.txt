@@ -1,0 +1,8 @@
+# The blueprints of this package that somebody applies, each with why it
+# is somebody's to apply. The others are parts: a blueprint here runs
+# them, and a list of blueprints shows them under what does. Which is
+# which is worked out from the texts; this file is what that is held to,
+# by a test (`listed.rs` in the suite of `api`). A blueprint added to the
+# package that nothing names is listed among what is applied, and fails
+# that test until it is named from what runs it or given a line here.
+notion-pages/pages   keeps the cards of a project that are linked with a page of a Notion database in step with it

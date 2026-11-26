@@ -10,6 +10,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use agents::{Order, TurnRequest};
 use rusqlite::params;
+use serde_json::{Value, json};
 
 use crate::Rig;
 
@@ -106,6 +107,12 @@ async fn a_choosing_asks_no_more_of_the_database_however_many_turns_have_been_ke
     rig.agents.enqueue(work("one", "[gate:shelf] a shelf")).await.unwrap();
     rig.fake.saw(1).await;
 
+    // What the studio does by itself on the same databases is no part of
+    // choosing: the keeper of records' histories reads every table as one
+    // is declared, in its own time. It is stopped, and what it asked
+    // before is done by the time the counting begins, which is asked of
+    // each database's thread after it.
+    rig.studio.halt();
     // How much the databases do, counted by each: the factory's own,
     // which keeps who the agents are, and the shop's, which keeps what
     // its agents were asked.
@@ -137,6 +144,20 @@ async fn a_choosing_asks_no_more_of_the_database_however_many_turns_have_been_ke
         kept_of_the_shops(&rig, slot, 1_000).await;
         kept_before(&rig, slot, 1_000).await;
     }
+    // A table declared from another thread while this one does nothing:
+    // whatever hears it here is polled only once this one waits on the
+    // choosing, and what it reads is then counted with it (349 steps
+    // beside 279, with the keeper not stopped).
+    let collections = rig.studio.collections.clone();
+    let spec = studio::collections::Spec::read(&json!({ "title": { "type": "text" } }), &Value::Null, None);
+    let system = kernel::Principal::system();
+    let declaring = collections.ensure("shop", "aside", spec.unwrap(), None, &system);
+    std::thread::scope(|scope| {
+        scope.spawn(|| {
+            let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+            runtime.block_on(declaring).unwrap();
+        });
+    });
     let (many, could) = chosen().await;
     assert_eq!(could["one"].1, 1, "{could:?}");
     // The same to within what a deeper index costs to look into: read

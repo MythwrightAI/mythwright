@@ -1,0 +1,8 @@
+# What the blueprints of this package still work out for themselves: how
+# many of their expressions are not plain, and what is to become of them.
+# The number only goes down (the `plain` gate).
+#
+# Notion keeps what is said on a page as a list of pieces of text, and the
+# blueprint puts them together into the words said on the card, in the
+# two places those words are said.
+2 to be made plain by a block that says what a text kept in pieces comes to as words, which the blueprint then asks

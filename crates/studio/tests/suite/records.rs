@@ -12,18 +12,22 @@ fn data(value: Value) -> Map<String, Value> {
     value.as_object().cloned().unwrap()
 }
 
-/// A project `shop` whose sprints have a title, a size and a sprint they
-/// come after, kept where `store` says.
-async fn planned(store: &str) -> Rig {
-    let rig = Rig::new().await;
-    rig.studio.projects.create("Shop", None, &ada()).await.unwrap();
+/// What `planned` declares the sprints with, kept where `store` says.
+fn sprints(store: &str) -> Spec {
     let fields = json!({
         "title": { "type": "text", "required": true },
         "size": { "type": "number" },
         "after": { "type": "record", "of": "sprints" },
     });
-    let spec = Spec::read(&fields, &json!(null), Some(store)).unwrap();
-    rig.studio.collections.ensure("shop", "sprints", spec, None, &ada()).await.unwrap();
+    Spec::read(&fields, &json!(null), Some(store)).unwrap()
+}
+
+/// A project `shop` whose sprints have a title, a size and a sprint they
+/// come after, kept where `store` says.
+async fn planned(store: &str) -> Rig {
+    let rig = Rig::new().await;
+    rig.studio.projects.create("Shop", None, &ada()).await.unwrap();
+    rig.studio.collections.ensure("shop", "sprints", sprints(store), None, &ada()).await.unwrap();
     rig
 }
 
@@ -619,6 +623,13 @@ async fn a_record_added_beside_three_asks_the_database_as_much_as_one_added_besi
     for nth in 1..=3 {
         add(format!("Sprint {nth}")).await;
     }
+    // What the studio does by itself on the same databases is no part of
+    // an add: the keeper of records' histories reads every table as one
+    // is declared, and that, come late, was counted with the first add
+    // (351 steps beside 316, on a hosted machine). It is stopped, and
+    // what it asked before is done by the time the counting begins,
+    // which is asked of each database's thread after it.
+    rig.studio.halt();
     // How much the databases do, counted by each of them (`progress_handler`),
     // on the one connection each one's thread asks everything on.
     let done = Arc::new(AtomicU64::new(0));
@@ -640,6 +651,18 @@ async fn a_record_added_beside_three_asks_the_database_as_much_as_one_added_besi
         let added = add(title.to_string()).await;
         (done.load(Ordering::SeqCst) - before, added)
     };
+    // The table declared again, as applying a fleet does, from another
+    // thread while this one does nothing: whatever hears it here is
+    // polled only once this one waits on the add, and what it asks of the
+    // database is then counted with the add, as it was on that machine.
+    // Kept, so that what heard it is seen to be stopped.
+    let collections = rig.studio.collections.clone();
+    std::thread::scope(|scope| {
+        scope.spawn(|| {
+            let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+            runtime.block_on(collections.ensure("shop", "sprints", sprints("local"), None, &ada())).unwrap();
+        });
+    });
     let (few, fourth) = counted("Beside three").await;
     assert_eq!(fourth.position, 4.0, "placed after the last");
     for nth in 5..=300 {

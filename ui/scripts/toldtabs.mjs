@@ -13,7 +13,7 @@
 // `Links`. Ada's page, opened once and never read again: what the line is
 // about under its words and over the row of tabs, the four tabs in the
 // order they were said, the first showing and only its parts on the page;
-// `Deployment` its runs, newest first, each with what it is a run of, how
+// `Deployment` the newest run's graph over its runs, newest first, each with what it is a run of, how
 // it went, when and how long, one pressed opening the run's page as a tab;
 // the line's tab shown again with `Deployment` still showing; `Insights`
 // the rows of those commits alone, a choice drawn as its tag and seconds
@@ -209,6 +209,10 @@ try {
     const said = (await one.innerText()).replace(/\s+/g, ' ');
     expect(`each run said by what it is of, how it went and how long, got "${said}"`, said.startsWith('deploy as deploy-dev went well') && /\d(ms|s)$/.test(said));
   }
+  // Above them, the newest as the graph of what it ran, its tile saying how its step went.
+  const latest = shown.locator('.told-runs .told-run-graph');
+  await latest.locator('.gnode[data-node="main/loaded"][data-status="ok"]').waitFor();
+  expect('the graph of the newest run, above the list', (await latest.getAttribute('data-run')) === (await runs.first().getAttribute('data-run')));
   expect('none of the cards on the page now', (await shown.locator('.told-cards').count()) === 0);
   await page.screenshot({ path: `${out}/toldtabs-2-deployment.png` });
   const first = await runs.first().getAttribute('data-run');
