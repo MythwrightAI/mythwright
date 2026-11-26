@@ -31,6 +31,7 @@ mod routes;
 mod searched;
 mod spent;
 mod state;
+mod taken;
 mod through;
 mod trash;
 mod whose;

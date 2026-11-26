@@ -46,6 +46,18 @@ the simulation, stopped at each point and restarted.
 - Nothing in Rust goes by what a stage `does`. Anything new that follows a
   row is a step of `std/arrangement`; anything that follows the fleet
   having taken a change listens for `fleet.arranged`.
+- **A row written through the API is in effect when the write answers**
+  (card 484): the route waits until each handler that hears it has done
+  with it, and with each such row their runs wrote (`api::taken`, over
+  `Engine::handled`), so a card moved in the next request goes the new
+  way. It is said of any table that `steers` or is steered, never of the
+  fleet's tables by name: `agents`, `stages`, `segments` (and `contests`,
+  `chain`) are, `actions` is not. Bounded at 10 s on the conductor's
+  clock; past it the answer carries `untaken`, naming the handlers still
+  at it. A write by a step is not waited for (a handler would wait for
+  itself). The suite's `taken.rs` plays it, a stage's cell and a segment
+  each, and a restart after. Tests may still wait for `fleet.arranged`
+  after a write (`taken::by_fleet`); it has been said by then.
 - `rows.read` returns only what the table's blueprint declares and what
   `fill` names, never a column somebody added (`added` of a field). Such a
   column says no `takes`, and a row is passed whole to what runs as

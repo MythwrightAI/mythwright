@@ -153,7 +153,10 @@ a new way of writing a record, or anything that deletes.
   (`Collections::add`, `Records::update`, a card's change and move,
   `Board::moved` under the card's lock); removing a row is not. Re-declaring
   so it steers nothing takes `admin`. Checked by `scoped.rs`, the studio
-  suite's `steered.rs`, and `snapshots.rs` for copies.
+  suite's `steered.rs`, and `snapshots.rs` for copies. A row of a table
+  that steers, or is steered (`Collections::steering`), written through
+  the record routes, is answered once what hears it has taken it
+  (`api::taken`; `fleet.md`).
 - A cell that lets an agent's program do more (`permission: full`) says
   what giving that value takes (`takes: { full: shell }`), or the row is a
   way around the agent's own route.

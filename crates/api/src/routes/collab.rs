@@ -112,15 +112,16 @@ async fn record_add(
     Path((project, name)): Path<(String, String)>,
     Json(body): Json<Value>,
 ) -> ApiResult<Json<Value>> {
+    let before = crate::taken::mark(&app, &project);
     let added = app.studio.records.add(&project, &name, fields_of(&body)?, &who, None).await;
     // A table the project has not got, which a project may start with:
     // whoever asked is told how it is given.
-    Ok(Json(json!(added.map_err(|refused| crate::usual::lacking(
-        &crate::usual::shipped(&app.engine),
-        &project,
-        &name,
-        refused
-    ))?)))
+    let added = added.map_err(|refused| {
+        crate::usual::lacking(&crate::usual::shipped(&app.engine), &project, &name, refused)
+    })?;
+    let mut answer = json!(added);
+    crate::taken::said(&app, (&project, &name), before, &mut answer).await;
+    Ok(Json(answer))
 }
 
 async fn record(State(app): State<App>, Auth(who): Auth, Path(id): Path<String>) -> ApiResult<Json<Value>> {
@@ -134,7 +135,12 @@ async fn record_change(
     Path(id): Path<String>,
     Json(body): Json<Value>,
 ) -> ApiResult<Json<Value>> {
-    Ok(Json(json!(app.studio.records.update(&id, fields_of(&body)?, &who, None).await?)))
+    let fields = fields_of(&body)?;
+    let (collection, _) = app.studio.collections.record(&id).await?;
+    let before = crate::taken::mark(&app, &collection.project);
+    let mut answer = json!(app.studio.records.update(&id, fields, &who, None).await?);
+    crate::taken::said(&app, (&collection.project, &collection.name), before, &mut answer).await;
+    Ok(Json(answer))
 }
 
 async fn record_remove(
@@ -144,11 +150,14 @@ async fn record_remove(
 ) -> ApiResult<Json<Value>> {
     // What it is in the Trash, where it is kept to be given back, and how
     // many records went with it there (the pages under a page).
+    let (collection, _) = app.studio.collections.record(&id).await?;
+    let before = crate::taken::mark(&app, &collection.project);
     let gone = app.studio.records.removing(&id, &who, None).await?;
     let mut answer = crate::trash::moved(&app, gone.trash).await;
     if gone.with > 0 {
         answer["with"] = json!(gone.with);
     }
+    crate::taken::said(&app, (&collection.project, &collection.name), before, &mut answer).await;
     Ok(Json(answer))
 }
 

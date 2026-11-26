@@ -27,6 +27,7 @@ mod engine;
 pub mod environs;
 pub mod events;
 pub mod forked;
+mod handled;
 mod hooks;
 mod intrinsic;
 mod labels;

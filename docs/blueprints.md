@@ -5014,6 +5014,16 @@ having taken it. The tables are read whole each time, so a change is
 taken by the arrangement it asked for or by a later one, which says a
 greater number. Two changes made together may be taken by one.
 
+A change made from outside (the client, `mw record`, a program with a
+key) is answered once the fleet has taken it: a card moved in the very
+next command goes the new way. That holds for a row of any table that
+steers another (`steers`) or that another steers, and whatever hears
+it: the write is answered once each handler that hears it has done with
+it, and with each such row those wrote in turn. A hearer still at it
+after 10 seconds does not hold the answer up any longer: the row is
+written, and the answer says which had not taken it yet (`untaken`;
+`mw record` prints it under what it did).
+
 ```yaml
 on:
   rearranged:

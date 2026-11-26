@@ -141,6 +141,15 @@ fn said(pairs: &[&str], fields: &[Value], was: Option<&Value>) -> Result<Map<Str
     Ok(given)
 }
 
+/// What was said of a write, and under it, where something that takes
+/// its direction from the row had not taken it when it was answered, so.
+fn untaken(answer: &Value, said: String) -> String {
+    match answer["untaken"].as_str() {
+        Some(untaken) => format!("{said}\n{untaken}"),
+        None => said,
+    }
+}
+
 pub async fn record(client: &Client, args: &Args) -> Result<(), String> {
     match args.word(1) {
         Some("list") => {
@@ -170,7 +179,7 @@ pub async fn record(client: &Client, args: &Args) -> Result<(), String> {
             let path = format!("/api/collections/{}/{}/records", encode(project), encode(collection));
             let added = client.post(&path, json!({ "fields": fields })).await?;
             show(client, &added, || {
-                format!("added {} to {}", text(&added, "id"), text(&added, "collection"))
+                untaken(&added, format!("added {} to {}", text(&added, "id"), text(&added, "collection")))
             });
         }
         Some("show") => {
@@ -189,15 +198,18 @@ pub async fn record(client: &Client, args: &Args) -> Result<(), String> {
             let declared = fields_of(client, text(&was, "project"), text(&was, "collection")).await?;
             let fields = written(args, 3, &declared, Some(&was["data"]))?;
             let now = client.call(Method::PATCH, &path, Some(json!({ "fields": fields }))).await?;
-            show(client, &now, || format!("changed {}", text(&now, "id")));
+            show(client, &now, || untaken(&now, format!("changed {}", text(&now, "id"))));
         }
         Some("remove") => {
             let id = args.need(2, "the record")?;
             let gone = client.call(Method::DELETE, &format!("/api/records/{}", encode(id)), None).await?;
-            show(client, &gone, || match gone["with"].as_u64() {
-                Some(1) => format!("took {id} away, with the record under it"),
-                Some(with) => format!("took {id} away, with the {with} records under it"),
-                None => format!("took {id} away"),
+            show(client, &gone, || {
+                let said = match gone["with"].as_u64() {
+                    Some(1) => format!("took {id} away, with the record under it"),
+                    Some(with) => format!("took {id} away, with the {with} records under it"),
+                    None => format!("took {id} away"),
+                };
+                untaken(&gone, said)
             });
         }
         Some(doing @ ("attach" | "attachments" | "detach")) => {
