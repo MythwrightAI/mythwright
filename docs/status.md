@@ -1538,7 +1538,8 @@ form (*Stopped anywhere, and started again*, and at the end of *Identity*).
   the new value from before it listened for it. What a fleet's stage
   does with a card that comes to its column asks the card's row first
   and is not misled. A stage that merges what a person passes by hand
-  (`by_hand: merge`), given another column, may still merge the branch
+  (`by_hand: merge`, as any stage that merges does unless its row says
+  `leave`), given another column, may still merge the branch
   of a card somebody passed from that column before the row said so.
 - These words of the language are used by nothing that ships and may be
   taken out after the preview; do not build on them. The functions

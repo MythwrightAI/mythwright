@@ -15,7 +15,7 @@
 # what it now says where it is; what becomes of a review in session
 # when the way of reviewing changes is the row's `in_flight`.
 blueprint: std/reviewing
-version: 14
+version: 15
 description: "What a fleet does with the cards of a column where they are reviewed: the agents of a role look each over, and it goes on, goes back or is left for a person."
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 # One thing at a time, but what a card's review or hand merge comes to, which takes its card's turn.
@@ -645,17 +645,17 @@ on:
         do: drop
         with: { from: back, by: card, is: "${event.data.card}" }
 
-  # A person passed a card themselves, moving it on from here. Its branch
-  # is left as it is unless the row says `by_hand: merge`: merged for whoever
-  # moved it (`std/pass-by-hand`), in the card's turn and holding no other.
+  # A person passed a card, moving it on from here. Where the row says
+  # `by_hand: merge` (or `merge` and nothing of that), its branch is merged
+  # for them (`std/pass-by-hand`), in the card's turn and holding no other.
   handed:
     event: board.item.moved
     for: { project: "${params.project}", from: "${params.row.column}" }
-    when: ${ params.row.by_hand == "merge" }
+    when: ${ params.row.by_hand == "merge" && event.data.through == null }
     turn: "${event.data.id}"
     steps:
       pass:
-        when: ${ event.data.to == params.row.pass && event.data.through == null }
+        when: ${ event.data.to == params.row.pass }
         call: std/pass-by-hand
         as: "by-hand-${event.data.id}"
         allow_failure: true

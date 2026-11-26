@@ -23,7 +23,7 @@
 # blueprint made and hosts, at the address given as `database`: `std/store`
 # is such a blueprint, and its `url` is that address (docs/stores.md).
 blueprint: std/board
-version: 13
+version: 14
 description: "Give a project a board: its cards, its columns, and where they are kept."
 permissions: [projects, board, blueprints]
 
@@ -184,7 +184,7 @@ steps:
         # That a person passed it and its branch was merged for that, where
         # the stage it was passed from says so; and that it was not, whoever
         # passed it not holding what merging takes.
-        card.merged: "its branch {branch} was merged into the project's"
+        card.merged: "its branch {branch} was merged into the project's[ as {by} passed it]"
         card.unmerged: "it was passed by hand, and its branch {branch} was not merged"
         card.approved: "{by} approved it[: {words}]"
         # What a round says of the card it took: which agent did the work,

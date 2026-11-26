@@ -188,8 +188,13 @@ opens a lane for it and hands it to a worker.
   guessing: the card stays in *doing* with the question on it, at the top
   when it is opened, and goes round again when you answer there (or `mw
   record comment <card> <words...>`).
-- **Done.** Moved to *done*, the lane's worktree is removed, and its branch
-  when the work is on the remote or in the project's own branch.
+- **Done.** Moved from *review* to *done*, the card's branch is merged
+  into the project's own, as one a reviewer approves is, and its history
+  says you passed it; you merge nothing yourself. A branch that no longer
+  merges goes back to its agent, with the project's branch being merged
+  into it and the files that conflict named, and waits in *review* for
+  you again once put right. Then the lane's worktree is removed, and its
+  branch when the work is on the remote or in the project's own branch.
 - **Pull requests.** To have one opened for each branch that is sent,
   install the package for the service that hosts the repository and apply
   its blueprint to the project once (`mw extension add github`, then `mw

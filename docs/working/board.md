@@ -181,6 +181,11 @@ reviews, segments and its tables) is in `fleet.md`.
   sent back from another column to anywhere but `doing` is not counted on
   its row; the sending stage still counts its own verdicts (`back` in
   `std/reviewing`), which caps the loop.
+- A card a person moves from a reviewing stage's column to its `pass`
+  column is passed, and where the row merges its branch is merged for them
+  (`by_hand`, `std/pass-by-hand`; `fleet.md`, *Reviews and councils*).
+  Nothing in the client or `mw` merges: the move is the pass, whichever
+  door makes it.
 - Something new in the client that moves a card for what a stage does
   reads the row the same way (`crates/api/tests/suite/sentback.rs`,
   `ui/scripts/review.mjs`).

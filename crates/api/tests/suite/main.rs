@@ -158,6 +158,7 @@ mod out_of_hand;
 mod outlined;
 mod outside;
 mod ownprompt;
+mod passed;
 mod pieces;
 mod pipelined;
 mod pipelines;

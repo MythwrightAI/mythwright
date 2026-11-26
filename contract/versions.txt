@@ -39,6 +39,7 @@ std/arrangement 15 9cffcdeb9abb7569
 std/arrangement 16 2499046ccda8f55a
 std/arrangement 17 3aad8c370f4a4ca2
 std/arrangement 18 b909f40d5ed28760
+std/arrangement 19 5700a99d3ff8847c
 
 std/board 1 54f0c966c01b0401
 std/board 2 1891e749f10e6dfe
@@ -53,6 +54,7 @@ std/board 10 d60a69e04c287579
 std/board 11 c05bb7ea76c1b4f0
 std/board 12 c97d6d4a236d6334
 std/board 13 1d843b139f08e132
+std/board 14 70b79eb29d2920fd
 
 std/bot 1 39c6e4dc8baa1c5d
 std/bot 2 fa3dc99df398ba06
@@ -167,6 +169,7 @@ std/fleet 27 671b3e7759ea4833
 std/fleet 28 3fdc98491b7179f6
 std/fleet 29 01c3ff9f5ccf16bf
 std/fleet 30 61591c9a382e53cb
+std/fleet 31 bb1a2c973fa5305a
 
 std/judge 1 66b26aa2e40e07d6
 std/judge 2 558ceed2829b5135
@@ -212,6 +215,7 @@ std/merge 1 ae45fad47adbe135
 std/merge 2 20d95746ffcbacea
 std/merge 3 675048cbe35c842d
 std/merge 4 052db1e0b1d7403d
+std/merge 5 ca520b11e058c0fa
 
 std/mockups 1 29f2838a41a89ffc
 
@@ -224,6 +228,7 @@ std/owed 2 0d4b1c6c6a593e98
 std/pass-by-hand 1 6919079b45415d8a
 std/pass-by-hand 2 1634e357de4eccc8
 std/pass-by-hand 3 a9bb0844e8065419
+std/pass-by-hand 4 bf14bf2e015e4ac7
 
 std/pipeline 1 2879e38aa717afcd
 std/pipeline 2 8ec4dd2843c8e62e
@@ -404,6 +409,7 @@ std/reviewing 11 0db483472913b210
 std/reviewing 12 34d4899be66a5f9f
 std/reviewing 13 bc88ca6f73016dd4
 std/reviewing 14 73b85a8f1ac2bbc2
+std/reviewing 15 0a9a02cfba211853
 
 std/role 1 dc807d6b70639b93
 std/role 2 59882f7356208fce
@@ -514,3 +520,4 @@ std/working 11 4150f90b64e51fd9
 std/working 12 138b7394b793700d
 std/working 13 fa97ee93fb9780c9
 std/working 14 8f3957b5b4b8f2a4
+std/working 15 6e4ee63580332acd

@@ -682,9 +682,12 @@ fn saying_what_was_kept(place: &Place) -> bool {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn what_a_stage_was_saying_when_the_daemon_stopped_is_said_once_when_it_is_back_and_nothing_fails() {
+    // Its branch left as it is when it is passed, which the stage then
+    // says it kept.
+    let rows = vec![("stages", "review", json!({ "by_hand": "leave" }))];
     let found = simulate(
-        "a card worked and passed by a person",
-        PassedByAPerson::default(),
+        "a card worked and passed by a person, its branch left",
+        PassedByAPerson { rows, ..Default::default() },
         Grain::Where(saying_what_was_kept),
     )
     .await;

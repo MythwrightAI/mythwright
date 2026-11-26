@@ -13,7 +13,7 @@
 # card. The row can be changed while work is under way, and this takes
 # what it now says where it is.
 blueprint: std/working
-version: 14
+version: 15
 description: "What a fleet does with the cards of a column where they are worked: an agent of a role works each when its turn has come, and hands it on."
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 # One thing at a time, but for what takes its turn by a card.
@@ -330,9 +330,24 @@ on:
   # unmerged (`next_after`), a card that goes on from where this stage
   # handed it (passed and merged, sent back, put aside), or is taken off
   # the board, may be what the cards here waited behind: each is due again.
+  # One a person passed to done from where what is passed by hand is
+  # merged is merged after the move, and its place tidied then: looked at
+  # then (`tidying`), so that the next is cut from what it left.
   unmerged:
     event: board.item.moved
     for: { project: "${params.project}", from: "${params.row.hands_to}" }
+    when: ${ params.row.next_after == "merged" && params.row.agents != 0 }
+    steps:
+      look:
+        when: ${ event.data.through != null || !(event.data.from in params.merged_by_hand) || event.data.to != "done" }
+        call: std/due
+        as: look
+        allow_failure: true
+        with: { project: "${params.project}", column: "${params.row.column}" }
+
+  tidying:
+    event: stage.tidy
+    for: { project: "${params.project}" }
     when: ${ params.row.next_after == "merged" && params.row.agents != 0 }
     steps:
       look:

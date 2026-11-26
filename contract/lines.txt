@@ -33,11 +33,11 @@ std/lane-round 492
 std/later 33
 std/log-feed 65
 std/looked 51
-std/merge 139
+std/merge 142
 std/mockups 61
 std/onward 86
 std/owed 37
-std/pass-by-hand 127
+std/pass-by-hand 132
 std/pipeline 424
 std/pipeline-at 23
 std/pipeline-timed 70
@@ -72,4 +72,4 @@ std/topics 71
 std/turn 321
 std/watch 97
 std/work 339
-std/working 770
+std/working 785

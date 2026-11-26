@@ -4163,7 +4163,7 @@ row:
 | `rounds` | how many times a card may be sent back from here before it is left for a person: 2 by default. The stage counts it wherever it sends the card, so workers and reviewers never go round forever. A card left that way is reported where the stage reports and as an event, `card.left` (`card`, `project`, `rounds`), once each time it is left; that is also a line of the card's history. Raised, a card left under the limit it had is looked at again |
 | `most` | the most things done with a card here in one pass through its list (*How many things at most*, under *Writing a segment*): 6 where cards are worked and 5 otherwise, by default; with 0, no bound but the list's own length. A card whose list holds more is left for a person, and the message gives the command that raises it on this row |
 | `merge` | whether a card's branch is merged into the project's when it passes here |
-| `by_hand` | what happens to a card's branch when a person passes the card themselves, moving it on from here: `leave` (default), the branch is left as it is; `merge`, it is merged as an agent-approved one is, if whoever moved the card holds `projects:write` |
+| `by_hand` | what happens to a card's branch when a person passes the card themselves, moving it on from here: `merge` (the default where the row says `merge`), it is merged as an agent-approved one is, if whoever moved the card holds `projects:write`; `leave` (the default otherwise), the branch is left as it is |
 | `in_flight` | what happens to a review in session when the row is changed: `finish` (default) or `restart` |
 | `reports` | what the stage says where the fleet reports, beyond what goes wrong: `trouble` (default), nothing more; `verdicts`, also what each review of a card came to, with who looked and what each said |
 | `after_restart` | what happens to what an agent had in hand here when the daemon is stopped and started again: `again` (default), it carries on; `leave`, it is left for a person, and the channel is told why. Work whose program kept going by itself but was killed together with what kept it is cut off after all, and is begun again or left as this says |
@@ -4363,10 +4363,14 @@ blocking a merge is said in the channel and left to a person.
 themselves. The card is where they put it, and what happens to its
 branch is the row's `by_hand`:
 
-- By default the branch is left as it is, for that person to merge.
-- With `merge` it is merged for them (`std/pass-by-hand`), as an
-  agent-approved card is, and the card's history says so
-  (`card.merged`).
+- With `merge`, which is what a row that says `merge` and nothing of
+  `by_hand` comes to, it is merged for them (`std/pass-by-hand`) by what
+  merges an agent-approved card (`std/merge`), and the card's history
+  says so and who passed it (`card.merged`). A branch that no longer
+  merges has the project's branch merged into it for its worker and the
+  card goes back to them, uncounted, as an approved one does.
+- With `leave`, which is what a row that does not merge comes to, the
+  branch is left as it is, for that person to merge.
 
 The merge is done by the fleet, with what whoever applied the fleet
 holds, so the person who moved the card is checked first: the block

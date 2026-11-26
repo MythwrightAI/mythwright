@@ -430,7 +430,7 @@ async fn a_row_that_takes_the_reviews_place_has_the_card_merged_and_done_by_the_
 }
 
 /// The text that ships under `name`, with a step put first that waits at `pipe` until it is let go.
-fn held_first(rig: &Rig, name: &str, pipe: &std::path::Path) -> String {
+pub(crate) fn held_first(rig: &Rig, name: &str, pipe: &std::path::Path) -> String {
     let ships = rig.node().app.engine.library().shipped(name, None).unwrap();
     let wait = crate::standin::cmd(&["held", &pipe.to_string_lossy(), "gate"]);
     let first = format!("steps:\n  gate:\n    do: shell\n    with: {{ cmd: {wait} }}\n");

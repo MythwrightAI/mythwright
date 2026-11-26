@@ -1434,6 +1434,7 @@ action review.verdict
   takes against int
   takes seats int
   takes reports bool
+  takes person bool
   gives came
   gives says
   gives told

@@ -463,6 +463,34 @@ the simulation, stopped at each point and restarted.
   stage's count nor the card's `rounds` has it. `review.owed` counts those
   apart and leaves the card after `reviews::BEHIND` (3) of them, so a
   project's branch that keeps moving in the way cannot loop it.
+- **A card a person passes is merged as one agents approve** (card 482).
+  `handed` of `std/reviewing` hears a person's move (`through` none) from
+  the column to the row's `pass` where the row says `by_hand: merge`,
+  which is what `std/arrangement` fills an unsaid `by_hand` with where the
+  row says `merge` (`{ by: merge, … }`), and `leave` otherwise. It calls
+  `std/pass-by-hand`, which asks whether whoever moved it holds
+  `projects:write` (`actor.holds`, which also gives their name) and then
+  calls `std/merge` with `person` and `by`: the one merge, with `bring`,
+  and the one block (`review.verdict`, whose `person` words its sentences
+  as a pass and says nothing where verdicts are reported). A branch that
+  no longer merges goes back to `fail` with `uncounted` as an approved one
+  does (the card was already in `pass`, so back is the least surprising:
+  its worker is the one who can put it right, and a person passes it
+  again); anything else in the way is said in the channel and the card
+  stays where they put it. `card.merged` carries `by`, so its history line
+  says who passed it. Any other move out of the column merges nothing,
+  and a card with no branch (`place.merge` answers `nothing`) moves as
+  ever. A stop anywhere between the move and the merge ends as one never
+  stopped (`passed.rs` in the API suite: the move, the asking, the merge
+  made, `card.merged`); `std/merge` keeps nothing and finds a merge made
+  as made. Where the stage that works says `next_after: merged`, such a
+  pass is looked past only once its place is tidied (`tidying` of
+  `std/working`, on the `stage.tidy` `std/pass-by-hand` emits after the
+  merge), not as it moves (`unmerged` skips it), so the next card is cut
+  from what it left. Not held: a daemon stopped between that move and
+  the merge has the stage look at its column as it comes up, which may
+  take the next card before the merge is made again; and a stage whose
+  `pass` is not `done` is looked past as the card moves.
 - A card left for a person having been sent back as often as allowed is
   kept with the limit it was left under (`most`); a row whose `rounds`
   changes drops those entries (`on_update` of `std/reviewing`), and its

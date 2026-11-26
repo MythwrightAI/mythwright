@@ -25,7 +25,7 @@ use crate::lanes::{asking, git, move_card, moved};
 /// A node whose worker, told that a merge is under way for it, writes the
 /// file that conflicts whole, with no marker left; and otherwise does what
 /// `first` says and adds a line to that file, as `fleets` has it.
-async fn rig(first: &[&str]) -> (Rig, PathBuf) {
+pub(crate) async fn rig(first: &[&str]) -> (Rig, PathBuf) {
     let mut writes = vec![
         "read",
         "where",

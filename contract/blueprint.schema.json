@@ -8917,6 +8917,13 @@
                       "boolean"
                     ]
                   },
+                  "person": {
+                    "description": "it was passed by a person who moved it on themselves (`by`), and not approved by those who looked: said so, and nothing is said where the work is reported",
+                    "type": [
+                      "boolean",
+                      "string"
+                    ]
+                  },
                   "reports": {
                     "description": "what reviews come to is said where the work is reported",
                     "type": [

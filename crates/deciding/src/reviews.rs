@@ -230,6 +230,10 @@ pub struct Verdict {
     pub seats: i64,
     /// What reviews come to is said where the work is reported.
     pub reports: bool,
+    /// It was passed by a person who moved it on themselves, and not
+    /// approved by those who looked: `by` is that person, and nothing is
+    /// said where the work is reported.
+    pub person: bool,
 }
 
 /// What a verdict comes to.
@@ -297,9 +301,10 @@ pub fn verdict(asked: &Verdict) -> Result<(VerdictCame, String), String> {
     let several = asked.seats > 1;
     let said = if asked.words.is_empty() { ".".to_string() } else { format!(": {}", asked.words) };
     let there = asked.status == asked.here;
+    let did = if asked.person { "passed" } else { "approved" };
     match asked.verdict.as_str() {
         "passed" => {
-            let told = if asked.reports {
+            let told = if asked.reports && !asked.person {
                 let who = if several {
                     format!(", {} of {}", asked.approved, asked.seats)
                 } else {
@@ -312,7 +317,7 @@ pub fn verdict(asked: &Verdict) -> Result<(VerdictCame, String), String> {
             let of = if several { format!(", {} of {}", asked.approved, asked.seats) } else { String::new() };
             let on = |merged: bool| {
                 let was = if merged { format!("; lane/{item} was merged") } else { String::new() };
-                VerdictCame::On(format!("approved by {}{of}{was}", asked.by))
+                VerdictCame::On(format!("{did} by {}{of}{was}", asked.by))
             };
             let came = if asked.pass.is_empty() || !there {
                 VerdictCame::Nothing
@@ -328,7 +333,7 @@ pub fn verdict(asked: &Verdict) -> Result<(VerdictCame, String), String> {
                     "conflict" if asked.begun => VerdictCame::Back(behind(asked)),
                     "conflict" if !asked.why.is_empty() => stuck(asked, ""),
                     "conflict" => VerdictCame::Back(format!(
-                        "It was approved, and its branch lane/{item} no longer merges into the project's branch as \
+                        "It was {did}, and its branch lane/{item} no longer merges into the project's branch as \
                          that is now. Merge the project's branch into yours, put right what conflicts, and hand it \
                          in again. What git said: {}",
                         asked.conflict
@@ -391,8 +396,9 @@ fn behind(asked: &Verdict) -> String {
     } else {
         format!(" What git said: {}", asked.conflict.trim())
     };
+    let did = if asked.person { "passed" } else { "approved" };
     format!(
-        "It was approved, and its branch lane/{item} no longer merges into the project's branch as that is now. \
+        "It was {did}, and its branch lane/{item} no longer merges into the project's branch as that is now. \
          The project's branch is being merged into yours where you work, and that merge is under way for you: \
          what conflicts is marked in {files}, as git marks it. Put each right, keeping what both sides meant, and \
          leave no marker. Change files and nothing else: do not run git to commit, merge or call the merge off. \
@@ -403,6 +409,14 @@ fn behind(asked: &Verdict) -> String {
 /// The sentence for a merge something is in the way of.
 fn stuck(asked: &Verdict, otherwise: &str) -> VerdictCame {
     let why = if asked.why.is_empty() { otherwise } else { &asked.why };
+    // A person's pass has moved it on already, unmerged.
+    if asked.person {
+        return VerdictCame::Stuck(format!(
+            "{} was passed by {}, and its branch lane/{} could not be merged into the project's: {why}. It is in \
+             {}, and is not merged; when what is in the way is put right, merge it.",
+            asked.item, asked.by, asked.item, asked.pass
+        ));
+    }
     VerdictCame::Stuck(format!(
         "{} was approved by {}, and its branch lane/{} could not be merged into the project's: {why}. It stays in \
          {}; when what is in the way is put right, merge it and move it on.",
@@ -572,6 +586,7 @@ pub fn register(registry: &mut Registry) {
         .arg("against", T::Int, "how many sent it back")
         .arg("seats", T::Int, "how many looked")
         .arg("reports", T::Bool, "what reviews come to is said where the work is reported")
+        .arg("person", T::Bool, "it was passed by a person who moved it on themselves (`by`), and not approved by those who looked: said so, and nothing is said where the work is reported")
         .output("came", "`merge`, `on`, `back`, `stuck`, `left` or `nothing`")
         .output("says", "for `on` and `back`: what is said as the item is moved; for `stuck` and `left`: the sentence")
         .output("told", "what is said of the verdict where the work is reported; empty where nothing is")
@@ -606,6 +621,7 @@ pub fn register(registry: &mut Registry) {
                 against: count("against"),
                 seats: args.get("seats").and_then(Value::as_i64).unwrap_or(1),
                 reports: flag("reports"),
+                person: flag("person"),
             };
             let (came, told) = verdict(&asked).map_err(ActionError::new)?;
             let word = crate::decided::word(&came);

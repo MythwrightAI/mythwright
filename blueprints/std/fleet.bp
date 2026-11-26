@@ -70,8 +70,8 @@
 #   with `fetch` pulled down from the remote where the remote has one for
 #   it, and with `push` sent there when the worker has finished.
 # - **Worked, it goes to review.** With no reviewers it waits there for a
-#   person. With some it is reviewed by them, each for itself, and passes
-#   when more than half approve (`std/review`).
+#   person, who passes it by moving it on. With some, each looks at it
+#   for itself, and it passes when more than half approve (`std/review`).
 # - **Sent back**, the worker that did it takes it up again, in the
 #   conversation it was worked in, and is told what was said. That goes
 #   round as often as the stage's `rounds` allows; after that the card is
@@ -86,7 +86,7 @@
 # work and leaves when it has finished what it has in hand); and what
 # becomes of a review in session is its stage's to say (`in_flight`).
 blueprint: std/fleet
-version: 30
+version: 31
 description: The agents that work a project's board and the way work goes through them, kept as two tables of the project and changed by changing a row.
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 
@@ -427,12 +427,12 @@ steps:
         # Whether a card's branch is merged into the project's when it passes.
         merge: { type: flag, takes: { "true": "projects:write" }, stands: true }
         # What becomes of a card's branch when a person passes the card
-        # themselves, moving it on from here: left as it is, unless this
-        # says `merge`. Then it is merged into the project's as one that
-        # agents approved is, where whoever moved the card holds what
-        # changing the project's files takes (`projects:write`); one who
-        # does not has passed the card and merged nothing, and the
-        # channel says so and what to do.
+        # themselves, moving it on from here: as `merge` says, if this is
+        # not said. Merged (`merge`) into the project's as one that agents
+        # approved is, where whoever moved the card holds what changing
+        # the project's files takes (`projects:write`); one who does not
+        # has passed the card and merged nothing, and the channel says so
+        # and what to do. Or left as it is (`leave`).
         by_hand: { type: choice, of: [leave, merge] }
         # What becomes of a review in session when this row is changed.
         in_flight: { type: choice, of: [finish, restart] }

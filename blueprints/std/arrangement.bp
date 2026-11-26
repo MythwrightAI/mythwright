@@ -26,7 +26,7 @@
 # changed only what that row is: a role that is as it was is not brought
 # up again, and a stage takes what is new where it is.
 blueprint: std/arrangement
-version: 18
+version: 19
 description: "Bring a project's fleet to what its tables say: the agents of each row of `agents`, and a stage for each row of `stages`."
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 
@@ -148,7 +148,7 @@ steps:
         rounds: { by: does, plan: 8, otherwise: 2 }
         most: { by: does, work: 6, otherwise: 5 }
         in_flight: finish
-        by_hand: leave
+        by_hand: { by: merge, "true": merge, otherwise: leave }
         reports: trouble
         after_restart: again
         restarts: 3
