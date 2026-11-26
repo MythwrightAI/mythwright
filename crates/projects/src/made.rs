@@ -49,9 +49,12 @@ impl Projects {
             return Err(Error::invalid("that is too much to write to one file here"));
         }
         let (dir, relative, content) = (self.roots(id)?, path.to_string(), body.as_ref().to_vec());
-        let written = blocking(move || {
+        let (writing, project) = (self.writing.clone(), id.to_string());
+        let (written, held) = blocking(move || {
             let target = within_files(&dir, &relative)?;
             // Made only where nothing is: the system says so in the one step that makes it.
+            // Held from before it is on the disk until it is written down, as `write` does.
+            let held = dir.called(&target).map(|called| writing.hold(&project, &called));
             let mut file = match std::fs::OpenOptions::new().write(true).create_new(true).open(&target) {
                 Ok(file) => file,
                 Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {
@@ -61,7 +64,7 @@ impl Projects {
             };
             file.write_all(&content)?;
             file.sync_all()?;
-            Ok(dir.entry(&target, &std::fs::metadata(&target)?))
+            Ok((dir.entry(&target, &std::fs::metadata(&target)?), held))
         })
         .await?;
         // What is never listed is written and nothing more, as `write` does.
@@ -69,6 +72,7 @@ impl Projects {
             return Ok(written);
         }
         self.remember(id, &written).await?;
+        drop(held);
         self.announce(id, &written.path, "added", by).await;
         Ok(written)
     }

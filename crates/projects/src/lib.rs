@@ -46,6 +46,7 @@ mod roots;
 pub mod templates;
 pub mod trashed;
 mod within;
+mod writing;
 pub use closed::holds;
 pub use placed::{Forgetting, Placed, Placing};
 pub use renamed::{LONGEST_NAME, named};
@@ -170,6 +171,8 @@ pub struct Projects {
     pub(crate) placed: placed::Placed,
     /// Whether nothing is reached but what this was handed (`Projects::within`).
     pub(crate) within: Arc<std::sync::atomic::AtomicBool>,
+    /// The files being written through here, which a look leaves alone (`writing`).
+    pub(crate) writing: writing::Writing,
 }
 
 pub const PROJECT: &str = "id, name, path, brownfield, created, trusted";
@@ -212,6 +215,7 @@ impl Projects {
             kept: Arc::default(),
             placed: placed::Placed::default(),
             within: Arc::default(),
+            writing: writing::Writing::default(),
         };
         for project in projects.list().await? {
             if project.trusted {
@@ -640,7 +644,8 @@ impl Projects {
             return Err(Error::invalid("that is too much to write to one file here"));
         }
         let (dir, relative, content) = (self.roots(id)?, path.to_string(), body.as_ref().to_vec());
-        let (written, existed) = blocking(move || {
+        let (writing, project) = (self.writing.clone(), id.to_string());
+        let (written, existed, held) = blocking(move || {
             let target = dir.resolve(&relative)?;
             let existed = target.exists();
             if target.is_dir() {
@@ -649,8 +654,10 @@ impl Projects {
             if let Some(parent) = target.parent() {
                 std::fs::create_dir_all(parent)?;
             }
+            // Held from before it is on the disk until it is written down (`writing`).
+            let held = dir.called(&target).map(|called| writing.hold(&project, &called));
             put_in_place(&target, &content)?;
-            Ok((dir.entry(&target, &std::fs::metadata(&target)?), existed))
+            Ok((dir.entry(&target, &std::fs::metadata(&target)?), existed, held))
         })
         .await?;
         // A file somewhere that is never listed (a lane's place, a build's
@@ -660,6 +667,7 @@ impl Projects {
             return Ok(written);
         }
         self.remember(id, &written).await?;
+        drop(held);
         let change = if existed { "modified" } else { "added" };
         self.announce(id, &written.path, change, by).await;
         Ok(written)
@@ -765,7 +773,7 @@ impl Projects {
         let dir = self.roots(id)?;
         let now: BTreeMap<String, (i64, u64)> = blocking(move || Ok(dir.stamps())).await?;
         let project = id.to_string();
-        let (seen, dir) = (now.clone(), self.roots(id)?);
+        let (seen, dir, writing) = (now.clone(), self.roots(id)?, self.writing.clone());
         let changes: Vec<Change> = self
             .files(id)
             .db()
@@ -791,7 +799,14 @@ impl Projects {
                 let gone = before.keys().filter(|path| !seen.contains_key(*path));
                 let mut changes = Vec::new();
                 for path in differ.chain(gone) {
-                    let change = match (before.get(path), dir.stamp(path)) {
+                    let now = dir.stamp(path);
+                    // One being written through the factory is its writer's
+                    // to write down and say, as who they are (`writing`):
+                    // asked after it is looked at, as it is now.
+                    if writing.holds(&project, path) {
+                        continue;
+                    }
+                    let change = match (before.get(path), now) {
                         (None, None) => continue,
                         (Some(old), Some(stamp)) if *old == stamp => continue,
                         (Some(_), None) => {
