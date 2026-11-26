@@ -70,8 +70,14 @@ async fn project_create(
         None => None,
     };
     let (name, projects) = (required(&body, "name")?, &app.studio.projects);
-    let project = projects.create_in(name, path, &who, documents, workspace.as_deref()).await?;
+    let (project, first_commit) =
+        projects.create_begun(name, path, &who, documents, workspace.as_deref()).await?;
     let mut answer = json!(project);
+    // Whether what the factory started it with is its first commit, and
+    // what to do where it is not.
+    if let Some(first_commit) = first_commit {
+        answer["first_commit"] = json!(first_commit);
+    }
     if let Some(workspace) = app.studio.workspaces.of_project(&project.id).await? {
         answer["workspace"] = json!(workspace);
     }

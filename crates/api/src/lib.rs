@@ -202,6 +202,13 @@ pub struct Config {
     /// one. Unsaid, a factory with no owner is given one by whoever first
     /// registers from this machine, which is how a test's own node is.
     pub makes_owner: bool,
+    /// Whether the files a new project is started with are its first
+    /// commit (`projects::first`): said by every program that runs one.
+    /// Unsaid, a project the factory makes is a repository with no commit,
+    /// which is how a test's own node is: its tests make what a
+    /// repository holds themselves, and who git commits as there is
+    /// whoever runs them.
+    pub commits_first: bool,
 }
 
 impl Config {
@@ -233,6 +240,7 @@ impl Config {
             hashing: people::Hashing::Hard,
             user_home: None,
             makes_owner: false,
+            commits_first: false,
         }
     }
 }
@@ -408,6 +416,9 @@ impl Node {
             Studio::open(journal.clone(), searched, projects_dir.clone(), data.join(snapshot::ATTACHMENTS))
                 .await?;
         studio.projects.keeps_out_of(data);
+        if config.commits_first {
+            studio.projects.commit_first();
+        }
         studio.identity.hashes(config.hashing);
         // Every write of a topic writes what goes with it, from before anything is written.
         topics::Topics::open(&journal, &studio).await?;

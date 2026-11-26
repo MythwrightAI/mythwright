@@ -163,10 +163,15 @@ opens a lane for it and hands it to a worker.
   `mw record set shop-agents-2 adapter=claude` for the workers, as
   `mw record list shop agents` lists them), and move the card to *ready*
   again.
-- **Where the work is done.** In a project that is a git repository the
-  lane works on a branch of its own, `lane/<card>`, in a worktree of its
-  own, and keeps what the agent changed as a commit there, written by the
-  agent and committed by whoever git is set up as. Started with `push`
+- **Where the work is done.** In a project that is a git repository with
+  a commit the lane works on a branch of its own, `lane/<card>`, in a
+  worktree of its own, and keeps what the agent changed as a commit
+  there, written by the agent and committed by whoever git is set up as.
+  A project whose folder the factory made has a commit from the start:
+  the files it was started with, committed as it is made. Where git has
+  not been told who you are (`git config --global user.name` and
+  `user.email`), nothing is committed, `mw project create` says so, and
+  the work is done in the project's folder until you commit those files. Started with `push`
   (`mw apply fleet --project <project> --param push=true`) it also sends
   that branch to the repository's remote, and says in the channel whether
   it went. It is sent as you, with whatever git here is set up to use, or

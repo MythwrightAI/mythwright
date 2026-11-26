@@ -26,6 +26,7 @@ pub fn events() -> Vec<EventSpec> {
             .field("name", String, "what it is called")
             .field("path", String, "where its files are")
             .field("brownfield", Bool, "the folder was there before, with files in it")
+            .maybe("committed", String, "its first commit, short: the files the factory started it with, committed as it was made")
             .maybe("restored", Bool, "that it was given back from the Trash, where it was forgotten"),
         EventSpec::new("project.removed", "A project was taken away.").field("project", String, "its id"),
         EventSpec::new(

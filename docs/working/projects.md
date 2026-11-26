@@ -19,6 +19,34 @@ environment holds.
   unless whoever added it said what it starts with and left its library out
   (`Projects::create_with`). A test of a library clears the folder first, or
   counts those two files.
+- A project the factory makes a folder for (an empty one, or none said) is a
+  repository from the start, and the files it was started with (`README.md`,
+  and the library's two where it has one) are its first commit, made as it is
+  made, on `main` (`projects::first`, card 477). Without it the first card had
+  no branch and was worked in the project's folder, and where a person then
+  made a first commit of their own the starting files were still untracked
+  there: the first approved branch that changed `README.md` could not be
+  merged over them. It is committed as the fleet commits a card's work
+  (`place.keep`): the factory as author, at an address nobody has
+  (`<product> <cli>@factory.invalid`), and whoever git says commits there
+  as committer; only as somebody git was told about (`user.useConfigOnly`),
+  never one it makes up from the machine's names. Where git knows nobody,
+  nothing is committed, the files are left added to the index, and the
+  answer says so in the fleet's words (`kernel::git::TELL_WHO`). What came
+  of it is `first_commit` in the answer to `POST /api/projects` (`commit`,
+  `files`, `named`, `says`) and `committed` on `project.created`; `mw project
+  create` prints `says`.
+- A folder that has anything in it, a repository or not, with history or
+  none, is taken up as it is: nothing is written there and nothing of it is
+  committed. A folder with files of a person's own and no commit is theirs
+  to commit; until they do, its cards are worked in the folder itself, as in
+  a folder that is no repository.
+- Only a program that runs a factory makes the first commit
+  (`Config::commits_first`, said in `serve.rs`). A test's own node does not:
+  its projects are repositories with no commit, as the API suite's lanes
+  tests expect to begin from, and who git commits as there would be whoever
+  runs the suite. The first commit is played by the real program with a
+  home of its own (`begun.rs` in the CLI suite).
 - A file written through the factory is said once, by whoever wrote it. It
   is held (`projects::writing`) from before it is on the disk until it is
   written down as the project's, and a look over the folder

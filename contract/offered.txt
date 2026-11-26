@@ -3030,6 +3030,7 @@ event project.created
   carries name string always
   carries path string always
   carries brownfield bool always
+  carries committed string
   carries restored bool
 
 event project.environment.changed

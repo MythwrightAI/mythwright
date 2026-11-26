@@ -2916,7 +2916,9 @@ lasts as long as its agent is at work:
 1. When the card's turn has come, the card is taken (moved to `doing`).
 2. It is given a git worktree and a branch of its own (`.lanes/<card>`,
    `lane/<card>`) when the project is a repository with history to branch
-   from. A `.gitignore` in that folder tells the repository that `.lanes`
+   from. A project the factory made a folder for has that from the start:
+   the files it was started with are its first commit, where git knows who
+   to commit as. A `.gitignore` in that folder tells the repository that `.lanes`
    is not the project's files, and ignores itself too. The place is made
    now and not when the card became ready: a card that waits has none, and
    a card that waited on other cards begins from what they left.
@@ -6588,7 +6590,7 @@ descriptions.)
 | `instance.updated` | An instance came to run another text, or other params. Nothing said after this is handled by the text from before. | `blueprint`, `revision`, `from`, `in_place`?, `carried`? |
 | `log.line` | A line something printed. Passed on, not kept. | `stream`, `text`, `service`? |
 | `poll.failed` | What a handler asks on a timer could not be asked. | `handler`, `error` |
-| `project.created` | A project was made, or a folder was taken up as one. | `project`, `name`, `path`, `brownfield`, `restored`? |
+| `project.created` | A project was made, or a folder was taken up as one. | `project`, `name`, `path`, `brownfield`, `committed`?, `restored`? |
 | `project.file.changed` | A file of a project was added, changed or removed. | `project`, `path`, `folders`, `kind`, `change` |
 | `project.folder.made` | A folder was made in a project, empty, through the factory. | `project`, `path`, `folders` |
 | `project.removed` | A project was taken away. | `project` |

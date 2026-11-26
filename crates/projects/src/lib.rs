@@ -39,6 +39,7 @@ use texts::library::folders::PLACE;
 mod closed;
 pub mod copied;
 pub mod events;
+mod first;
 mod made;
 mod placed;
 mod renamed;
@@ -48,6 +49,7 @@ pub mod trashed;
 mod within;
 mod writing;
 pub use closed::holds;
+pub use first::FirstCommit;
 pub use placed::{Forgetting, Placed, Placing};
 pub use renamed::{LONGEST_NAME, named};
 pub use roots::Roots;
@@ -171,6 +173,8 @@ pub struct Projects {
     pub(crate) placed: placed::Placed,
     /// Whether nothing is reached but what this was handed (`Projects::within`).
     pub(crate) within: Arc<std::sync::atomic::AtomicBool>,
+    /// Whether a new project's starting files are its first commit (`first`).
+    pub(crate) commits_first: Arc<std::sync::atomic::AtomicBool>,
     /// The files being written through here, which a look leaves alone (`writing`).
     pub(crate) writing: writing::Writing,
 }
@@ -215,6 +219,7 @@ impl Projects {
             kept: Arc::default(),
             placed: placed::Placed::default(),
             within: Arc::default(),
+            commits_first: Arc::default(),
             writing: writing::Writing::default(),
         };
         for project in projects.list().await? {
@@ -319,6 +324,20 @@ impl Projects {
         documents: bool,
         workspace: Option<&str>,
     ) -> Result<Project> {
+        Ok(self.create_begun(name, path, by, documents, workspace).await?.0)
+    }
+
+    /// The same, with what came of committing the files it was started
+    /// with, where the factory made its folder a repository (`first`):
+    /// said to whoever added it, as it is made, and kept nowhere.
+    pub async fn create_begun(
+        &self,
+        name: &str,
+        path: Option<PathBuf>,
+        by: &Principal,
+        documents: bool,
+        workspace: Option<&str>,
+    ) -> Result<(Project, Option<FirstCommit>)> {
         by.require("projects:write")?;
         let name = name.trim().to_string();
         let id = blueprint::expr::slug(&name);
@@ -353,35 +372,44 @@ impl Projects {
             None => self.root.join(&id),
         };
         let (scaffold_dir, scaffold_name) = (dir.clone(), name.clone());
-        let (holdings, within) = (self.holdings(), self.is_within());
-        let brownfield = blocking(move || {
+        let (holdings, within, commits) = (self.holdings(), self.is_within(), self.commits_first());
+        let (brownfield, first_commit) = blocking(move || {
             // Before anything is written: a directory that is refused is left as it was.
             if let Some(holdings) = holdings {
                 holdings.take(&scaffold_dir)?;
             }
             std::fs::create_dir_all(&scaffold_dir)?;
             let has_files = std::fs::read_dir(&scaffold_dir)?.next().is_some();
+            // A folder that has anything in it is somebody's: nothing is
+            // written there, and nothing of theirs is committed for them.
             if has_files {
-                return Ok(true);
+                return Ok((true, None));
             }
+            let mut written = Vec::new();
             for (path, content) in templates::project(&scaffold_name, documents) {
-                let target = scaffold_dir.join(path);
+                let target = scaffold_dir.join(&path);
                 if let Some(parent) = target.parent() {
                     std::fs::create_dir_all(parent)?;
                 }
                 std::fs::write(target, content)?;
+                written.push(path);
             }
-            // A new project is a repository from the start, so that lanes
-            // can branch it. Not having git is not an error.
+            // A new project is a repository from the start, with what it
+            // was started with as its first commit, so that lanes can
+            // branch it and merge into it (`first`). Not having git is not
+            // an error.
             if within {
-                return Ok(false);
+                return Ok((false, None));
             }
-            let _ = kernel::git::git(&scaffold_dir)
+            let made = kernel::git::git(&scaffold_dir)
                 .args(["init", "--quiet", "--initial-branch=main"])
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .status();
-            Ok(false)
+            if !commits || !made.is_ok_and(|made| made.success()) {
+                return Ok((false, None));
+            }
+            Ok((false, Some(first::commit(&scaffold_dir, &scaffold_name, written))))
         })
         .await?;
 
@@ -427,10 +455,13 @@ impl Projects {
         }
         // Record what is there now, so the first scan reports only what changes after.
         self.snapshot(&id, false).await?;
-        let data =
+        let mut data =
             json!({ "project": id, "name": project.name, "path": project.path, "brownfield": brownfield });
+        if let Some(first) = first_commit.as_ref().filter(|first| !first.commit.is_empty()) {
+            data["committed"] = json!(first.commit);
+        }
         let _ = self.journal.emit("project.created", Source::actor(by.actor()), data).await;
-        Ok(project)
+        Ok((project, first_commit))
     }
 
     /// Refuses a folder to be taken up as a project when it holds the

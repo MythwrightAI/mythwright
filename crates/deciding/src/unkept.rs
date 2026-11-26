@@ -61,12 +61,15 @@ pub fn next(unkept: &str, named: bool, tries: i64, most: i64, by: &str) -> Resul
         Came::Left => match tries {
             0 => "It is left in doing for a person.".to_string(),
             1 => "It is left in doing for a person, having been given back 1 time for it.".to_string(),
-            tries => format!("It is left in doing for a person, having been given back {tries} times for it."),
+            tries => {
+                format!("It is left in doing for a person, having been given back {tries} times for it.")
+            }
         },
-        Came::Unnamed => "Git does not know who to commit as, which no agent can put right: tell it in the \
-                          project (git config user.name, and git config user.email). The card is left in doing \
-                          for a person."
-            .to_string(),
+        Came::Unnamed => format!(
+            "Git does not know who to commit as, which no agent can put right: {}. The card is left in doing for \
+             a person.",
+            kernel::git::TELL_WHO
+        ),
     };
     Ok(Next { came, says })
 }

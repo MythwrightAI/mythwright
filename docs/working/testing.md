@@ -29,7 +29,8 @@ the test program in `crates/hosting/standin`.
 - A test's project is a folder under `target/`, inside this repository,
   so git run there with no repository of its own finds this one. A test
   of lanes runs `git init` in the project first, even to test one with no
-  history.
+  history. A test's own node makes no first commit of a new project's files
+  (`Config::commits_first`): what a repository holds is the test's to make.
 - A repository a test makes says how its lines end and who commits
   (`lanes::git` in the API suite, after `init`), or git on Windows
   changes line endings on checkout.
