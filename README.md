@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/mythwrightai/mythwright/actions/workflows/nightly.yml"><img src="https://github.com/mythwrightai/mythwright/actions/workflows/nightly.yml/badge.svg?branch=main" alt="Nightly"></a>
-  <a href="https://x.com/AdamGrgitch"><img src="https://img.shields.io/badge/%40AdamGrgitch-black?logo=x" alt="@AdamGrgitch on X"></a>
+  <a href="https://x.com/MythwrightAI"><img src="https://img.shields.io/badge/%40MythwrightAI-black?logo=x" alt="@MythwrightAI on X"></a>
   <a href="https://github.com/sponsors/adamGrgic"><img src="https://img.shields.io/badge/Sponsor-ea4aaa?logo=githubsponsors&logoColor=white" alt="Sponsor on GitHub"></a>
 </p>
 
@@ -358,9 +358,9 @@ operating system. Report a security problem privately instead, as
 
 **Sharing feedback.** Questions, ideas and things you have made with it
 belong in the project's discussions,
-<https://github.com/mythwrightai/mythwright/discussions>. Mythwright is
-made by Adam Grgic, who is happy to hear from you on X:
-[@AdamGrgitch](https://x.com/AdamGrgitch).
+<https://github.com/mythwrightai/mythwright/discussions>. News and
+updates are on X, at [@MythwrightAI](https://x.com/MythwrightAI), which is
+happy to hear from you too.
 If Mythwright is useful to you, you can support its work through
 [GitHub Sponsors](https://github.com/sponsors/adamGrgic).
 
@@ -463,7 +463,7 @@ what is tried outside the gate, what is supported in the code but never
 run, and what is not built. It names the test behind each claim and ends
 with *What is not held yet*, the full list of what is known not to hold.
 
-## Get it
+## Install
 
 **The package.** Each release has one for each system: a folder to
 unpack and run, with nothing to build and no installer. Its own
