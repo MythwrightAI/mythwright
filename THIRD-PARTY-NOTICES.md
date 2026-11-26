@@ -12,7 +12,7 @@ this file, and nothing here is about them.
 
 <!--
 Made by `cargo xtask notices` and never by hand. What it was made from:
-  crates  1898b44b08e5ba1b4f9736bbdcbd8ef11b1039874bc68e2f7ec74cda631632ed
+  crates  d90d11e4bb65fb4307cb07f65a3f9316bf3505bb0df8ac86dd9f03d095db8aec
   about.toml  8c6e78369e8e40f9a44dc26e31ad3455c56bcd3440f14c88e36be48a3ec1416f
   about.hbs  fdacbc38123737b5b5681631748e90db740bb6c1e27ed355deabea6f69036a87
 A test of the tooling's fails where these are no longer so, and says to
@@ -1344,7 +1344,7 @@ DEALINGS IN THE SOFTWARE.
 - `proc-macro-crate` 2.0.2, https://github.com/bkchr/proc-macro-crate
 - `proc-macro2` 1.0.107, https://github.com/dtolnay/proc-macro2
 - `quote` 1.0.47, https://github.com/dtolnay/quote
-- `rustix` 1.1.5, https://github.com/bytecodealliance/rustix
+- `rustix` 1.1.6, https://github.com/bytecodealliance/rustix
 - `semver` 1.0.28, https://github.com/dtolnay/semver
 - `serde` 1.0.229, https://github.com/serde-rs/serde
 - `serde_core` 1.0.229, https://github.com/serde-rs/serde
@@ -1994,7 +1994,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ````
 
-- `cookie` 0.18.2, https://github.com/SergioBenitez/cookie-rs
+- `cookie` 0.18.3, https://github.com/SergioBenitez/cookie-rs
 
 ````text
 Copyright (c) 2017 Sergio Benitez
@@ -2507,7 +2507,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ````
 
-- `form_urlencoded` 1.2.2, https://github.com/servo/rust-url
+- `form_urlencoded` 1.2.3, https://github.com/servo/rust-url
 
 ````text
 Copyright (c) 2013-2016 The rust-url developers
@@ -2916,7 +2916,7 @@ THE SOFTWARE.
 
 - `idna` 1.1.0, https://github.com/servo/rust-url/
 - `percent-encoding` 2.3.2, https://github.com/servo/rust-url/
-- `url` 2.5.8, https://github.com/servo/rust-url
+- `url` 2.5.9, https://github.com/servo/rust-url
 
 ````text
 Copyright (c) 2013-2025 The rust-url developers
@@ -5201,7 +5201,7 @@ is licensed under:
 at your option.
 ````
 
-In the file `COPYRIGHT` of `rustix` 1.1.5:
+In the file `COPYRIGHT` of `rustix` 1.1.6:
 
 ````text
 Short version for non-lawyers:
