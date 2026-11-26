@@ -83,6 +83,7 @@ mod councils;
 mod current;
 mod cut;
 mod deploys;
+mod deputised;
 mod devices;
 mod differed;
 mod discussed;
