@@ -43,9 +43,9 @@ jobs:
     # The gate took 33 minutes here on 2026-11-25.
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
@@ -60,7 +60,7 @@ jobs:
       # toolchain, and never what was built for others. A cache that begins
       # from the last one and is kept again holds every build there has
       # been: after three days of that, putting it back filled the disk.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: built
         with:
           path: |
@@ -90,7 +90,7 @@ jobs:
       # step that clears `target/tmp`.
       - name: What a play that failed wrote down
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: plays
           path: |
@@ -108,7 +108,7 @@ jobs:
         run: |
           rm -rf target/debug/incremental target/tmp target/xtask
           if [ -d target/debug/deps ]; then echo "keep=yes" >> "$GITHUB_OUTPUT"; fi
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         if: always() && steps.worth.outputs.keep == 'yes'
         with:
           path: |
@@ -141,9 +141,9 @@ jobs:
       matrix:
         ways: ["one", "own", "gathered ungathered"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
@@ -152,7 +152,7 @@ jobs:
       - name: The pinned toolchain
         run: rustup show
 
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
@@ -175,7 +175,7 @@ jobs:
 
       - name: What a play that failed wrote down
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: plays-${{ strategy.job-index }}
           path: |
@@ -189,7 +189,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       # The window is the system's own web view, which has to be there to
       # build against.
@@ -202,7 +202,7 @@ jobs:
         run: rustup show
 
       # As for the gate: for exactly these dependencies, kept once.
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: built
         with:
           path: |
@@ -222,7 +222,7 @@ jobs:
         run: |
           rm -rf target/debug/incremental target/tmp
           if [ -d target/debug/deps ]; then echo "keep=yes" >> "$GITHUB_OUTPUT"; fi
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         if: always() && steps.worth.outputs.keep == 'yes'
         with:
           path: |
