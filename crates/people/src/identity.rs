@@ -215,9 +215,8 @@ pub enum Came<'a> {
     /// the cookie (`shown`, which the page was given with its key and is
     /// not the key: [`Identity::shows`]), so that the cookie, which
     /// whatever else listens on the machine is handed, reads nothing
-    /// alone. The pages of a library and of mockups, whose own links a
-    /// browser follows, are still answered for the cookie (`by_itself`).
-    Cookie { page: Option<&'a str>, shown: Option<&'a str>, by_itself: bool },
+    /// alone, not even a page of a library, whose links say it too.
+    Cookie { page: Option<&'a str>, shown: Option<&'a str> },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -640,8 +639,7 @@ impl Identity {
             (None, Came::Said) => true,
             // A page's session said as a token is a cookie somebody read.
             (Some(_), Came::Said) | (None, Came::Cookie { .. }) => false,
-            (Some(_), Came::Cookie { by_itself: true, .. }) => true,
-            (Some(kept), Came::Cookie { page, shown, .. }) => {
+            (Some(kept), Came::Cookie { page, shown }) => {
                 // What is kept is the key's digest, which is also what a
                 // page shows: either is compared digest against digest and
                 // without stopping at the first letter that differs, so

@@ -1,6 +1,7 @@
 //! One test binary for the crate; add modules here.
 
 mod added;
+mod addressed;
 mod anchor;
 mod approvals;
 mod branches;

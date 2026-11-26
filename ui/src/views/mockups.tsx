@@ -10,7 +10,7 @@
 
 import { signal } from '@preact/signals';
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { api } from '../api.ts';
+import { api, shown as saying } from '../api.ts';
 import { coalesce } from '../events.ts';
 import { CHANGES, WIDTHS, addressOf, changes, fileOf, folderOf, groups, isMockups, nameOf, statusOf, titleOf, variantOf, variantTitle, widthCalled } from '../mockups.ts';
 import type { Kept } from '../mockups.ts';
@@ -139,7 +139,7 @@ export function MockupsView({ project, name }: { project: string; name: string }
             <CommentIcon />
             Comments
           </button>
-          <button class="ghost" title={`Open it by itself, as on a phone: ${location.origin}${addressOf(open.id)} for whoever is signed in and may read this project`} onClick={() => window.open(addressOf(open.id), '_blank', 'noopener')}>
+          <button class="ghost" title={`Open it by itself, as on a phone: ${location.origin}${addressOf(open.id)} for whoever is signed in and may read this project`} onClick={() => window.open(saying(addressOf(open.id)), '_blank', 'noopener')}>
             Its address
           </button>
         </div>

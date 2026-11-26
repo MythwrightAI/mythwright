@@ -48,6 +48,7 @@ mod addresses;
 mod aftermath;
 mod agented;
 mod allowed;
+mod alone;
 mod anchored;
 mod apart;
 mod appearance;

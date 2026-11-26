@@ -417,13 +417,24 @@ with more authority than whoever asked for it.
 - A browser's session counts only with the key its page keeps
   (`x-page-key`, `studio::Came`). A check that calls the daemon from inside
   the page sends it (`localStorage['page-key']`). What the browser fetches
-  by itself and only reads (a picture, an attachment, the event stream)
+  by itself and only reads (a picture, an attachment, the event stream, a
+  library's pages and a mockup's address opened in a tab of their own)
   cannot send a header, and counts with what its address carries beside
   the cookie (`by`, `shown` in `ui/src/api.ts`): a new address of that kind
   is made with `shown` and added to `state::shown`, and only if it reads.
-  The cookie alone is accepted only for `state::by_itself` (the pages of a
-  library and of mockups, whose own links a browser follows); nothing is
-  added there. A cookie is sent to every port of the machine.
+  The cookie alone reads nothing. A cookie is sent to every port of the
+  machine.
+- A page the browser opens at its address and then follows the links of
+  (a library's) takes `api::through::Opened`, not `Auth`: what the address
+  said beside the cookie comes with who asked, and every link the page is
+  written with that leads somewhere on the daemon says it again
+  (`kernel::addressed::saying`; `served::library` for a page served, never
+  for one written out). Opened where it says nothing that counts (typed,
+  kept from before), it is sent to the client's page (`/?to=...`), which
+  adds what it shows and sends the browser on, signing in whoever is not
+  first (`ui/src/senton.ts`, which sends on only to such pages). Anything
+  other than a browser opening a page is told to sign in, as anywhere.
+  Tested in `crates/api/tests/suite/alone.rs`.
 - An SVG attached is handed over to be drawn (`image/svg+xml`, inline): an `<img>` runs nothing
   in it, and opened by itself it is held by the policy every attachment is sent with
   (`sandbox; default-src 'none'`). A picture in somebody's words at an address elsewhere is drawn

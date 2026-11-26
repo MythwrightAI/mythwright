@@ -14,6 +14,7 @@ use served::mockups::{mockup, way_into};
 
 use crate::http::ApiResult;
 use crate::state::{App, Auth};
+use crate::through::Opened;
 
 /// What is asked of the API about mockups.
 pub fn api() -> Router<App> {
@@ -37,9 +38,10 @@ async fn way(State(app): State<App>, Auth(who): Auth, Json(body): Json<Value>) -
 }
 
 /// A mockup's own address: for whoever is signed in and may read it, the
-/// way in to it.
-async fn address(State(app): State<App>, Auth(who): Auth, Path(id): Path<String>) -> ApiResult<Redirect> {
-    let (collection, folder) = mockup(&app.studio, &who, &id).await?;
+/// way in to it. Opened in a browser, it is asked as a library's pages are
+/// (`crate::through`).
+async fn address(State(app): State<App>, opened: Opened, Path(id): Path<String>) -> ApiResult<Redirect> {
+    let (collection, folder) = mockup(&app.studio, &opened.who, &id).await?;
     let (name, _) = app.ways.open(&collection.project, &folder, app.journal.now_ms());
     Ok(Redirect::to(&way_into(&name)))
 }

@@ -206,22 +206,28 @@ try {
   // At its own address, where the browser holds the session for this
   // daemon: the same, since it is put in a place of its own there too.
   const alone = await context.newPage();
+  // Opened at its bare address, it is sent through the client, which says beside the cookie what this
+  // page shows and sends it on: from there to a way in, which needs nothing.
   await alone.goto(`${url}/mockups/shop-mockups:probe`);
-  expect(`its address to lead to a way in, got ${alone.url()}`, alone.url().includes('/mockups/in/'));
+  await alone.waitForURL(/\/mockups\/in\//);
+  expect(`its address to lead to a way in, got ${alone.url()}`, alone.url().includes('/mockups/in/') && !alone.url().includes('by='));
   const direct = await told(alone);
   held(direct, 'at its own address');
   console.log(`and at its own address:\n${direct}`);
   await alone.goto(`${url}/mockups/shop-mockups:pricing-bold`);
   await alone.getByText('the script ran').waitFor();
+  console.log(`a mockup opened at its address is shown at ${alone.url()}`);
   await alone.screenshot({ path: `${out}/mockups-3-address.png` });
   // The daemon is still there, and still the owner's.
   const me = await page.evaluate(() => fetch('/api/me', { headers: { 'x-page-key': localStorage.getItem('page-key') ?? '' } }).then((answer) => answer.status));
   expect(`the client's own session to be as it was, got ${me}`, me === 200);
 
-  // Nothing of it is there for someone who is not signed in.
+  // Nothing of it is there for someone who is not signed in: they come to where they sign in.
   const stranger = await browser.newContext();
-  const refused = await (await stranger.newPage()).goto(`${url}/mockups/shop-mockups:pricing`);
-  expect(`its address to be refused to someone not signed in, got ${refused.status()}`, refused.status() === 401);
+  const outside = await stranger.newPage();
+  await outside.goto(`${url}/mockups/shop-mockups:pricing`);
+  await outside.locator('.opens-with').waitFor();
+  expect(`someone not signed in to be led to no way in, got ${outside.url()}`, !outside.url().includes('/mockups/in/'));
 
   await browser.close();
   if (problems.length) throw new Error(`errors in the page:\n${problems.join('\n')}`);

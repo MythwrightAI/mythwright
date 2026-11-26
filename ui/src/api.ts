@@ -657,7 +657,7 @@ function keepPageKey(key: string | null | undefined, shows?: string | null): voi
   }
 }
 
-function pageShows(): string | null {
+export function pageShows(): string | null {
   try {
     return typeof localStorage === 'undefined' ? null : localStorage.getItem(PAGE_SHOWS);
   } catch {

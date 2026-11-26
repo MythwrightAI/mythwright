@@ -29,6 +29,7 @@ import type { Tab } from './tab.ts';
 import { loadedFrom, verdict } from './update.ts';
 import { gone } from './kept.ts';
 import { spendOnce } from './opened.ts';
+import { sendsOn } from './senton.ts';
 import { isLibrary } from './library.ts';
 import { isMockups } from './mockups.ts';
 import { sitsBeside } from './sits.ts';
@@ -904,6 +905,7 @@ async function enter(): Promise<void> {
   // A page that signed in before pages were given what they show beside
   // the cookie asks for it, or its stream and its pictures are refused.
   await api.learnShows();
+  if (sendsOn()) return;
   // Listen first, then read: anything that changes while reading arrives as
   // an event and is read again, so nothing falls between the two.
   stream.open();

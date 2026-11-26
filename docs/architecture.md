@@ -4101,7 +4101,8 @@ follows from holding to that:
   storage that is its own by port and sends with what it asks; said as a
   token, or without the key, it is refused. What the page has its
   browser fetch by itself and only read (a file or a picture shown,
-  something attached, the stream of events) cannot carry the key, and
+  something attached, the stream of events, a page of a library and a
+  mockup's address opened in a tab of their own) cannot carry the key, and
   counts with what its address says beside the cookie (`by`): something
   the page was given with its key, made from the key and not the key, so
   that the cookie reads nothing alone, an address in a log is nobody's
@@ -4110,16 +4111,24 @@ follows from holding to that:
   long as its person stays signed in, the same in every address that
   page makes, and another when they sign in again. Whoever holds it and
   not the cookie can do nothing with it. Whoever holds it and the cookie
-  reads what the three kinds of address read (a project's files, what is
-  attached, the stream of events), as that person and for as long as the
+  reads what those kinds of address read (a project's files, what is
+  attached, the stream of events, a library's pages, the way in to a
+  mockup), as that person and for as long as the
   session lasts, and changes nothing. So an address with it in (a link
   somebody copied, a browser's history) is to be kept as a file's
   address is, and a file or an attachment is sent with
   `Referrer-Policy: no-referrer`, so that nothing shown from there says
   its own address to what it leads to. It is compared, as the page's key
-  is, digest against digest and to the end either way. The one exception left is a page of a library or a
-  mockup opened, whose own links the browser follows: those are answered
-  for the cookie. The client's page fetches and frames
+  is, digest against digest and to the end either way. A page of a
+  library says `by` again in every link of it that leads somewhere on the
+  daemon (`addressed::saying`), so that its reader goes on from page to
+  page as they came; a library written out to a folder says nothing of
+  the kind. Such a page or a mockup's address opened where it says
+  nothing beside the cookie (typed, kept) is sent through the client's
+  page (`api::through`, `ui/src/senton.ts`), which adds it as things now
+  stand and sends the browser on, after signing in whoever is not. The
+  address bar then shows it. A mockup's way in is no credential and asks
+  for none. The client's page fetches and frames
   nothing that is not this daemon's (`served::client::CLIENT_POLICY`), so a
   picture in a document somebody else wrote is not a request its reader's
   browser makes.
@@ -4629,12 +4638,6 @@ What is not held, and is said so that nobody relies on it:
   an agent wrote is run by whatever runs the project's code: a stage that
   tests, a build, a person. That is what the work is; a review is the
   check on it, and a place to run in the wall.
-- **The pages of a library and of mockups are answered for the cookie**:
-  whatever else listens on the machine and is sent the cookie can read
-  those with it (the documents a project keeps as pages, and its mockups'
-  files), for as long as the session lasts, and can change nothing. It
-  no longer reads a project's other files, what is attached, or the
-  stream of events.
 - **`blueprints:read` reads what instances did, and what they read only
   as far as its holder may be told what set each run off.** A run keeps
   the event that started it and what each step gave, and is handed

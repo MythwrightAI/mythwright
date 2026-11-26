@@ -21,6 +21,14 @@
 //! contents in their order, as a library written out has them
 //! (`studio::site::navigation`).
 //!
+//! A browser opens a page with its cookie, which it hands to every port
+//! of the machine, and so the cookie reads nothing by itself: a page is
+//! asked with what the client's page says beside it (`by`, `api::state`),
+//! and every link it is written with that leads somewhere here says the
+//! same (`said`, `addressed::saying`), so that a reader goes on from page
+//! to page as they came. A page written out to a folder says nothing of
+//! the kind.
+//!
 //! It came out of the daemon (`api::documents`, which keeps the routes,
 //! each a call of this) when that crate was at its ceiling, handed the
 //! studio, the journal and what follows files.
@@ -31,8 +39,10 @@ use axum::http::header::{CACHE_CONTROL, CONTENT_SECURITY_POLICY, CONTENT_TYPE, X
 use axum::response::{IntoResponse, Redirect, Response};
 use hosting::Watch;
 use journal::Journal;
+use kernel::addressed::saying;
 use kernel::{Error, Principal, Result};
 use studio::documents::{ENDING, folder, folders};
+use studio::pages::Leads;
 use studio::projects::{MAX_FILE_BYTES, MAX_RAW_BYTES, resolve};
 use studio::site::{FRONTS, Listed, Shelf, TO_CONTENTS, listing, served_navigation, shelf_of, written};
 use studio::{Collection, Store, Studio, pages};
@@ -99,8 +109,10 @@ pub async fn follow(studio: &Studio, journal: &Journal, files: &Watch) {
 }
 
 /// A library's address is a folder's: what its pages link to is beside it.
-pub fn to_front(project: &str, name: &str) -> Redirect {
-    Redirect::temporary(&format!("/library/{}/{}/", written(project), written(name)))
+/// What was said in the address goes with it.
+pub fn to_front(project: &str, name: &str, query: Option<&str>) -> Redirect {
+    let to = format!("/library/{}/{}/", written(project), written(name));
+    Redirect::temporary(&saying(&to, query.unwrap_or_default()))
 }
 
 /// The library asked for, and its folder, for someone who may read it.
@@ -132,20 +144,28 @@ fn html(page: String) -> Response {
     (headers, page).into_response()
 }
 
-/// A library's front page, for whoever may read it.
-pub async fn front(studio: &Studio, who: &Principal, project: &str, name: &str) -> Result<Response> {
+/// A library's front page, for whoever may read it. Each link on it that
+/// leads somewhere here says `said` (`name=value`, or nothing) as well.
+pub async fn front(
+    studio: &Studio,
+    who: &Principal,
+    project: &str,
+    name: &str,
+    said: &str,
+) -> Result<Response> {
     let (collection, root) = library(studio, who, project, name).await?;
-    folder_page(studio, &collection, &root, "").await
+    folder_page(studio, &collection, &root, "", said).await
 }
 
 /// A page of a library, a folder of it or a file beside its documents,
-/// for whoever may read it.
+/// for whoever may read it, its links saying `said` as [`front`]'s do.
 pub async fn page(
     studio: &Studio,
     who: &Principal,
     project: &str,
     name: &str,
     path: &str,
+    said: &str,
 ) -> Result<Response> {
     let (collection, root) = library(studio, who, project, name).await?;
     let asked = path.trim_end_matches('/').to_string();
@@ -169,12 +189,12 @@ pub async fn page(
         // to is looked for inside it.
         if !path.ends_with('/') {
             let to = format!("/library/{}/{}/{}/", written(project), written(name), written(&asked));
-            return Ok(Redirect::temporary(&to).into_response());
+            return Ok(Redirect::temporary(&saying(&to, said)).into_response());
         }
-        return folder_page(studio, &collection, &root, &format!("{asked}/")).await;
+        return folder_page(studio, &collection, &root, &format!("{asked}/"), said).await;
     }
     if asked.ends_with(ENDING) {
-        return document_page(studio, &collection, &root, &asked, file, meta.len()).await;
+        return document_page(studio, &collection, &root, &asked, file, meta.len(), said).await;
     }
     if meta.len() > MAX_RAW_BYTES {
         return Err(Error::invalid(format!(
@@ -217,9 +237,9 @@ async fn called(studio: &Studio, collection: &Collection) -> String {
 /// The line at the head of a page that leads back to the library's front,
 /// from a page `deep` folders down. A library that is served is a folder
 /// of an address, and its front page is that folder.
-fn way_up(called: &str, deep: usize) -> String {
+fn way_up(called: &str, deep: usize, said: &str) -> String {
     let up = if deep == 0 { "./".to_string() } else { "../".repeat(deep) };
-    studio::site::way_up(called, &up)
+    studio::site::way_up(called, &saying(&up, said))
 }
 
 async fn document_page(
@@ -229,6 +249,7 @@ async fn document_page(
     path: &str,
     file: PathBuf,
     size: u64,
+    said: &str,
 ) -> Result<Response> {
     if size > MAX_FILE_BYTES {
         return Err(Error::invalid(format!("`{path}` is too large to make a page of ({size} bytes)")));
@@ -240,10 +261,17 @@ async fn document_page(
     let fallback = name.strip_suffix(ENDING).unwrap_or(name);
     let title = pages::title(&text).unwrap_or_else(|| fallback.to_string());
     let called = called(studio, collection).await;
-    let up = way_up(&called, path.matches('/').count());
+    let up = way_up(&called, path.matches('/').count(), said);
     let shelf = shelf(collection, root.to_path_buf()).await?;
-    let beside = served_navigation(&called, &shelf, path, &shelf.here(path));
-    Ok(html(pages::shell_beside(&title, &format!("{TO_CONTENTS}{up}{}", pages::body(&text)), &beside)))
+    let beside = served_navigation(&called, &shelf, path, &shelf.here(path), said);
+    let body = body(&text, said);
+    Ok(html(pages::shell_beside(&title, &format!("{TO_CONTENTS}{up}{body}"), &beside)))
+}
+
+/// A document's blocks, each of its links and pictures that leads
+/// somewhere here saying `said` as well.
+fn body(text: &str, said: &str) -> String {
+    pages::body_with(text, &mut |_, dest| Leads::To(saying(dest, said)))
 }
 
 /// The library's contents as its files are now, in their order.
@@ -262,6 +290,7 @@ async fn folder_page(
     collection: &Collection,
     root: &FilePath,
     within: &str,
+    said: &str,
 ) -> Result<Response> {
     let called = called(studio, collection).await;
     let deep = within.matches('/').count();
@@ -277,11 +306,11 @@ async fn folder_page(
     .await
     .map_err(|err| Error::internal(format!("looking for the front page crashed: {err}")))?;
     let shelf = shelf(collection, root.to_path_buf()).await?;
-    let beside = served_navigation(&called, &shelf, within, within);
+    let beside = served_navigation(&called, &shelf, within, within, said);
     if let Some(text) = front {
         let title = pages::title(&text).unwrap_or_else(|| called.clone());
-        let up = if deep == 0 { String::new() } else { way_up(&called, deep) };
-        let inside = format!("{TO_CONTENTS}{up}{}", pages::body(&text));
+        let up = if deep == 0 { String::new() } else { way_up(&called, deep, said) };
+        let inside = format!("{TO_CONTENTS}{up}{}", body(&text, said));
         return Ok(html(pages::shell_beside(&title, &inside, &beside)));
     }
     let records = studio.collections.records(collection).await?;
@@ -297,8 +326,9 @@ async fn folder_page(
     let order = kernel::contents::in_order(&shelf.contents, &shelf.fronts);
     listed.sort_by_key(|listed| order.iter().position(|one| *one == listed.path).unwrap_or(usize::MAX));
     let heading = if within.is_empty() { called.clone() } else { within.trim_end_matches('/').to_string() };
-    let up = if deep == 0 { String::new() } else { way_up(&called, deep) };
+    let up = if deep == 0 { String::new() } else { way_up(&called, deep, said) };
     // Each document is at the address of its file, from this folder.
-    let inside = format!("{TO_CONTENTS}{up}{}", listing(&heading, within, &listed, &|here| written(here)));
+    let lead = |here: &str| saying(&written(here), said);
+    let inside = format!("{TO_CONTENTS}{up}{}", listing(&heading, within, &listed, &lead));
     Ok(html(pages::shell_beside(&heading, &inside, &beside)))
 }
