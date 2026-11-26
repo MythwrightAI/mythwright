@@ -168,8 +168,9 @@ pub async fn board(client: &Client, args: &Args) -> Result<(), String> {
         }
         Some("move") => {
             let (id, column) = (args.need(2, "the card")?, args.need(3, "the column")?);
-            // What is said as it is moved: why a card in review is sent back, say.
-            let change = json!({ "status": column, "note": args.value("note") });
+            // What is said as it is moved: why a card in review is sent back,
+            // say; and how many more rounds than its stage allows it is given.
+            let change = json!({ "status": column, "note": args.value("note"), "give": args.value("give") });
             let card =
                 client.call(reqwest::Method::PATCH, &format!("/api/board/items/{id}"), Some(change)).await?;
             show(client, &card, || format!("{} is now in {}", text(&card, "id"), text(&card, "status")));

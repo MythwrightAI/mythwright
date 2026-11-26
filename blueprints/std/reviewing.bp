@@ -15,7 +15,7 @@
 # what it now says where it is; what becomes of a review in session
 # when the way of reviewing changes is the row's `in_flight`.
 blueprint: std/reviewing
-version: 15
+version: 16
 description: "What a fleet does with the cards of a column where they are reviewed: the agents of a role look each over, and it goes on, goes back or is left for a person."
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 # One thing at a time, but what a card's review or hand merge comes to, which takes its card's turn.
@@ -251,6 +251,8 @@ on:
           status: "${steps.card.out.status}"
           here: "${params.row.column}"
           rounds: ${ steps.card.out.more.rounds ?? 0 }
+          # How many more times than the row allows this card alone may be sent back.
+          given: ${ steps.card.out.given ?? 0 }
           back: ${state.back}
           kept: ${ state.reviewing ?? [] }
           said: ${event.data}
@@ -307,7 +309,7 @@ on:
           why: "${steps.owed.out.said}"
 
       said:
-        description: And said as an event of the card's, once for each time it is left, for whatever counts what comes of cards.
+        description: And said as an event of the card's, once for each time it is left, for whatever counts what comes of cards, with what it was last sent back with.
         when: ${ steps.owed.out.came == "left" }
         do: emit
         with:
@@ -315,6 +317,7 @@ on:
           card: "${event.data.card}"
           project: "${params.project}"
           rounds: ${steps.owed.out.rounds}
+          words: "${ steps.card.out.sent ?? '' }"
 
       listed:
         description: "Where the project's `segments` lays something before the review for this card, the list is gone through for it: from the first of it, or from where this was said to be due for (`row`, `order`), each thing called in order until there is a review to begin or the list has ended. It keeps nothing, and is called again where the daemon was stopped in the middle of it. The card's turn is held meanwhile, so what else is said of the card waits. One that cannot be gone through has not failed this: that it could not is said on, and the card is left for a person. A card with nothing before its review has none of this: its review is begun at once."

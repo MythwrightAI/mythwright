@@ -106,3 +106,94 @@ async fn a_card_a_person_sends_back_where_its_stage_says_is_counted_and_given_to
         worked[1]
     );
 }
+
+/// Moves a card as its owner does, giving it `give` more rounds than its
+/// stage allows, and saying `note` as it goes if anything.
+async fn give(rig: &Rig, id: &str, column: &str, give: u64, note: Option<&str>) -> Value {
+    let body = json!({ "status": column, "note": note, "give": give });
+    let (status, moved) = rig
+        .call(reqwest::Method::PATCH, &format!("/api/board/items/{id}"), Some(&rig.token), Some(body))
+        .await;
+    assert_eq!(status, reqwest::StatusCode::OK, "{moved}");
+    moved
+}
+
+#[tokio::test]
+async fn a_card_left_after_being_sent_back_as_often_as_allowed_and_given_one_more_round_is_worked_again_with_what_its_reviewer_said()
+ {
+    let (rig, at) = rig().await;
+    shop(&rig, json!({ "rounds": 1 })).await;
+    says(&at, "shop-reviewer-1", "The total is wrong.", "send_back");
+    let id = add(&rig, "Add a cart", &[]).await;
+    move_card(&rig, &id, "ready", None).await;
+    let its = id.clone();
+    let left = rig.event("card.left", move |event| event.data["card"] == its.as_str()).await;
+    assert_eq!(left.data["rounds"], 1, "{left:?}");
+    assert_eq!(left.data["words"], "shop-reviewer-1: The total is wrong.", "{left:?}");
+
+    // Somebody gives it one more round, sending it back to its worker.
+    let moved = give(&rig, &id, "doing", 1, Some("Check the empty cart first.")).await;
+    assert_eq!(moved["given"], 1, "{moved}");
+
+    // It is worked again, told what they said and what its reviewer last
+    // said; looked at once more, where it would have been left at once;
+    // sent back once more and then left, its one round spent.
+    let its = id.clone();
+    let again =
+        rig.event("card.left", move |event| event.seq > left.seq && event.data["card"] == its.as_str()).await;
+    assert_eq!(again.data["rounds"], 2, "{again:?}");
+    let worked = given(&rig, "shop-worker-1").await;
+    assert_eq!(worked.len(), 4, "{worked:?}");
+    assert!(
+        worked[2].starts_with("This card was sent back, for you to take up again")
+            && worked[2].contains("Check the empty cart first.")
+            && worked[2].contains("shop-reviewer-1: The total is wrong."),
+        "{}",
+        worked[2]
+    );
+    assert_eq!(given(&rig, "shop-reviewer-1").await.len(), 2, "looked at once more, and no more");
+    let is = card(&rig, &id).await;
+    assert_eq!(
+        (&is["status"], &is["more"]["rounds"], &is["given"]),
+        (&json!("review"), &json!(2), &json!(1))
+    );
+    let line = "Ada moved it from review to doing, saying: Check the empty cart first.\n\nWhen it was last sent back: shop-reviewer-1: The total is wrong., giving it more rounds: 1";
+    history(&rig, &id, line).await;
+}
+
+#[tokio::test]
+async fn a_card_given_one_more_round_by_a_move_the_daemon_stopped_after_is_worked_and_looked_at_once_more() {
+    let (mut rig, at) = rig().await;
+    shop(&rig, json!({ "rounds": 1 })).await;
+    says(&at, "shop-reviewer-1", "The total is wrong.", "send_back");
+    let id = add(&rig, "Add a cart", &[]).await;
+    move_card(&rig, &id, "ready", None).await;
+    let its = id.clone();
+    let left = rig.event("card.left", move |event| event.data["card"] == its.as_str()).await;
+
+    // Stopped as the move that gives it is written and said, before
+    // anything has heard it.
+    let journal = rig.node().app.journal.clone();
+    journal.shut_after(|event| event.topic == "board.item.moved" && event.data["given"] == 1);
+    give(&rig, &id, "doing", 1, None).await;
+    journal.shut().await;
+    rig.restart().await;
+
+    // It is worked again, told what it was last sent back with, and
+    // looked at once more before it is left again: given once, and not
+    // counted as a sending back.
+    let its = id.clone();
+    let again =
+        rig.event("card.left", move |event| event.seq > left.seq && event.data["card"] == its.as_str()).await;
+    assert_eq!(again.data["rounds"], 2, "{again:?}");
+    let worked = given(&rig, "shop-worker-1").await;
+    assert_eq!(worked.len(), 4, "{worked:?}");
+    assert!(
+        worked[2].contains("When it was last sent back: shop-reviewer-1: The total is wrong."),
+        "{}",
+        worked[2]
+    );
+    assert_eq!(given(&rig, "shop-reviewer-1").await.len(), 2);
+    let is = card(&rig, &id).await;
+    assert_eq!((&is["more"]["rounds"], &is["given"]), (&json!(2), &json!(1)));
+}

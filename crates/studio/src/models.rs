@@ -114,6 +114,11 @@ pub const CARD: Model = Model {
         // What was pressed on it of what its column offers
         // (`kernel::pressed::Pressed`), written by the board alone.
         Has { name: PRESSED, kind: "list", required: false, own: true },
+        // What it was last sent back with, and how many more rounds than
+        // its stage allows it was given (`kernel::cards::sending`),
+        // written with a move by the board alone.
+        Has { name: SENT, kind: "text", required: false, own: true },
+        Has { name: GIVEN, kind: "number", required: false, own: true },
     ],
     home: Some("board"),
     doors: "the board, as a card is moved and pressed",
@@ -124,6 +129,11 @@ pub const MOVED: &str = "moved";
 
 /// The field of a card that keeps what was pressed on it.
 pub const PRESSED: &str = "pressed";
+
+/// The fields of a card that keep what it was last sent back with, and
+/// how many more rounds than its stage allows it was given.
+pub const SENT: &str = "sent";
+pub const GIVEN: &str = "given";
 
 /// What can be pressed on a card in a column (`kernel::pressed::Action`
 /// reads a row of one): a table that says it is one of these, and sits
@@ -312,6 +322,13 @@ pub struct Card {
     /// nothing but the board (`kernel::pressed::Pressed`).
     #[serde(default, deserialize_with = "kept")]
     pub pressed: Vec<String>,
+    /// What it was last sent back with, and how many more rounds than its
+    /// stage allows it was given: written with a move by nothing but the
+    /// board (`kernel::cards::sending`).
+    #[serde(default, deserialize_with = "kept")]
+    pub sent: String,
+    #[serde(default, deserialize_with = "count")]
+    pub given: u64,
     /// What else its board keeps of it: the fields the board's blueprint
     /// declared beyond a card's own, each by its name, where it has one.
     /// Nothing here reads them; they are carried.
@@ -359,6 +376,12 @@ impl Moved {
     pub fn kept(&self) -> Vec<String> {
         vec![self.from.clone(), self.by.clone(), self.said.clone(), self.count.to_string()]
     }
+}
+
+/// Reads a count, kept as a number with a point in it or not, taking
+/// anything else as none.
+fn count<'de, D: Deserializer<'de>>(from: D) -> std::result::Result<u64, D::Error> {
+    Ok(Value::deserialize(from)?.as_f64().filter(|count| *count > 0.0).map_or(0, |count| count as u64))
 }
 
 /// Reads one field of a record, taking what does not fit as nothing.

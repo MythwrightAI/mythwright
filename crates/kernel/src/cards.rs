@@ -184,18 +184,20 @@ pub struct Arrived {
 /// did not pass goes is a stage's to say, and it may say where cards
 /// wait to be worked. But a card sent back for something other than a
 /// verdict on its work (`uncounted`, said with the move: to be brought up
-/// to date) is not counted, and nothing is kept of it.
+/// to date) is not counted, and nothing is kept of it; nor is one that
+/// gives it more rounds than its stage allows (`given`, by anyone), which
+/// is that, and not a round spent.
 pub fn came(
     from: &str,
     to: &str,
     by_hand: bool,
-    uncounted: bool,
+    (uncounted, given): (bool, bool),
     kept: &Kept,
     columns: Columns<'_>,
 ) -> Arrived {
     let came = if to == columns.done {
         Came::Finished
-    } else if uncounted && !by_hand {
+    } else if (uncounted && !by_hand) || given {
         Came::Elsewhere
     } else if from == columns.looked && columns.before.contains(&to) {
         Came::Back
@@ -215,6 +217,61 @@ pub fn came(
         rests: came == Came::Finished && !kept.waiting.is_empty(),
     }
 }
+
+/// What a card's row keeps of its being sent back and given more rounds,
+/// and what a move of it says: what [`sending`] reads and answers.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Sending {
+    /// What is said with the move.
+    pub note: String,
+    /// The words it was last sent back with.
+    pub sent: String,
+    /// How many more times than its stage allows it may be sent back, as
+    /// whoever gave it those said, all told.
+    pub given: u64,
+}
+
+/// What a card's move from `from` to `to`, on a board whose columns are
+/// `columns` in order, says and leaves on its row: `note` being what was
+/// said with it, `give` how many more rounds than its stage allows the
+/// move gives it, and `kept` what the row said before.
+///
+/// Put in a column before the one it was in, with something said, it was
+/// sent back, and what was said is kept as the words it was last sent
+/// back with. A move that gives it more rounds adds them to what it was
+/// given, keeps those words as they were, and says them after whatever
+/// its mover said: whoever works it next is told what whoever looked at
+/// it last said, as well as why it was given another go. A move that
+/// leaves it in its column changes nothing.
+pub fn sending(
+    columns: &[String],
+    (from, to): (&str, &str),
+    note: &str,
+    give: u64,
+    kept: Sending,
+) -> Sending {
+    let note = note.trim().to_string();
+    if from == to {
+        return Sending { note, ..kept };
+    }
+    if give > 0 {
+        let note = match (note.as_str(), kept.sent.as_str()) {
+            (_, "") => note.clone(),
+            (said, last) if said.contains(last) => note.clone(),
+            ("", last) => format!("{SENT}{last}"),
+            (said, last) => format!("{said}\n\n{SENT}{last}"),
+        };
+        return Sending { note, given: kept.given + give, ..kept };
+    }
+    let at = |column: &str| columns.iter().position(|one| one == column);
+    let back = matches!((at(from), at(to)), (Some(from), Some(to)) if to < from);
+    let sent = if back && !note.is_empty() { note.clone() } else { kept.sent };
+    Sending { note, sent, given: kept.given }
+}
+
+/// How the words a card was last sent back with are said to whoever
+/// works it again, where it was given more rounds.
+pub const SENT: &str = "When it was last sent back: ";
 
 worded! {
     /// What something said on a card came to.

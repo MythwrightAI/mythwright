@@ -76,7 +76,7 @@ async fn a_message_that_names_the_bot_is_one_of_the_command_lines_commands_and_i
     assert!(alive.contains("std/board as ") && alive.contains(": active"), "{alive}");
     assert_eq!(asked(&rig, &rig.token, "@conductor agent list").await, "There are no agents.");
     let help = asked(&rig, &rig.token, "@conductor help").await;
-    assert!(help.contains("`board move <card> <column> [--note TEXT]`"), "{help}");
+    assert!(help.contains("`board move <card> <column> [--note TEXT] [--give N]`"), "{help}");
     // It is in the channel from the first thing it says there.
     let floor = rig.read("/api/channels/floor").await;
     assert!(floor["members"].as_array().unwrap().iter().any(|member| member["actor"] == "bot:conductor"));
@@ -192,7 +192,7 @@ async fn what_is_written_to_the_bot_is_words_and_never_part_of_an_address_or_a_c
         ("@conductor agent stop helper?idle=true", "is not an agent"),
         ("@conductor agent stop \"helper; rm -rf $HOME\"", "is not an agent"),
         ("@conductor emit ../board/shop/items title=x", "is not a topic"),
-        ("@conductor board move", "it is written `board move <card> <column> [--note TEXT]`"),
+        ("@conductor board move", "it is written `board move <card> <column> [--note TEXT] [--give N]`"),
         ("@conductor board history ../records/x", "is not a card"),
         ("@conductor board give shop-1 nobody --at once", "`--at` is not something `board give` takes"),
     ] {
@@ -242,7 +242,7 @@ async fn what_the_bot_takes_is_listed_beside_its_name_and_is_what_it_says_of_its
         .map(|one| (one["written"].as_str().unwrap(), one["does"].as_str().unwrap()))
         .collect();
     assert!(
-        listed.iter().any(|(written, _)| *written == "board move <card> <column> [--note TEXT]"),
+        listed.iter().any(|(written, _)| *written == "board move <card> <column> [--note TEXT] [--give N]"),
         "{about}"
     );
     assert!(listed.iter().all(|(written, does)| !written.is_empty() && !does.is_empty()), "{about}");

@@ -503,6 +503,10 @@ the simulation, stopped at each point and restarted.
   the merge has the stage look at its column as it comes up, which may
   take the next card before the merge is made again; and a stage whose
   `pass` is not `done` is looked past as the card moves.
+- A card left for a person having been sent back as often as allowed says
+  what it was last sent back with (`words` of `card.left`, the card's
+  `sent`), and may be given more rounds alone by a move (`board.md`,
+  *Sending a card back*; `sentback.rs`).
 - A card left for a person having been sent back as often as allowed is
   kept with the limit it was left under (`most`); a row whose `rounds`
   changes drops those entries (`on_update` of `std/reviewing`), and its

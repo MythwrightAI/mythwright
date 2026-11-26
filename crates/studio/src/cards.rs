@@ -11,8 +11,8 @@ use serde_json::{Value, json};
 
 pub(crate) use kernel::cards::AFTER;
 pub use kernel::cards::{
-    After, Arrived, Awaited, Came, Columns, Kept, Row, Said, after, came, held, said, turn, waiting_for,
-    waits_on_others,
+    After, Arrived, Awaited, Came, Columns, Kept, Row, SENT, Said, Sending, after, came, held, said, sending,
+    turn, waiting_for, waits_on_others,
 };
 
 use crate::actions::{add, project_of, text};
@@ -63,6 +63,7 @@ pub(crate) fn register(registry: &mut Registry, studio: &Studio) {
         .required("to", T::String, "the column it was moved to")
         .required("by_hand", T::Bool, "whether somebody moved it, and no blueprint did")
         .arg("uncounted", T::Bool, "the blueprint that moved it said it sends it back for something other than a verdict on its work: it is not counted")
+        .arg("given", T::Int, "how many more rounds than its stage allows the move gave it (`given` of the move): a move that gives any is not counted")
         .required("worked", T::String, "the column cards are worked in")
         .required("looked", T::String, "the column work is looked over in: a card put from there to where cards are worked was sent back")
         .required("done", T::String, "the column a card is finished in")
@@ -86,7 +87,9 @@ pub(crate) fn register(registry: &mut Registry, studio: &Studio) {
             };
             let columns = Columns { worked: &worked, looked: &looked, done: &done, before: &before };
             let flag = |key: &str| args.get(key).and_then(Value::as_bool).unwrap_or(false);
-            let arrived = came(&word("from"), &word("to"), flag("by_hand"), flag("uncounted"), &kept_of(&card), columns);
+            let given = args.get("given").and_then(Value::as_u64).is_some_and(|given| given > 0);
+            let counted = (flag("uncounted"), given);
+            let arrived = came(&word("from"), &word("to"), flag("by_hand"), counted, &kept_of(&card), columns);
             let holds = match arrived.came {
                 Came::Finished => {
                     let (rows, keeps) = rows(&studio, &card.project).await?;

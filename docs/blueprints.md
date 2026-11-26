@@ -4160,7 +4160,7 @@ row:
 | `next_after` | where cards are worked, when the next card is taken: `handed` (default), as soon as the last is handed on; `merged`, only once no card worked from here waits unmerged, in `doing` or in the column it was handed on to (`pass`, or `review` where that says none). A card's branch is cut from the project's as it is when the card is taken, so with `handed` a card taken while the one before it is in review has nothing of that one's work. `merged` is one card at a time whatever `at_once` says; a card that waits says so (`waiting`: *no work is being started here for now: shop-1, worked from here, is not merged yet*) and is taken once that card is done, sent back to the column, put aside or taken off the board. A card left for a person in review or in `doing` holds the next back until somebody moves it |
 | `review` | for a review, the blueprint that reviews one card here: the fleet's `review` (`std/review`) by default. One of the project's own takes the params `std/review` takes and says `review.passed`, `review.failed` or `review.undecided`. It runs only as it was vouched for: saved by somebody who holds what the fleet was applied with, as for a blueprint `does` names |
 | `proposal` | for a planning stage, the blueprint that plans one card here: the fleet's `proposal` (`std/proposal`) by default, held to the same rule as `review` |
-| `rounds` | how many times a card may be sent back from here before it is left for a person: 2 by default. The stage counts it wherever it sends the card, so workers and reviewers never go round forever. A card left that way is reported where the stage reports and as an event, `card.left` (`card`, `project`, `rounds`), once each time it is left; that is also a line of the card's history. Raised, a card left under the limit it had is looked at again |
+| `rounds` | how many times a card may be sent back from here before it is left for a person: 2 by default. The stage counts it wherever it sends the card, so workers and reviewers never go round forever. A card left that way is reported where the stage reports and as an event, `card.left` (`card`, `project`, `rounds`, and `words`, what it was last sent back with), once each time it is left; that is also a line of the card's history. Raised, a card left under the limit it had is looked at again. One card alone is given more with a move that says so (`give`), as *Sent back* below says |
 | `most` | the most things done with a card here in one pass through its list (*How many things at most*, under *Writing a segment*): 6 where cards are worked and 5 otherwise, by default; with 0, no bound but the list's own length. A card whose list holds more is left for a person, and the message gives the command that raises it on this row |
 | `merge` | whether a card's branch is merged into the project's when it passes here |
 | `by_hand` | what happens to a card's branch when a person passes the card themselves, moving it on from here: `merge` (the default where the row says `merge`), it is merged as an agent-approved one is, if whoever moved the card holds `projects:write`; `leave` (the default otherwise), the branch is left as it is |
@@ -4338,6 +4338,14 @@ card was sent back is counted on it (`rounds`, by `std/cards`): when it
 is put where cards are in hand, or from `review` into any column the
 board has before that, by anyone. After the stage's `rounds`, nobody is
 asked and the card is left there for a person, and the channel is told.
+That one card can be given more without changing the row for every
+other: a move that gives it more rounds (`mw board move <card> doing
+--give 1`, `give` of `board.move`, *One more round* on the card in the
+client) sends it back to whoever worked it, told what the mover said and
+what it was last sent back with, and it may then be sent back that many
+more times before it is left again. Such a move is not counted as a
+sending back; what was given is kept on the card (`given`) and said in
+its history.
 A review that did not pass with nobody saying what is wrong
 (`review.undecided`) is left for a person too.
 
@@ -6516,7 +6524,7 @@ descriptions.)
 | `agent.turn.started` | An agent began a turn. | `slot`, `turn`, `project`?, `kind`, `channel`?, `thread`?, `again`?, `taken_up`? |
 | `board.columns` | A board's columns were set. | `project`, `columns` |
 | `board.item.created` | A card was added to a board. | `id`, `project`, `fields`?, `title`, `status`, `by`?, `late`?, `restored`?, `through`?, `wrote`?, `doing`? |
-| `board.item.moved` | A card was moved to another column. | `id`, `project`, `fields`?, `title`, `from`, `to`, `by`, `note`?, `decided`?, `uncounted`?, `late`?, `through`? |
+| `board.item.moved` | A card was moved to another column. | `id`, `project`, `fields`?, `title`, `from`, `to`, `by`, `note`?, `decided`?, `uncounted`?, `given`?, `late`?, `through`? |
 | `board.item.removed` | A card was taken off its board. | `id`, `project`, `fields`? |
 | `board.item.pressed` | Something a card's column offers was pressed on it, or a press was taken back. | `id`, `project`, `fields`?, `status`, `action`, `title`, `by`, `name`, `coming`, `back`, `did`, `released`, `waits`, `through`? |
 | `board.item.held` | A card waits where it is for something its column offers to be pressed: said once each time it comes there. | `id`, `project`, `fields`?, `card`, `status`, `coming`, `waits`, `who`, `says`, `through`? |

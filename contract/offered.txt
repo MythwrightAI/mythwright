@@ -225,6 +225,7 @@ action board.came
   takes to string needed
   takes by_hand bool needed
   takes uncounted bool
+  takes given int
   takes worked string needed
   takes looked string needed
   takes done string needed
@@ -246,6 +247,8 @@ action board.get
   gives due
   gives moved
   gives pressed
+  gives sent
+  gives given
   gives more
   gives ranked
 
@@ -283,6 +286,7 @@ action board.move
   takes decided string
   takes had int
   takes uncounted bool
+  takes give int
   gives status
 
 action board.press
@@ -1373,6 +1377,7 @@ action review.owed
   takes needed int
   takes most int
   takes rounds int
+  takes given int
   takes back list
   takes kept list
   takes again bool
@@ -2345,6 +2350,7 @@ event board.item.moved
   carries note string
   carries decided string
   carries uncounted bool
+  carries given int
   carries late bool
   carries through string
 

@@ -62,3 +62,22 @@ export function backTo(status: string, columns: string[], stages: Row[] | null):
   const to = fail || (status === 'review' ? 'doing' : '');
   return to !== '' && to !== status && columns.includes(to) ? to : null;
 }
+
+/** A count a cell or a card says, and nothing for anything that is not one. */
+const counted = (value: unknown): number | null => {
+  const count = typeof value === 'number' ? value : typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN;
+  return Number.isFinite(count) ? count : null;
+};
+
+/**
+ * Whether a card in the column `status` has been sent back as often as the
+ * stage that has the column allows (`rounds` of its row), beside what it
+ * was given (`given`): sent back as it is, it would be left for a person
+ * again as it came back, so it is offered one more round with it. Nothing
+ * where no stage has the column or its row says no count.
+ */
+export function outOfRounds(status: string, stages: Row[] | null, rounds: unknown, given: unknown): boolean {
+  const stage = (stages ?? []).find((one) => columnOf(one) === status);
+  const most = stage ? counted(stage.data.rounds) : null;
+  return most !== null && (counted(rounds) ?? 0) >= most + (counted(given) ?? 0);
+}

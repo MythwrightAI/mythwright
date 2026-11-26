@@ -454,7 +454,11 @@ async fn a_handler_is_held_to_the_events_there_are_and_to_what_they_carry() {
         "{}",
         found[0].2
     );
-    assert!(found[0].2.contains("from, id, late, note, project, through, title, to"), "{}", found[0].2);
+    assert!(
+        found[0].2.contains("from, given, id, late, note, project, through, title, to"),
+        "{}",
+        found[0].2
+    );
 
     // One read in `when:`, and one read in a step.
     let found = problems(&rig, &HEARS.replace("event.data.to == ", "event.data.too == ")).await;

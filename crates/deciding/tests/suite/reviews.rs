@@ -19,6 +19,7 @@ fn card() -> Owed {
         needed: 1,
         most: 2,
         rounds: 0,
+        given: 0,
         back: vec![],
         kept: vec![],
         again: false,
@@ -128,6 +129,16 @@ fn what_an_item_said_to_be_due_a_review_is_owed() {
             OwedCame::Held,
         ),
         ("sent back as often as is allowed, by its row", Owed { rounds: 2, ..card() }, left(2)),
+        (
+            "sent back as often as is allowed, and given one more: it is looked at again",
+            Owed { rounds: 2, given: 1, ..card() },
+            OwedCame::Review,
+        ),
+        (
+            "given one more, and sent back that once more too",
+            Owed { rounds: 3, given: 1, back: vec![json!("shop-1"), json!("shop-1"), json!("shop-1")], ..card() },
+            left(3),
+        ),
         (
             "sent back as often as is allowed, as whoever asks counted",
             Owed { rounds: 1, back: vec![json!("shop-1"), json!("shop-2"), json!("shop-1")], ..card() },

@@ -433,7 +433,7 @@ async fn columns_set(
 /// What a change to a card says by name beside a card's own fields
 /// (`studio::models::CARD`): how it is moved, and the fields its board
 /// declared beyond a card's own, given together.
-const MOVING: &[&str] = &["before", "note", "fields", "within"];
+const MOVING: &[&str] = &["before", "note", "fields", "within", "give"];
 
 /// What a card cost, by round: each time it was worked and looked over,
 /// the agents' turns of it, what they say they took, and what was
@@ -500,9 +500,20 @@ async fn item_change(
     if let Some(status) = text(&body, "status") {
         // What is said as it is moved goes with the move: `note`.
         let (before, note) = (text(&body, "before"), text(&body, "note"));
+        // And how many more rounds than its stage allows it is given:
+        // `give`, a count, written as a number or as words.
+        let give = match body.get("give") {
+            None | Some(Value::Null) => Some(0),
+            Some(Value::Number(count)) => count.as_u64(),
+            Some(Value::String(count)) => count.trim().parse().ok(),
+            Some(_) => None,
+        }
+        .ok_or_else(|| {
+            Error::invalid("`give` is how many more rounds the card is given: a count, such as 1")
+        })?;
         // Moved with a key somebody made, it is the key that moved it:
         // what follows a move may rest on what the mover holds.
-        item = app.studio.board.move_said(&id, status, (before, note), &who, &actor).await?;
+        item = app.studio.board.move_said(&id, status, (before, note, give), &who, &actor).await?;
     }
     Ok(Json(json!(item)))
 }

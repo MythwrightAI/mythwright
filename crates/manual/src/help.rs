@@ -46,7 +46,7 @@ working together
   read <channel> [--limit N] | read <channel> --thread <message> | inbox [--all] | inbox read <line>|--all | inbox away <line> | inbox parts|pass|fail <line> ... | to <who>[,<who>...] [--subject S] <words...>     recent messages | a message and what was said under it | what was addressed to you | a conversation written to somebody (help inbox) | topic list|make|show|reply|answer|move|follow ...: a forum's topics beside the channels (help topic) | follow <kind>:<thing> [--with-pages] [--often once|hourly|daily|off] [--at HH:MM] | unfollow <kind>:<thing> | following: be told when a page, a wiki, a board, a table, a library, a channel or a project changes, and how often (help follow)
   post <channel> <message...> [--thread <message> | --top] [--attach FILE]... [--copy] | attachment <id> [--out FILE]     say it, under a message or in the channel itself; a project's file attached is posted as that file (help channel) | what is attached to a message or a record, as you may read it
   board <project> | board columns <project> [<column>...] | board add <project> <title...> [--body TEXT] [--status COLUMN] [--label L]... [--field name=value]...
-  board move <card> <column> [--note TEXT]          with what is said as it is moved; from review to doing sends it back
+  board move <card> <column> [--note TEXT] [--give N]   with what is said as it is moved; from review to doing sends it back; --give: N more rounds than its stage allows (help record)
   board give <card> <agent>|<person>|nobody | board set <card> <field=value>... | board history <card> | board press <card> <action> [--back] | board cost <card>     who works a card; what it holds; what has happened to it; what its column offers, pressed (help record); what each round of it cost (help cost)
   record list <project> <collection> | add ... | show <record> | set ... | remove <record> | title <project> <collection> <words>|--usual | trash [restore <id> [--beside] | forget <id>] [--keep DAYS|always]     what else a project keeps, and what a table is called for people (help record) | what was deleted, given back or deleted for good, and how long it is kept (help trash)
   record comment <record> <words...> | attach <record> <file>... | attachments <record> | detach <record> <id> | ask <record> <field=value>... [--to WHO] [--why W] | asked [<ask>] | approve <ask> | decline <ask> [--why W]     say something on a record or a card; on a card that asks something, the answer | what is attached to it (help record) | a change you may not make, asked of whoever could (help ask)
@@ -171,6 +171,13 @@ holds is set with `{cli} board set <card> <field=value>...`, in the words
 `set` takes here; where it is and whose it is are `board move` and
 `board give`, which takes an agent by its name, a person by their handle
 or email, or `nobody`.
+
+A card sent back as often as its stage's `rounds` allows is left for a
+person. `{cli} board move <card> doing --give 1` gives that card alone one
+more: it goes back to whoever worked it, told what `--note` says and what
+it was last sent back with, and it may be sent back once more than the
+stage allows before it is left again. The move is not counted as a
+sending back, and its history says what was given.
 
 What a card's column offers to be pressed (a row of a fleet's `actions`:
 `Signed`, say, which a person presses before a card in ready is worked)

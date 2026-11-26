@@ -36,6 +36,9 @@ pub struct Owed {
     pub most: i64,
     /// How often its row says it was sent back.
     pub rounds: i64,
+    /// How many more times than `most` it may be sent back, as whoever
+    /// gave it those said: its own, and no other item's.
+    pub given: i64,
     /// The items sent back from here, once for each time, as whoever
     /// asks keeps them: each the item, or a mapping that names it, which
     /// says `behind` where it went back only to be brought up to date.
@@ -130,6 +133,7 @@ pub fn owed(asked: &Owed) -> Result<OwedCame, String> {
         ("needed", asked.needed),
         ("most", asked.most),
         ("rounds", asked.rounds),
+        ("given", asked.given),
     ] {
         if count < 0 {
             return Err(format!("`{name}` is a count, and is not less than none; it is {count}"));
@@ -155,7 +159,7 @@ pub fn owed(asked: &Owed) -> Result<OwedCame, String> {
         asked.back.iter().filter(|entry| of(entry, &asked.item)).partition(|entry| brought(entry));
     let rounds = asked.rounds.max(counted.len() as i64);
     let behind = behind.len() as i64;
-    Ok(if rounds >= asked.most {
+    Ok(if rounds >= asked.most + asked.given {
         let said = format!(
             "{} is in {} again after being sent back {rounds} times. Nobody was asked this time: it is left for a \
              person to look at.",
@@ -465,6 +469,7 @@ pub fn register(registry: &mut Registry) {
         .arg("needed", T::Int, "how many have to approve")
         .arg("most", T::Int, "how often at most an item is sent back before it is left")
         .arg("rounds", T::Int, "how often its row says it was sent back")
+        .arg("given", T::Int, "how many more times than `most` the item may be sent back, given it alone (`given` of a card)")
         .arg("back", T::List, "the items sent back from here, once for each time, as whoever asks keeps them; one that says `behind` went back only to be brought up to date with the project's branch, and is counted apart")
         .arg("kept", T::List, "the items that have a review under way or were left, as whoever asks keeps them")
         .arg("again", T::Bool, "its review says itself that another is to begin")
@@ -509,6 +514,7 @@ pub fn register(registry: &mut Registry) {
                 needed: count("needed"),
                 most: count("most"),
                 rounds: count("rounds"),
+                given: count("given"),
                 back: list("back"),
                 kept: list("kept"),
                 again: flag("again"),

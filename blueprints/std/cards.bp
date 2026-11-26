@@ -40,7 +40,7 @@
 # To change what a card can do, or to add to it, copy this file to
 # `blueprints/std/cards.bp` in the project and apply the board again.
 blueprint: std/cards
-version: 6
+version: 7
 description: "What the cards of a board can do beyond being moved: hold a question, say why they wait, count how often they were sent back, and wait on other cards."
 permissions: [board, records]
 
@@ -72,6 +72,7 @@ on:
           to: "${event.data.to}"
           by_hand: ${ event.data.through == null }
           uncounted: ${ event.data.uncounted ?? false }
+          given: ${ event.data.given ?? 0 }
           worked: doing
           looked: review
           done: "${params.done}"

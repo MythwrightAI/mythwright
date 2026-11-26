@@ -102,6 +102,7 @@ pub fn events() -> Vec<EventSpec> {
             .maybe("note", String, "what was said as it was moved")
             .maybe("decided", String, "the agent whose decision the move was (`agent:<name>`), where a blueprint moved it as an agent decided")
             .maybe("uncounted", Bool, "that a blueprint sent it back for something other than a verdict on its work (to be brought up to date), which is not counted among the times it was sent back")
+            .maybe("given", Int, "how many more times than its stage allows it may be sent back, given it with this move, which is not counted as one; `note` then says what it was last sent back with")
             .maybe(
                 "late",
                 Bool,

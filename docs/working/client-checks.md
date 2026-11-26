@@ -189,7 +189,7 @@ part of itself; that one is not run alone.
 - `nested.mjs`: notes by period, each table naming the one above; private days.
 - `slid.mjs`: a card moved from a terminal slides to its column; when nothing slides.
 - `review.mjs`: a card sent back from review; who said each thing with their picture; the drawer
-  edge.
+  edge; one sent back as often as its stage allows given one more round.
 - `cardcost.mjs`: what a card cost by round, in its drawer.
 - `chained.mjs`: a card waiting on people in turn, each told once by the fleet.
 - `pressed.mjs`: a button a column offers on a card, holding it until pressed.

@@ -925,7 +925,7 @@ async fn a_card_sent_back_as_often_as_is_allowed_and_said_to_be_due_twice_is_sai
     let all = journal::EventQuery { topics: "card.left".into(), limit: 100, ..Default::default() };
     let said = rig.said(all).await;
     let of: Vec<_> = said.iter().map(|event| event.data.clone()).collect();
-    assert_eq!(of, [json!({ "card": id, "project": "shop", "rounds": 2 })]);
+    assert_eq!(of, [json!({ "card": id, "project": "shop", "rounds": 2, "words": "" })]);
     history(&rig, &id, "it was left for a person, having been sent back 2 times").await;
 }
 

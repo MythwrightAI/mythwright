@@ -187,10 +187,10 @@ impl Doing {
                 });
                 listed(columns.collect(), "That board has no columns.", "board")
             }
-            Command::Move { card, column, note } => {
+            Command::Move { card, column, note, give } => {
                 // Whose card it is, is the route's to say, after it has said
                 // whether whoever asked may move one at all.
-                let body = json!({ "status": column, "note": note, "within": within });
+                let body = json!({ "status": column, "note": note, "give": give, "within": within });
                 let moved =
                     ask(routes, who, Verb::Patch, format!("/api/board/items/{card}"), Some(body)).await?;
                 format!("`{}` is in {}.", text(&moved, "id"), text(&moved, "status"))

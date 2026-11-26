@@ -1,10 +1,10 @@
 std/ab 243
 std/agent 156
 std/arrangement 451
-std/board 226
+std/board 231
 std/bot 93
 std/canary-stage 57
-std/cards 358
+std/cards 359
 std/chain 305
 std/chain-wait 219
 std/cleared 65
@@ -50,7 +50,7 @@ std/proposal 365
 std/proposal-round 186
 std/resumed 66
 std/review 351
-std/reviewing 672
+std/reviewing 675
 std/role 210
 std/rolling 46
 std/rolling-step 34

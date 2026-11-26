@@ -174,7 +174,7 @@ async fn a_card_of_a_board_that_steers_is_added_changed_and_moved_by_whoever_cou
     // Moved to another column, moved within its own, and moved as a key.
     for (column, said) in [("doing", None), ("ready", None), ("done", Some("key:k1"))] {
         let refused = match said {
-            Some(said) => board.move_said(&card.id, column, (None, Some("Done.")), &narrow, said).await,
+            Some(said) => board.move_said(&card.id, column, (None, Some("Done."), 0), &narrow, said).await,
             None => board.move_to(&card.id, column, None, &narrow).await,
         }
         .unwrap_err();

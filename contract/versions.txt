@@ -55,6 +55,7 @@ std/board 11 c05bb7ea76c1b4f0
 std/board 12 c97d6d4a236d6334
 std/board 13 1d843b139f08e132
 std/board 14 70b79eb29d2920fd
+std/board 15 297f403bb98d5d31
 
 std/bot 1 39c6e4dc8baa1c5d
 std/bot 2 fa3dc99df398ba06
@@ -70,6 +71,7 @@ std/cards 3 a56a0d6589f194ab
 std/cards 4 4121bd240d8ed4dc
 std/cards 5 0214bc6aa1817b07
 std/cards 6 f91dfed259f523ab
+std/cards 7 85456bb543656916
 
 std/chain 1 9498e6ed26ec5e9a
 std/chain 2 782719d968e698af
@@ -410,6 +412,7 @@ std/reviewing 12 34d4899be66a5f9f
 std/reviewing 13 bc88ca6f73016dd4
 std/reviewing 14 73b85a8f1ac2bbc2
 std/reviewing 15 0a9a02cfba211853
+std/reviewing 16 aff283fb062f52ca
 
 std/role 1 dc807d6b70639b93
 std/role 2 59882f7356208fce

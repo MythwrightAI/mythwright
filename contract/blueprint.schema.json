@@ -3621,6 +3621,13 @@
                       "boolean"
                     ]
                   },
+                  "given": {
+                    "description": "how many more rounds than its stage allows the move gave it (`given` of the move): a move that gives any is not counted",
+                    "type": [
+                      "integer",
+                      "string"
+                    ]
+                  },
                   "id": {
                     "description": "the card Needed.",
                     "type": [
@@ -5210,6 +5217,13 @@
                       "string",
                       "number",
                       "boolean"
+                    ]
+                  },
+                  "give": {
+                    "description": "how many more times than its stage allows the card may be sent back, given it with this move, which is not counted as one: kept on the card, said in its history, and the card is told what it was last sent back with",
+                    "type": [
+                      "integer",
+                      "string"
                     ]
                   },
                   "had": {
@@ -8654,6 +8668,13 @@
                     "description": "whether it was found Needed.",
                     "type": [
                       "boolean",
+                      "string"
+                    ]
+                  },
+                  "given": {
+                    "description": "how many more times than `most` the item may be sent back, given it alone (`given` of a card)",
+                    "type": [
+                      "integer",
                       "string"
                     ]
                   },

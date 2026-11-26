@@ -74,7 +74,10 @@ pub const TAKES: &[(&str, &str)] = &[
         "board add <project> <title...> [--body TEXT] [--status COLUMN] [--label L]... [--field name=value]...",
         "add a card",
     ),
-    ("board move <card> <column> [--note TEXT]", "move a card"),
+    (
+        "board move <card> <column> [--note TEXT] [--give N]",
+        "move a card; --give: N more rounds than its stage allows",
+    ),
     ("board give <card> <agent>|<person>|nobody", "give a card to an agent or a person, or to nobody"),
     (
         "board set <card> <field=value>...",
@@ -347,6 +350,7 @@ pub enum Command {
         card: String,
         column: String,
         note: Option<String>,
+        give: Option<String>,
     },
     Give {
         card: String,
@@ -460,6 +464,7 @@ impl Command {
                 card: card()?,
                 column: said.word("column").to_string(),
                 note: said.flag("note").map(str::to_string),
+                give: said.flag("give").map(str::to_string),
             },
             "board give" => Command::Give { card: card()?, to: said.word("agent").to_string() },
             "board set" => Command::Set { card: card()?, pairs: said.pairs.clone() },

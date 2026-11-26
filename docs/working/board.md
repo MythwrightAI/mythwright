@@ -62,6 +62,23 @@ reviews, segments and its tables) is in `fleet.md`.
   to be brought up to date (`fleet.md`, *Reviews and councils*), which
   has a cap of its own. Something new that sends a card back and is no
   verdict says `uncounted`, and is bounded where it is kept.
+- **One card is given more rounds than its stage allows by a move that
+  says so** (card 485): `give` of the move, through every door (the
+  route's `give`, `mw board move --give N`, the bot's `board move`,
+  `give` of `board.move`, *One more round* in the drawer). The board
+  writes, in the move's write, how many it was given all told and the
+  words it was last sent back with (`given`, `sent`: model fields only
+  the board writes, `kernel::cards::sending`, with cases); a give-move
+  keeps `sent` and says it after the mover's words, so whoever works it
+  is told what was last said (`Moved` carries it, `work.turn` reads it
+  as any note). The move says `given` (a history line), and `board.came`
+  counts no move that gives. `review.owed` leaves a card only after
+  `rounds` plus its own `given`. A give-move redone after a stop finds
+  the card moved already and gives nothing twice. The client offers it
+  where a card has been sent back as often as its stage's row says,
+  beside what it was given (`outOfRounds` in `ui/src/sentback.ts`). Not
+  held: a stage that works cards caps its own retries (`given_again`) by
+  `rounds` alone.
 
 ## A card's row and its events
 
