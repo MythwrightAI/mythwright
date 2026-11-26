@@ -401,9 +401,11 @@ blueprints:
               channel: "${state.channel}"
               body: "${steps.link.out.data.card}: no ticket was made for it: ${ steps.found.error ?? steps.again.error ?? steps.there.error ?? steps.open.error }"
 
-      # A link names a ticket and no card: one is made for it, written as
-      # being made first, so that a daemon stopped as it is added leaves
-      # the link for a person and adds no second card.
+      # A link names a ticket and no card: one is made for it. Adding a
+      # card is the same done twice, so a daemon stopped as it is added
+      # finds it when the step is done again. It is written as being made
+      # first all the same: a run cut short another way leaves the link
+      # saying so, for a person, and adds no second card.
       bring:
         event: tracker.in
         scope: own

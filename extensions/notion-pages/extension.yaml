@@ -845,10 +845,13 @@ blueprints:
               channel: "${state.channel}"
               body: "${steps.link.out.data.card}: no page was made for it in Notion: ${ steps.found.error ?? steps.again.error ?? steps.there.error ?? steps.open.error }"
 
-      # A link names a page and no card: one is made for it. That a card
-      # is being made is written first. A daemon that stops as the card is
-      # added cannot say afterwards whether it was, and a link found so is
-      # left for a person and not given a second card.
+      # A link names a page and no card: one is made for it. A daemon
+      # that stops as the card is added has the step done again when it
+      # is back, which finds the card it added (adding one is the same
+      # done twice). That a card is being made is written first all the
+      # same: a run cut short another way (what applied this stopped
+      # under it) leaves the link saying so with no card, and a link
+      # found so is left for a person and not given a second card.
       bring:
         event: notion.in
         scope: own

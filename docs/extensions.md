@@ -969,10 +969,11 @@ making that failed; a card has one ticket wherever the daemon stopped.
 again only after one that failed, since their search may not list a
 ticket made a moment before, and take where it is from what the making
 answered. What is said from here is found again by its mark the same way.
-A card being made for a ticket is written down as being made first
-(`state: bringing`), since the board finds no card again by a mark: a
-daemon stopped as it is added leaves the link for a person, saying so,
-and makes no second card.
+A card is added for a ticket by a step that is the same done twice
+(`board.add`): a daemon stopped as it is added does it again when it is
+back and finds the card it added. It is written down as being made first
+all the same (`state: bringing`): a run cut short another way leaves the
+link for a person, saying so, and makes no second card.
 
 ### Where it says what it did
 

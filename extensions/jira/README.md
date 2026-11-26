@@ -144,9 +144,10 @@ It needs `extensions:jira`, `board`, `records`, `projects`,
   looked for by its label when it is back, and made only where it is not
   there. But Jira's search may not list an issue made a moment before, so
   a daemon that stopped in the instant after Jira made one, and came back
-  within that moment, may make a second. A daemon stopped as a card is
-  added for an issue leaves the link for a person (`state: bringing`), as
-  GitHub's does.
+  within that moment, may make a second. A card added for an issue is
+  added by a step that is the same done twice, as GitHub's is; a link
+  left saying `bringing` in its `state` by a run cut short another way is
+  left for a person.
 - **Features are not built**: a feature here (`std/feature`) is not an
   epic there. A feature's plan comes to cards, and each of those is
   linked as any card is; an epic's issues have no card made by being in
