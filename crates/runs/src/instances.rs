@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 
 use blueprint::Labels;
-use journal::optional;
+use journal::{Prepared, optional};
 use kernel::Result;
 use rusqlite::params;
 
@@ -30,13 +30,13 @@ impl Store {
         let id = id.to_string();
         self.db
             .call(move |connection| {
-                let instance = optional(connection.query_row(
+                let instance = optional(connection.query_row_kept(
                     &format!("SELECT {INSTANCE_COLUMNS} FROM instances WHERE id = ?1"),
                     [&id],
                     read_instance,
                 ))?;
                 let Some(instance) = instance else { return Ok(None) };
-                let last = optional(connection.query_row(
+                let last = optional(connection.query_row_kept(
                     &format!(
                         "SELECT {RUN_COLUMNS} FROM runs WHERE instance = ?1 AND flow = 'main'
                          ORDER BY rowid DESC LIMIT 1"
@@ -74,7 +74,7 @@ impl Store {
                 for (handler, journal, from) in places {
                     crate::places::make(transaction, &id, &handler, &journal, from)?;
                 }
-                transaction.execute(
+                transaction.execute_kept(
                     "UPDATE instances SET revision = ?2, source = '', text = ?3, updated = ?4,
                             principal = coalesce(?5, principal), heard = ?6
                      WHERE id = ?1",
@@ -99,7 +99,7 @@ impl Store {
         let parent = parent.to_string();
         self.db
             .call(move |connection| {
-                let mut statement = connection.prepare(
+                let mut statement = connection.prepare_cached(
                     "SELECT id, key, blueprint FROM instances
                      WHERE parent = ?1 AND status IN ('starting', 'active') AND key LIKE '%#%'
                      ORDER BY rowid",
@@ -127,7 +127,7 @@ impl Store {
         let (id, key) = (id.to_string(), key.to_string());
         self.db
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE instances SET key = ?2, updated = ?3 WHERE id = ?1",
                     params![id, key, now],
                 )
@@ -141,7 +141,7 @@ impl Store {
         let (id, labels) = (id.to_string(), serde_json::to_string(labels).unwrap_or_default());
         self.db
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE instances SET labels = ?2, updated = ?3 WHERE id = ?1",
                     rusqlite::params![id, labels, now],
                 )
@@ -156,7 +156,7 @@ impl Store {
     pub async fn in_use(&self) -> Result<Vec<(String, String)>> {
         self.db
             .call(|connection| {
-                let mut statement = connection.prepare(
+                let mut statement = connection.prepare_cached(
                     "SELECT DISTINCT alive.project, instances.blueprint
                      FROM alive CROSS JOIN instances ON instances.id = alive.instance
                      WHERE alive.project != ''

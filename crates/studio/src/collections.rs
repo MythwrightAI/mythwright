@@ -12,7 +12,7 @@
 //! This module knows nothing of boards. What a board does with a collection
 //! (columns, the order of cards, what moving one means) is in `board`.
 
-use journal::{Journal, optional};
+use journal::{Journal, Prepared, optional};
 use kernel::{Error, Principal, Result, Source};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
@@ -468,7 +468,7 @@ impl Collections {
             .db()
             .call(move |connection| {
                 crate::added::carry(connection, &mut row)?;
-                connection.execute(
+                connection.execute_kept(
                     &format!("INSERT OR REPLACE INTO collections ({COLLECTION}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)"),
                     params![
                         row.project,
@@ -560,11 +560,11 @@ impl Collections {
             .rows(&collection.project)
             .db()
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE collections SET views = ?3, updated = ?4 WHERE project = ?1 AND name = ?2",
                     params![row.0, row.1, views, row.2],
                 )?;
-                connection.query_row(
+                connection.query_row_kept(
                     &format!("SELECT {COLLECTION} FROM collections WHERE project = ?1 AND name = ?2"),
                     [&row.0, &row.1],
                     read_collection,
@@ -581,7 +581,7 @@ impl Collections {
         self.rows(&project)
             .db()
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     &format!("SELECT {COLLECTION} FROM collections WHERE project = ?1 AND name = ?2"),
                     [&project, &name],
                     read_collection,
@@ -607,7 +607,7 @@ impl Collections {
             let listed: Vec<Collection> = journal
                 .db()
                 .call(move |connection| {
-                    let mut statement = connection.prepare(&format!(
+                    let mut statement = connection.prepare_cached(&format!(
                         "SELECT {COLLECTION} FROM collections WHERE ?1 IS NULL OR project = ?1 ORDER BY project, name"
                     ))?;
                     let rows = statement.query_map([&project], read_collection)?;
@@ -653,7 +653,7 @@ impl Collections {
                 self.rows(&project)
                     .db()
                     .call(move |connection| {
-                        let mut statement = connection.prepare(&format!(
+                        let mut statement = connection.prepare_cached(&format!(
                             "SELECT {RECORD} FROM records
                              WHERE project = ?1 AND collection = ?2 AND (updated >= ?3 OR updated = 0)
                              ORDER BY number"
@@ -738,7 +738,11 @@ impl Collections {
                 self.rows(&collection.project)
                     .db()
                     .call(move |connection| {
-                        journal::optional(connection.query_row(&by_id, [&id, &project, &name], read_record))
+                        journal::optional(connection.query_row_kept(
+                            &by_id,
+                            [&id, &project, &name],
+                            read_record,
+                        ))
                     })
                     .await?
             }
@@ -874,7 +878,7 @@ impl Collections {
         );
         self.rows(&collection.project)
             .db()
-            .call(move |connection| connection.query_row(&highest, [&project, &name], |row| row.get(0)))
+            .call(move |connection| connection.query_row_kept(&highest, [&project, &name], |row| row.get(0)))
             .await
     }
 

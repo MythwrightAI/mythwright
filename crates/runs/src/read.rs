@@ -113,7 +113,7 @@ pub(crate) fn collect<T>(
     params: impl rusqlite::Params,
     read: fn(&Row<'_>) -> rusqlite::Result<T>,
 ) -> rusqlite::Result<Vec<T>> {
-    let mut statement = connection.prepare(sql)?;
+    let mut statement = connection.prepare_cached(sql)?;
     let rows = statement.query_map(params, read)?;
     rows.collect()
 }

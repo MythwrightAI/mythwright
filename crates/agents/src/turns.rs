@@ -5,7 +5,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
 use blueprint::Labels;
-use journal::optional;
+use journal::{Prepared, optional};
 use kernel::{Cancel, Error, Result, Source, whole};
 use serde::Serialize;
 use serde_json::json;
@@ -372,7 +372,7 @@ impl Agents {
     pub async fn turn(&self, id: &str) -> Result<TurnInfo> {
         let lookup = id.to_string();
         let asked = move |connection: &mut rusqlite::Connection| {
-            optional(connection.query_row(
+            optional(connection.query_row_kept(
                 &format!("SELECT {TURN} FROM turns WHERE id = ?1"),
                 [&lookup],
                 read_turn,
@@ -387,7 +387,7 @@ impl Agents {
     pub async fn turns(&self, slot: &str, limit: usize) -> Result<Vec<TurnInfo>> {
         let lookup = slot.to_string();
         let asked = move |connection: &mut rusqlite::Connection| {
-            let mut statement = connection.prepare(&format!(
+            let mut statement = connection.prepare_cached(&format!(
                 "SELECT {TURN} FROM turns WHERE slot = ?1 ORDER BY rowid DESC LIMIT {limit}"
             ))?;
             let rows = statement.query_map([&lookup], read_turn)?;
@@ -439,7 +439,7 @@ impl Agents {
         let lookup = slot.to_string();
         let asked = move |connection: &mut rusqlite::Connection| {
             let mut statement =
-                connection.prepare("SELECT id FROM turns WHERE slot = ?1 AND status = 'running'")?;
+                connection.prepare_cached("SELECT id FROM turns WHERE slot = ?1 AND status = 'running'")?;
             let rows = statement.query_map([&lookup], |row| row.get(0))?;
             rows.collect::<rusqlite::Result<Vec<String>>>()
         };
@@ -467,7 +467,7 @@ impl Agents {
         // While the daemon drains, one somebody said to it in a channel
         // waits for the next daemon (`crate::drained`).
         let asked = move |connection: &mut rusqlite::Connection| {
-            optional(connection.query_row(
+            optional(connection.query_row_kept(
                 &format!(
                     "SELECT {TURN} FROM turns WHERE slot = ?1 AND status IN ('answered', 'running', 'queued')
                      AND NOT (?2 AND status = 'queued' AND kind = 'message')
@@ -906,7 +906,7 @@ impl Agents {
             // in a kept channel rested on: its walls, its environment.
             agents.settle_kept().await;
             let asked = |connection: &mut rusqlite::Connection| {
-                let mut statement = connection.prepare(
+                let mut statement = connection.prepare_cached(
                     "SELECT DISTINCT slot FROM turns WHERE status IN ('queued', 'running', 'answered')",
                 )?;
                 let rows = statement.query_map([], |row| row.get(0))?;
@@ -922,8 +922,8 @@ impl Agents {
             let leaving: Vec<String> = journal
                 .db()
                 .call(|connection| {
-                    let mut statement =
-                        connection.prepare("SELECT name FROM slots WHERE active = 1 AND leaving = 1")?;
+                    let mut statement = connection
+                        .prepare_cached("SELECT name FROM slots WHERE active = 1 AND leaving = 1")?;
                     let rows = statement.query_map([], |row| row.get(0))?;
                     rows.collect()
                 })

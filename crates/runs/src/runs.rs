@@ -6,7 +6,7 @@
 //! with the handler's place in the journal, in one transaction: an event
 //! starts its run once.
 
-use journal::optional;
+use journal::{Prepared, optional};
 use kernel::Result;
 use rusqlite::params;
 use serde_json::Value;
@@ -31,7 +31,7 @@ use crate::store::{RUN_COLUMNS, RunInfo, STEP_COLUMNS, StepInfo, Store, collect,
 /// through for it only where the step has none yet, in this statement
 /// and no other.
 pub(crate) fn put(connection: &rusqlite::Connection, step: &StepInfo) -> rusqlite::Result<usize> {
-    connection.execute(
+    connection.execute_kept(
         &format!(
             "INSERT INTO steps ({STEP_COLUMNS}, nth)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10,
@@ -83,7 +83,7 @@ const IN_ORDER: &str = "nth IS NOT NULL, nth, started, step";
 /// thing of it as it ends it. Found among the runs under way, which are
 /// few.
 pub(crate) fn carried(connection: &rusqlite::Connection, instance: &str) -> rusqlite::Result<usize> {
-    connection.execute(
+    connection.execute_kept(
         "UPDATE runs SET carries = 'false'
          WHERE id IN (SELECT run FROM under_way WHERE instance = ?1) AND carries IS NOT NULL",
         [instance],
@@ -102,7 +102,7 @@ fn make(
     carries: Option<&Value>,
     place: u64,
 ) -> rusqlite::Result<usize> {
-    connection.execute(
+    connection.execute_kept(
         &format!(
             "INSERT INTO runs ({RUN_COLUMNS}, carries, place, project)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, {})",
@@ -135,7 +135,7 @@ fn asked(
     instance: &str,
     asking: &kernel::asking::Asking,
 ) -> rusqlite::Result<()> {
-    let is: bool = connection.query_row(
+    let is: bool = connection.query_row_kept(
         "SELECT EXISTS (SELECT 1 FROM instances WHERE id = ?1 AND parent = ?2 AND key = ?3)",
         params![instance, asking.parent, asking.key],
         |row| row.get(0),
@@ -143,12 +143,12 @@ fn asked(
     if !is {
         return Ok(());
     }
-    connection.execute(
+    connection.execute_kept(
         "UPDATE runs SET asked_by = ?2 WHERE id = ?1 AND asked_by IS NULL",
         params![run, asking.by],
     )?;
     if let Some(name) = &asking.asked {
-        connection.execute(
+        connection.execute_kept(
             "INSERT INTO kv (namespace, key, value) VALUES (?1, ?2, ?3) ON CONFLICT (namespace, key) DO NOTHING",
             params![crate::beside::ASKED, format!("{}\n{name}", asking.parent), Value::from(run).to_string()],
         )?;
@@ -190,7 +190,7 @@ impl Store {
         let key = format!("{parent}\n{asked}");
         self.db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     "SELECT value FROM kv WHERE namespace = ?1 AND key = ?2",
                     params![crate::beside::ASKED, key],
                     |row| row.get::<_, String>(0),
@@ -213,7 +213,8 @@ impl Store {
                 let transaction = journal::whole(connection)?;
                 carried(&transaction, &run.instance)?;
                 make(&transaction, &run, Some(&carries), place)?;
-                transaction.execute("UPDATE runs SET asked_by = ?2 WHERE id = ?1", params![run.id, by])?;
+                transaction
+                    .execute_kept("UPDATE runs SET asked_by = ?2 WHERE id = ?1", params![run.id, by])?;
                 transaction.commit()
             })
             .await
@@ -228,7 +229,7 @@ impl Store {
         let (parent, key, by) = (parent.to_string(), key.to_string(), by.to_string());
         self.db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     "SELECT instances.id FROM instances JOIN runs ON runs.instance = instances.id
                      WHERE instances.parent = ?1 AND instances.key = ?2 AND runs.asked_by = ?3
                        AND (runs.carries IS NULL OR runs.carries = 'false')
@@ -249,7 +250,7 @@ impl Store {
         let kept: Option<Option<String>> = self
             .db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     "SELECT carries FROM runs WHERE id = ?1 AND status = 'running'",
                     [run],
                     |row| row.get(0),
@@ -300,7 +301,7 @@ impl Store {
             .call(move |connection| {
                 let transaction = journal::whole(connection)?;
                 make(&transaction, &run, None, place)?;
-                transaction.execute(
+                transaction.execute_kept(
                     "INSERT INTO kv (namespace, key, value) VALUES (?1, ?2, ?3)
                      ON CONFLICT (namespace, key) DO UPDATE SET value = excluded.value",
                     params![crate::beside::POLL, memory, read],
@@ -317,7 +318,7 @@ impl Store {
         let run = run.to_string();
         self.db
             .call(move |connection| {
-                let place: Option<Option<i64>> = optional(connection.query_row(
+                let place: Option<Option<i64>> = optional(connection.query_row_kept(
                     "SELECT place FROM runs WHERE id = ?1",
                     [&run],
                     |row| row.get(0),
@@ -336,7 +337,7 @@ impl Store {
         let run = run.to_string();
         self.db
             .call(move |connection| {
-                let row: Option<(Option<i64>, Option<i64>)> = optional(connection.query_row(
+                let row: Option<(Option<i64>, Option<i64>)> = optional(connection.query_row_kept(
                     "SELECT begun, place FROM runs WHERE id = ?1",
                     [&run],
                     |row| Ok((row.get(0)?, row.get(1)?)),
@@ -354,7 +355,7 @@ impl Store {
         let (run, step) = (run.to_string(), step.to_string());
         self.db
             .call(move |connection| {
-                let began: Option<(Option<i64>, Option<i64>)> = optional(connection.query_row(
+                let began: Option<(Option<i64>, Option<i64>)> = optional(connection.query_row_kept(
                     "SELECT began, began_at FROM steps WHERE run = ?1 AND step = ?2",
                     params![run, step],
                     |row| Ok((row.get(0)?, row.get(1)?)),
@@ -372,7 +373,7 @@ impl Store {
         let id = id.to_string();
         self.db
             .call(move |connection| {
-                let run = optional(connection.query_row(
+                let run = optional(connection.query_row_kept(
                     &format!("SELECT {RUN_COLUMNS} FROM runs WHERE id = ?1"),
                     [&id],
                     read_run,
@@ -474,7 +475,7 @@ impl Store {
         let instance = instance.to_string();
         self.db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     &format!(
                         "SELECT {RUN_COLUMNS} FROM runs WHERE instance = ?1 AND flow = 'main'
                          ORDER BY rowid DESC LIMIT 1"
@@ -494,7 +495,7 @@ impl Store {
             .call(move |connection| {
                 // Not `LIKE`: a step's name may have `_` in it, which to
                 // `LIKE` is any character.
-                connection.execute(
+                connection.execute_kept(
                     "DELETE FROM steps WHERE run = ?1 AND substr(step, 1, length(?2)) = ?2",
                     params![run, prefix],
                 )
@@ -521,12 +522,12 @@ impl Store {
         self.db
             .call(move |connection| {
                 let transaction = journal::whole(connection)?;
-                transaction.execute(
+                transaction.execute_kept(
                     "INSERT OR REPLACE INTO step_elements (run, step, position, output) VALUES (?1, ?2, ?3, ?4)",
                     params![run, step, position as i64, output],
                 )?;
                 if let Some(prefix) = inside {
-                    transaction.execute(
+                    transaction.execute_kept(
                         "DELETE FROM steps WHERE run = ?1 AND substr(step, 1, length(?2)) = ?2",
                         params![run, prefix],
                     )?;
@@ -544,7 +545,7 @@ impl Store {
         let (run, step) = (run.to_string(), step.to_string());
         self.db
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "INSERT OR IGNORE INTO step_elements (run, step, position, output, began) \
                      VALUES (?1, ?2, ?3, NULL, ?4)",
                     params![run, step, position as i64, after as i64],
@@ -561,7 +562,7 @@ impl Store {
         let began: Option<Option<i64>> = self
             .db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     "SELECT began FROM step_elements WHERE run = ?1 AND step = ?2 AND position = ?3",
                     params![run, step, position as i64],
                     |row| row.get(0),
@@ -578,7 +579,7 @@ impl Store {
         let (run, step) = (run.to_string(), step.to_string());
         self.db
             .call(move |connection| {
-                let mut statement = connection.prepare(
+                let mut statement = connection.prepare_cached(
                     "SELECT position, output FROM step_elements WHERE run = ?1 AND step = ?2 ORDER BY position",
                 )?;
                 let rows = statement.query_map(params![run, step], |row| {
@@ -619,11 +620,13 @@ impl Store {
         let (run, step, kept) = (run.to_string(), step.map(str::to_string), kept.to_string());
         self.db
             .call(move |connection| match step {
-                Some(step) => connection.execute(
+                Some(step) => connection.execute_kept(
                     "UPDATE steps SET hooks = ?3 WHERE run = ?1 AND step = ?2",
                     params![run, step, kept],
                 ),
-                None => connection.execute("UPDATE runs SET hooks = ?2 WHERE id = ?1", params![run, kept]),
+                None => {
+                    connection.execute_kept("UPDATE runs SET hooks = ?2 WHERE id = ?1", params![run, kept])
+                }
             })
             .await
             .map(|_| ())
@@ -638,7 +641,7 @@ impl Store {
         let (run, step, kept) = (run.to_string(), step.to_string(), kept.to_string());
         self.db
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE steps SET hooks = json_set(coalesce(hooks, '{}'), ?3, json(?4))
                      WHERE run = ?1 AND step = ?2",
                     params![run, step, path, kept],
@@ -655,7 +658,7 @@ impl Store {
             self.db
                 .call(move |connection| {
                     optional(match step {
-                        Some(step) => connection.query_row(
+                        Some(step) => connection.query_row_kept(
                             "SELECT hooks FROM steps WHERE run = ?1 AND step = ?2",
                             params![run, step],
                             |row| row.get(0),
@@ -672,7 +675,7 @@ impl Store {
         let (run, step) = (run.to_string(), step.to_string());
         self.db
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE steps SET saved = ?3 WHERE run = ?1 AND step = ?2",
                     params![run, step, saved.to_string()],
                 )
