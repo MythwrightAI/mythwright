@@ -420,13 +420,35 @@ impl Search {
             .call(move |connection| {
                 let transaction = journal::whole(connection)?;
                 for doc in docs {
+                    // A card is said to have changed for much that is not
+                    // in what is found of it (who has it, what it cost):
+                    // the index is written again only where what is found
+                    // changed, and is told the new stamp otherwise.
+                    let link = doc.link.to_string();
+                    let kept: Option<(String, bool)> = journal::optional(transaction.prepare_cached(
+                        "SELECT docs.stamp, search.title IS ?2 AND search.body IS ?3 AND search.kind IS ?4
+                                AND search.project IS ?5 AND search.link IS ?6
+                         FROM docs JOIN search ON search.rowid = docs.fts WHERE docs.ref = ?1",
+                    )?.query_row(
+                        params![doc.reference, doc.title, doc.body, doc.kind, doc.project, link],
+                        |row| Ok((row.get(0)?, row.get(1)?)),
+                    ))?;
+                    if let Some((stamp, true)) = kept {
+                        if stamp != doc.stamp {
+                            transaction.execute(
+                                "UPDATE docs SET stamp = ?2 WHERE ref = ?1",
+                                params![doc.reference, doc.stamp],
+                            )?;
+                        }
+                        continue;
+                    }
                     transaction.execute(
                         "DELETE FROM search WHERE rowid = (SELECT fts FROM docs WHERE ref = ?1)",
                         [&doc.reference],
                     )?;
                     transaction.execute(
                         "INSERT INTO search (title, body, kind, project, ref, link) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                        params![doc.title, doc.body, doc.kind, doc.project, doc.reference, doc.link.to_string()],
+                        params![doc.title, doc.body, doc.kind, doc.project, doc.reference, link],
                     )?;
                     transaction.execute(
                         "INSERT OR REPLACE INTO docs (ref, stamp, fts) VALUES (?1, ?2, ?3)",
