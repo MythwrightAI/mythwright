@@ -537,6 +537,11 @@ try {
     await menu.waitFor({ state: 'detached' });
   };
   const pasted = () => page.evaluate(() => navigator.clipboard.readText());
+  // A library's pages count the cookie only with what the page shows beside it (`by`), so they are opened saying it; a copied address is the bare one, which the client's page sends on saying it.
+  const openedSaying = (opened, path) => {
+    const at = new URL(opened.url());
+    return `${at.origin}${at.pathname}` === `${url}${path}` && /^[0-9a-f]{64}$/.test(at.searchParams.get('by') ?? '') && [...at.searchParams.keys()].length === 1;
+  };
   await open('/library/shop/docs', 'Shop docs');
   await edited.waitFor();
   expect(`a library's head to have Share before its address; got ${await drawn()}`, (await drawn()) === 'edited | Follow | Share | Copy link | Pin | More for this page');
@@ -550,7 +555,8 @@ try {
   await page.screenshot({ path: `${out}/head-13-share-on-a-library.png` });
   const [asPages] = await Promise.all([context.waitForEvent('page'), menu.getByRole('menuitem', { name: 'Read as pages', exact: true }).click()]);
   await asPages.waitForLoadState();
-  expect(`Read as pages to open the library as pages, got ${asPages.url()}`, asPages.url() === `${url}/library/shop/docs/`);
+  expect(`Read as pages to open the library as pages, got ${asPages.url()}`, openedSaying(asPages, '/library/shop/docs/'));
+  await asPages.getByText('Welcome', { exact: false }).first().waitFor();
   await asPages.close();
   await press(share, "Copy the pages' address");
   expect(`the pages' address to be copied, got "${await pasted()}"`, (await pasted()) === `${url}/library/shop/docs/`);
@@ -623,7 +629,8 @@ try {
   await page.screenshot({ path: `${out}/head-15-share-on-a-document.png` });
   const [onePage] = await Promise.all([context.waitForEvent('page'), menu.getByRole('menuitem', { name: 'Open as a page', exact: true }).click()]);
   await onePage.waitForLoadState();
-  expect(`Open as a page to open the document's page, got ${onePage.url()}`, onePage.url() === `${url}/library/shop/docs/welcome.md`);
+  expect(`Open as a page to open the document's page, got ${onePage.url()}`, openedSaying(onePage, '/library/shop/docs/welcome.md'));
+  await onePage.getByText('Start here.').waitFor();
   await onePage.close();
   await press(share, "Copy the page's address");
   expect(`the page's address to be copied, got "${await pasted()}"`, (await pasted()) === `${url}/library/shop/docs/welcome.md`);

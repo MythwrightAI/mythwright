@@ -435,7 +435,7 @@ try {
   const workingMade = working.locator('.summary-part[data-part="makes"] .summary-made-row');
   const dueRow = workingMade.filter({ has: page.locator('.summary-what', { hasText: /^std\/due$/ }) });
   expect('a blueprint started the same way from several handlers to be one row', (await dueRow.count()) === 1);
-  expect(`that row to say each handler it is started from, got ${await dueRow.locator('.summary-step-of').allInnerTexts()}`, (await dueRow.locator('.summary-step-of').allInnerTexts()).join(',') === 'first,staffed,listening');
+  expect(`that row to say each handler it is started from, got ${await dueRow.locator('.summary-step-of').allInnerTexts()}`, (await dueRow.locator('.summary-step-of').allInnerTexts()).join(',') === 'first,staffed,listening,unmerged,tidying,unboarded,away');
   expect('that row to say what it is started as and that it is waited for', (await dueRow.locator('.summary-name').innerText()) === 'look' && (await dueRow.locator('.summary-tag').innerText()) === 'waited for');
   // Its ways to change it, each what is done and what is said of it.
   const ways = working.locator('.summary-part[data-part="change"] > .summary-lines > .summary-action');

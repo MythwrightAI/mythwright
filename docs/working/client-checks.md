@@ -200,7 +200,8 @@ part of itself; that one is not run alone.
 
 ### Documents, library and files
 
-- `writing.mjs`: writing a document as blocks, and seeing it as a page.
+- `writing.mjs`: writing a document as blocks, and seeing it as a page; a table opened as blocks
+  and kept as written, a document with raw HTML shown as its source.
 - `handled.mjs`: the handle beside a document block: `+`, grip, menu, carry, keyboard.
 - `library.mjs`: a project's library, its layouts, and comments in the panel beside a document;
   its pages opened at a bare address and sent on through the client with `by`, and somebody not
