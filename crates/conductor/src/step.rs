@@ -309,10 +309,16 @@ pub(crate) async fn exec_step(
                 &format!("attempt {attempt}{}", if resuming { " (resumed after a restart)" } else { "" }),
             );
         }
+        // What is done around a step sees the step as `self`: worked out
+        // only where something is, since it is the run's whole scope again.
+        let around_sees = |hooks: bool, view: Value| match hooks {
+            true => with_self(&scope, &step.id, view),
+            false => Fields::new(),
+        };
         let running_view =
             view(StepStatus::Running, &Value::Null, None, attempt, journal.now_ms() - first_started);
         // Taken up among what is done as it starts, its action never began.
-        let starting = with_self(&scope, &step.id, running_view);
+        let starting = around_sees(!step.on_start.is_empty(), running_view);
         let acting = around.acted().is_some()
             || around.starting(&cx, &step.id, &step.on_start, &starting, step_cancel.clone()).await;
 
@@ -397,9 +403,11 @@ pub(crate) async fn exec_step(
                 };
                 // What is done when it went well, and then what is done when
                 // it has ended however it went.
-                let done_view =
-                    with_self(&scope, &step.id, view(StepStatus::Ok, &output, None, attempt, elapsed));
                 let (well, after) = (&step.on_success, &step.on_finish);
+                let done_view = around_sees(
+                    !(well.is_empty() && after.is_empty()),
+                    view(StepStatus::Ok, &output, None, attempt, elapsed),
+                );
                 if !(well.is_empty() && after.is_empty()) {
                     let how = json!({ "ok": true, "output": output, "ended": end.as_ref().map(End::kept) });
                     around.act(&cx, &step.id, how).await;
@@ -506,7 +514,7 @@ pub(crate) async fn exec_step(
                         });
                         around.act(&cx, &step.id, how).await;
                     }
-                    let failed = with_self(&scope, &step.id, failed_view);
+                    let failed = around_sees(!hooks.is_empty(), failed_view);
                     let list =
                         if timed_out && !step.on_timeout.is_empty() { "on_timeout" } else { "on_fail" };
                     around.ending(&cx, &step.id, 0, list, hooks, &failed, true, after.is_empty()).await
@@ -527,7 +535,7 @@ pub(crate) async fn exec_step(
                 // after any ending is done after what was done about this one.
                 if !cx.cancel.is_cancelled() {
                     let ended = view(StepStatus::Failed, &error.data, Some(&error.message), attempt, elapsed);
-                    let ended = with_self(&scope, &step.id, ended);
+                    let ended = around_sees(!after.is_empty(), ended);
                     around.ending(&cx, &step.id, hooks.len(), "on_finish", after, &ended, false, true).await;
                 }
                 // A step that names its failure fails under that name, so
