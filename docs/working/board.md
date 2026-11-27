@@ -55,7 +55,30 @@ reviews, segments and its tables) is in `fleet.md`.
 - A card counts how many times it was sent back from review (`rounds`,
   counted by `std/cards` on the move and kept on the card). Whatever caps
   a loop between agents reads that and ends by leaving the card to a
-  person: a loop between two agents always has a number in it.
+  person: a loop between two agents always has a number in it. A move
+  that sends a card back for something other than a verdict on its work
+  says so (`uncounted` of `board.move`, said on `board.item.moved`, read
+  by `board.came`) and is not counted; the only one is a card going back
+  to be brought up to date (`fleet.md`, *Reviews and councils*), which
+  has a cap of its own. Something new that sends a card back and is no
+  verdict says `uncounted`, and is bounded where it is kept.
+- **One card is given more rounds than its stage allows by a move that
+  says so** (card 485): `give` of the move, through every door (the
+  route's `give`, `mw board move --give N`, the bot's `board move`,
+  `give` of `board.move`, *One more round* in the drawer). The board
+  writes, in the move's write, how many it was given all told and the
+  words it was last sent back with (`given`, `sent`: model fields only
+  the board writes, `kernel::cards::sending`, with cases); a give-move
+  keeps `sent` and says it after the mover's words, so whoever works it
+  is told what was last said (`Moved` carries it, `work.turn` reads it
+  as any note). The move says `given` (a history line), and `board.came`
+  counts no move that gives. `review.owed` leaves a card only after
+  `rounds` plus its own `given`. A give-move redone after a stop finds
+  the card moved already and gives nothing twice. The client offers it
+  where a card has been sent back as often as its stage's row says,
+  beside what it was given (`outOfRounds` in `ui/src/sentback.ts`). Not
+  held: a stage that works cards caps its own retries (`given_again`) by
+  `rounds` alone.
 
 ## A card's row and its events
 
@@ -175,6 +198,11 @@ reviews, segments and its tables) is in `fleet.md`.
   sent back from another column to anywhere but `doing` is not counted on
   its row; the sending stage still counts its own verdicts (`back` in
   `std/reviewing`), which caps the loop.
+- A card a person moves from a reviewing stage's column to its `pass`
+  column is passed, and where the row merges its branch is merged for them
+  (`by_hand`, `std/pass-by-hand`; `fleet.md`, *Reviews and councils*).
+  Nothing in the client or `mw` merges: the move is the pass, whichever
+  door makes it.
 - Something new in the client that moves a card for what a stage does
   reads the row the same way (`crates/api/tests/suite/sentback.rs`,
   `ui/scripts/review.mjs`).

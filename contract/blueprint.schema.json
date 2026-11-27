@@ -578,6 +578,10 @@
           "description": "Say which of a project's feature flags are past the day they were to go, each with whom it is told to and in what words."
         },
         {
+          "const": "work.ahead",
+          "description": "Say whether an item waiting where items are worked may be taken now, or waits behind items worked from there before it that are in hand or handed on and not merged, where the row says the next is taken only once none is."
+        },
+        {
           "const": "timed.read",
           "description": "Read a card's history and say how long it took: from being added to coming to the board's last column, in each column, how often it was sent back, and who worked it, as the row a table of those keeps."
         },
@@ -1227,6 +1231,10 @@
         {
           "const": "flags.due",
           "description": "Say which of a project's feature flags are past the day they were to go, each with whom it is told to and in what words."
+        },
+        {
+          "const": "work.ahead",
+          "description": "Say whether an item waiting where items are worked may be taken now, or waits behind items worked from there before it that are in hand or handed on and not merged, where the row says the next is taken only once none is."
         },
         {
           "const": "timed.read",
@@ -3613,6 +3621,13 @@
                       "boolean"
                     ]
                   },
+                  "given": {
+                    "description": "how many more rounds than its stage allows the move gave it (`given` of the move): a move that gives any is not counted",
+                    "type": [
+                      "integer",
+                      "string"
+                    ]
+                  },
                   "id": {
                     "description": "the card Needed.",
                     "type": [
@@ -3635,6 +3650,13 @@
                       "string",
                       "number",
                       "boolean"
+                    ]
+                  },
+                  "uncounted": {
+                    "description": "the blueprint that moved it said it sends it back for something other than a verdict on its work: it is not counted",
+                    "type": [
+                      "boolean",
+                      "string"
                     ]
                   },
                   "worked": {
@@ -4907,6 +4929,9 @@
                         "said": {
                           "description": "every event about a record of the collection carries what it holds, under `fields` of the event's data, so that a handler is chosen by it with nothing run: a text longer than a kilobyte cut there, and anything else that long left out. Not of a field that is quiet or says what giving it a value takes"
                         },
+                        "stands": {
+                          "description": "with `takes`, what giving it its value took is asked again of whoever adds the record or changes any cell of it, for as long as it says that value: for a cell that lets something with more authority do more, beside cells that say what that does"
+                        },
                         "suggests": {
                           "description": "for a text that takes any word, the usual ones, which are offered to whoever fills it"
                         },
@@ -5194,6 +5219,13 @@
                       "boolean"
                     ]
                   },
+                  "give": {
+                    "description": "how many more times than its stage allows the card may be sent back, given it with this move, which is not counted as one: kept on the card, said in its history, and the card is told what it was last sent back with",
+                    "type": [
+                      "integer",
+                      "string"
+                    ]
+                  },
                   "had": {
                     "description": "how many times the card had been moved when whoever moves it looked (`moved` of the card, its count): where it has been moved since, it is left where it is and nothing is said",
                     "type": [
@@ -5223,6 +5255,13 @@
                       "string",
                       "number",
                       "boolean"
+                    ]
+                  },
+                  "uncounted": {
+                    "description": "it is sent back for something other than a verdict on its work, such as to be brought up to date: said with the move, and not counted among the times it was sent back",
+                    "type": [
+                      "boolean",
+                      "string"
                     ]
                   }
                 }
@@ -5488,6 +5527,9 @@
                         },
                         "said": {
                           "description": "every event about a record of the collection carries what it holds, under `fields` of the event's data, so that a handler is chosen by it with nothing run: a text longer than a kilobyte cut there, and anything else that long left out. Not of a field that is quiet or says what giving it a value takes"
+                        },
+                        "stands": {
+                          "description": "with `takes`, what giving it its value took is asked again of whoever adds the record or changes any cell of it, for as long as it says that value: for a cell that lets something with more authority do more, beside cells that say what that does"
                         },
                         "suggests": {
                           "description": "for a text that takes any word, the usual ones, which are offered to whoever fills it"
@@ -6930,6 +6972,13 @@
                   "^\\.\\.\\.$": {}
                 },
                 "properties": {
+                  "bring": {
+                    "description": "where it no longer merges, the project's branch is merged into the item's, in its place: made at once where nothing conflicts that way, and the item's merged again; otherwise left under way with each file that conflicts marked, for whoever works the item to put right, which the commit that keeps their work ends (`place.keep`)",
+                    "type": [
+                      "boolean",
+                      "string"
+                    ]
+                  },
                   "item": {
                     "description": "what the work is known by, such as a card's id: its place is `.lanes/<item>`, its branch `lane/<item>` Needed.",
                     "type": [
@@ -8601,7 +8650,7 @@
                     ]
                   },
                   "back": {
-                    "description": "the items sent back from here, once for each time, as whoever asks keeps them",
+                    "description": "the items sent back from here, once for each time, as whoever asks keeps them; one that says `behind` went back only to be brought up to date with the project's branch, and is counted apart",
                     "type": [
                       "array",
                       "string"
@@ -8619,6 +8668,13 @@
                     "description": "whether it was found Needed.",
                     "type": [
                       "boolean",
+                      "string"
+                    ]
+                  },
+                  "given": {
+                    "description": "how many more times than `most` the item may be sent back, given it alone (`given` of a card)",
+                    "type": [
+                      "integer",
                       "string"
                     ]
                   },
@@ -8798,6 +8854,13 @@
                       "string"
                     ]
                   },
+                  "begun": {
+                    "description": "where it no longer merged: the project's branch is being merged into the item's where it was worked, for whoever works it",
+                    "type": [
+                      "boolean",
+                      "string"
+                    ]
+                  },
                   "by": {
                     "description": "who decided it",
                     "type": [
@@ -8826,6 +8889,13 @@
                     "description": "asking that failed outright",
                     "type": [
                       "boolean",
+                      "string"
+                    ]
+                  },
+                  "files": {
+                    "description": "and the files that conflict there",
+                    "type": [
+                      "array",
                       "string"
                     ]
                   },
@@ -8866,6 +8936,13 @@
                       "string",
                       "number",
                       "boolean"
+                    ]
+                  },
+                  "person": {
+                    "description": "it was passed by a person who moved it on themselves (`by`), and not approved by those who looked: said so, and nothing is said where the work is reported",
+                    "type": [
+                      "boolean",
+                      "string"
                     ]
                   },
                   "reports": {
@@ -12333,6 +12410,101 @@
                     "type": [
                       "array",
                       "string"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "do": {
+                "const": "work.ahead"
+              }
+            },
+            "required": [
+              "do"
+            ]
+          },
+          "then": {
+            "properties": {
+              "with": {
+                "additionalProperties": false,
+                "patternProperties": {
+                  "^\\.\\.\\.$": {}
+                },
+                "properties": {
+                  "doing": {
+                    "description": "the column an item is in while it is in hand Needed.",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "done": {
+                    "description": "the column an item is finished in",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "hands_to": {
+                    "description": "the column a worked item is handed on to",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "here": {
+                    "description": "the column whose items are worked by whoever asks Needed.",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "item": {
+                    "description": "the item Needed.",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "items": {
+                    "description": "the board's items, each with its `id`, `status` and `more.taken`",
+                    "type": [
+                      "array",
+                      "string"
+                    ]
+                  },
+                  "next_after": {
+                    "description": "when the next item is taken: `handed`, as soon as the last is handed on; `merged`, once none worked from here waits unmerged; `handed`, if not said",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "status": {
+                    "description": "the column it is in",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  },
+                  "waiting": {
+                    "description": "what the item says it waits for now",
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
                     ]
                   }
                 }

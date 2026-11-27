@@ -19,8 +19,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use argon2::Argon2;
-use argon2::password_hash::{PasswordHasher, PasswordVerifier};
 use journal::{Journal, optional};
 use kernel::principal::{AGENT_SCOPES, MEMBER_SCOPES};
 use kernel::{Error, Principal, PrincipalKind, Result, Source};
@@ -28,6 +26,8 @@ use rusqlite::params;
 use serde::Serialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
+
+use crate::hashing::{Hashing, hash_password, verify_password};
 
 pub(crate) const SCHEMA: &[&str] = &[
     "
@@ -215,9 +215,8 @@ pub enum Came<'a> {
     /// the cookie (`shown`, which the page was given with its key and is
     /// not the key: [`Identity::shows`]), so that the cookie, which
     /// whatever else listens on the machine is handed, reads nothing
-    /// alone. The pages of a library and of mockups, whose own links a
-    /// browser follows, are still answered for the cookie (`by_itself`).
-    Cookie { page: Option<&'a str>, shown: Option<&'a str>, by_itself: bool },
+    /// alone, not even a page of a library, whose links say it too.
+    Cookie { page: Option<&'a str>, shown: Option<&'a str> },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -300,6 +299,9 @@ pub struct Identity {
     pub(crate) groups: crate::groups::Groups,
     /// The links that sign somebody in once, kept in memory alone ([`crate::opened`]).
     pub(crate) links: crate::opened::Links,
+    /// How a password is hashed: as hard as the hash makes it, unless
+    /// the factory is its own test ([`Hashing`]).
+    hashing: Arc<std::sync::OnceLock<Hashing>>,
 }
 
 /// Whether two digests are the same, looked at to the end either way.
@@ -332,14 +334,25 @@ impl Identity {
         journal.db().migrate("identity", SCHEMA).await?;
         let groups = crate::groups::Groups::open(&journal).await?;
         let withdrawn = Arc::new(tokio::sync::watch::channel(0).0);
-        let (attempts, links) = (Arc::default(), Default::default());
-        Ok(Identity { journal, attempts, room: MAX_REMEMBERED, withdrawn, groups, links })
+        let (attempts, links, hashing) = (Arc::default(), Default::default(), Arc::default());
+        Ok(Identity { journal, attempts, room: MAX_REMEMBERED, withdrawn, groups, links, hashing })
     }
 
     /// What `account` holds as things stand: its role, what it was given
     /// and what the groups it is in hold.
     pub fn principal_of(&self, account: &Account) -> Principal {
         account.principal_with(&self.groups.held_by(&format!("user:{}", account.id)))
+    }
+
+    /// Has passwords hashed as `hashing` says from here on, where nothing
+    /// has said otherwise before: said once, as the factory starts.
+    pub fn hashes(&self, hashing: Hashing) {
+        let _ = self.hashing.set(hashing);
+    }
+
+    /// How a password is hashed here.
+    pub(crate) fn hashing(&self) -> Hashing {
+        self.hashing.get().copied().unwrap_or_default()
     }
 
     /// Told each time something that lets somebody in is withdrawn. What
@@ -410,7 +423,7 @@ impl Identity {
             let Some(code) = invite else { return Err(taken()) };
             self.use_invite(code, &email).await?;
         }
-        let hash = hash_password(password.to_string()).await?;
+        let hash = hash_password(password.to_string(), self.hashing()).await?;
         let account = Account {
             id: self.journal.new_id("acct"),
             email: email.clone(),
@@ -486,7 +499,9 @@ impl Identity {
         // long it takes to say it.
         let wrong = || Error::unauthenticated("that email and password do not match an account");
         let Some((account, Some(hash))) = found else {
-            let made = || async { hash_password("nobody's password".to_string()).await.unwrap_or_default() };
+            let made = || async {
+                hash_password("nobody's password".to_string(), Hashing::Hard).await.unwrap_or_default()
+            };
             let nobodys = NOBODYS.get_or_init(made).await.clone();
             let _ = verify_password(password.to_string(), nobodys).await;
             return Err(wrong());
@@ -624,8 +639,7 @@ impl Identity {
             (None, Came::Said) => true,
             // A page's session said as a token is a cookie somebody read.
             (Some(_), Came::Said) | (None, Came::Cookie { .. }) => false,
-            (Some(_), Came::Cookie { by_itself: true, .. }) => true,
-            (Some(kept), Came::Cookie { page, shown, .. }) => {
+            (Some(kept), Came::Cookie { page, shown }) => {
                 // What is kept is the key's digest, which is also what a
                 // page shows: either is compared digest against digest and
                 // without stopping at the first letter that differs, so
@@ -972,24 +986,4 @@ pub(crate) fn normalise_email(email: &str) -> Result<String> {
         .is_some_and(|(name, host)| !name.is_empty() && host.contains('.') && !host.ends_with('.'))
         && !email.contains(char::is_whitespace);
     if valid { Ok(email) } else { Err(Error::invalid("that does not look like an email address")) }
-}
-
-/// Hashing is deliberately slow, so it is kept off the async threads.
-pub(crate) async fn hash_password(password: String) -> Result<String> {
-    tokio::task::spawn_blocking(move || {
-        Argon2::default()
-            .hash_password(password.as_bytes())
-            .map(|hash| hash.to_string())
-            .map_err(|err| Error::internal(format!("could not hash the password: {err}")))
-    })
-    .await
-    .map_err(|err| Error::internal(err.to_string()))?
-}
-
-async fn verify_password(password: String, hash: String) -> bool {
-    tokio::task::spawn_blocking(move || {
-        Argon2::default().verify_password(password.as_bytes(), hash.as_str()).is_ok()
-    })
-    .await
-    .unwrap_or(false)
 }

@@ -89,7 +89,10 @@ async fn a_board_whose_blueprint_leaves_out_what_a_card_can_do_without_has_it_al
         assert_eq!(is["model"], "card", "{store}");
         assert_eq!(
             names(&is),
-            ["size", "status", "title", "body", "assignee", "labels", "due", "moved", "pressed"],
+            [
+                "size", "status", "title", "body", "assignee", "labels", "due", "moved", "pressed", "sent",
+                "given"
+            ],
             "{store}"
         );
 
@@ -169,9 +172,9 @@ async fn a_board_whose_blueprint_was_written_before_one_could_name_a_model_works
     assert_eq!(
         names(&is),
         [
-            "after", "again", "asker", "assignee", "at", "body", "due", "fixes", "labels", "moved",
-            "part_of", "plan", "pressed", "priority", "question", "rounds", "rung", "status", "taken",
-            "title", "waiting"
+            "after", "again", "asker", "assignee", "at", "body", "due", "fixes", "given", "labels", "moved",
+            "part_of", "plan", "pressed", "priority", "question", "rounds", "rung", "sent", "status",
+            "taken", "title", "waiting"
         ]
     );
 }

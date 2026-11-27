@@ -56,7 +56,7 @@ pub(crate) fn says(at: &Path, reviewer: &str, words: &str, decision: &str) {
 }
 
 /// A hold for the reviewers to wait at, and where it is.
-fn hold(at: &Path) -> PathBuf {
+pub(crate) fn hold(at: &Path) -> PathBuf {
     held(at, "hold")
 }
 
@@ -72,7 +72,7 @@ fn held(at: &Path, name: &str) -> PathBuf {
 }
 
 /// Lets whoever is waiting at the hold go on.
-async fn let_go(hold: &Path) {
+pub(crate) async fn let_go(hold: &Path) {
     crate::let_go("a reviewer to be waiting", hold).await;
 }
 
@@ -530,46 +530,6 @@ async fn a_reviewer_that_neither_approves_nor_sends_back_has_decided_nothing_and
     // Nothing was taken for approval, and nothing was sent back with no reason.
     assert_eq!(card(&rig, &id).await["status"], "review");
     assert_eq!(rig.count_of("card.approved").await, 0);
-}
-
-#[tokio::test]
-async fn a_branch_that_no_longer_merges_goes_back_to_its_worker_and_the_projects_branch_is_as_it_was() {
-    let (rig, at) = rig().await;
-    let pipe = hold(&at);
-    let dir = shop(&rig, json!({})).await;
-    let id = add(&rig, "Add a cart", &[]).await;
-    move_card(&rig, &id, "ready", None).await;
-    // While a reviewer looks at it, the same file is changed in the project's own branch.
-    rig.event("agent.turn.started", |event| event.data["slot"] == "shop-reviewer-1").await;
-    std::fs::write(dir.join("CHANGES.md"), "something else\n").unwrap();
-    git(&dir, &["add", "-A"]);
-    git(&dir, &["commit", "--quiet", "-m", "meanwhile"]);
-    let_go(&pipe).await;
-
-    // Approved, it does not merge: the merge is called off, and the card
-    // goes back to whoever worked it, who is told why.
-    let back = rig
-        .event("board.item.moved", |event| event.data["from"] == "review" && event.data["to"] == "doing")
-        .await;
-    let note = back.data["note"].as_str().unwrap();
-    assert!(
-        note.starts_with(&format!("It was approved, and its branch lane/{id} no longer merges"))
-            && note.contains("Merge the project's branch into yours"),
-        "{note}"
-    );
-    assert_eq!(git(&dir, &["log", "-1", "--format=%s"]), "meanwhile");
-    assert_eq!(
-        git(&dir, &["status", "--porcelain", "--untracked-files=no"]),
-        "",
-        "no merge was left under way"
-    );
-    let again = moved(&rig, &id, "review", back.seq).await;
-    let worked = given(&rig, "shop-worker-1").await;
-    assert!(worked[1].contains("no longer merges into the project's branch"), "{}", worked[1]);
-    // The stand-in worker did not put it right, so it is the same again; what matters is that nothing was forced.
-    let_go(&pipe).await;
-    rig.event("board.item.moved", move |event| event.seq > again && event.data["from"] == "review").await;
-    assert_eq!(std::fs::read_to_string(dir.join("CHANGES.md")).unwrap(), "something else\n");
 }
 
 #[tokio::test]

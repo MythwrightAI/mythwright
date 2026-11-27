@@ -20,7 +20,9 @@
 #   worked at once, until its turn comes (`card.taken`).
 # - **Count how often it was sent back**, by a person or by an agent that
 #   reviews, in its `rounds`: what a fleet reads to decide that an agent
-#   sending it back once more is one time too many.
+#   sending it back once more is one time too many. A sending back that
+#   says it is no verdict on the work (`uncounted`: to be brought up to
+#   date) is not counted.
 # - **Wait on other cards.** Its `after` names them, and it is not begun
 #   until each of them is done (`due`, below).
 # - **Say that it is finished** (`card.finished`), for whatever waits on it.
@@ -38,7 +40,7 @@
 # To change what a card can do, or to add to it, copy this file to
 # `blueprints/std/cards.bp` in the project and apply the board again.
 blueprint: std/cards
-version: 5
+version: 7
 description: "What the cards of a board can do beyond being moved: hold a question, say why they wait, count how often they were sent back, and wait on other cards."
 permissions: [board, records]
 
@@ -69,6 +71,8 @@ on:
           from: "${event.data.from}"
           to: "${event.data.to}"
           by_hand: ${ event.data.through == null }
+          uncounted: ${ event.data.uncounted ?? false }
+          given: ${ event.data.given ?? 0 }
           worked: doing
           looked: review
           done: "${params.done}"

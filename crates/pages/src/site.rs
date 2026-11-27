@@ -39,7 +39,7 @@ use kernel::{Error, Result};
 use serde::Serialize;
 
 pub use kernel::addressed::written;
-use kernel::addressed::{between, folder_of, joined, scheme, unwritten};
+use kernel::addressed::{between, folder_of, joined, saying, scheme, unwritten};
 
 use projects::{MAX_RAW_BYTES, resolve};
 
@@ -234,16 +234,17 @@ pub fn navigation(
 
 /// The contents beside a page the daemon serves, which is at the address
 /// of its file, a folder's at the folder's (`page` is the path the page is
-/// at from the library's, a folder's ending in `/`).
-pub fn served_navigation(called: &str, shelf: &Shelf, page: &str, here: &str) -> String {
+/// at from the library's, a folder's ending in `/`). Each link says `said`
+/// in its address as well, as the page was asked (`addressed::saying`).
+pub fn served_navigation(called: &str, shelf: &Shelf, page: &str, here: &str, said: &str) -> String {
     let from = page.rsplit_once('/').map_or("", |(folder, _)| folder);
     let deep = page.matches('/').count();
     let top = if deep == 0 { "./".to_string() } else { "../".repeat(deep) };
     let lead = |place: &Place| match between(from, &place.path) {
-        empty if empty.is_empty() => "./".to_string(),
-        to => to,
+        empty if empty.is_empty() => saying("./", said),
+        to => saying(&to, said),
     };
-    navigation(called, &top, shelf, here, &lead)
+    navigation(called, &saying(&top, said), shelf, here, &lead)
 }
 
 /// A link or a picture of a page that was written as its words, and why.

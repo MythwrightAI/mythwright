@@ -163,10 +163,15 @@ opens a lane for it and hands it to a worker.
   `mw record set shop-agents-2 adapter=claude` for the workers, as
   `mw record list shop agents` lists them), and move the card to *ready*
   again.
-- **Where the work is done.** In a project that is a git repository the
-  lane works on a branch of its own, `lane/<card>`, in a worktree of its
-  own, and keeps what the agent changed as a commit there, written by the
-  agent and committed by whoever git is set up as. Started with `push`
+- **Where the work is done.** In a project that is a git repository with
+  a commit the lane works on a branch of its own, `lane/<card>`, in a
+  worktree of its own, and keeps what the agent changed as a commit
+  there, written by the agent and committed by whoever git is set up as.
+  A project whose folder the factory made has a commit from the start:
+  the files it was started with, committed as it is made. Where git has
+  not been told who you are (`git config --global user.name` and
+  `user.email`), nothing is committed, `mw project create` says so, and
+  the work is done in the project's folder until you commit those files. Started with `push`
   (`mw apply fleet --project <project> --param push=true`) it also sends
   that branch to the repository's remote, and says in the channel whether
   it went. It is sent as you, with whatever git here is set up to use, or
@@ -183,8 +188,13 @@ opens a lane for it and hands it to a worker.
   guessing: the card stays in *doing* with the question on it, at the top
   when it is opened, and goes round again when you answer there (or `mw
   record comment <card> <words...>`).
-- **Done.** Moved to *done*, the lane's worktree is removed, and its branch
-  when the work is on the remote or in the project's own branch.
+- **Done.** Moved from *review* to *done*, the card's branch is merged
+  into the project's own, as one a reviewer approves is, and its history
+  says you passed it; you merge nothing yourself. A branch that no longer
+  merges goes back to its agent, with the project's branch being merged
+  into it and the files that conflict named, and waits in *review* for
+  you again once put right. Then the lane's worktree is removed, and its
+  branch when the work is on the remote or in the project's own branch.
 - **Pull requests.** To have one opened for each branch that is sent,
   install the package for the service that hosts the repository and apply
   its blueprint to the project once (`mw extension add github`, then `mw

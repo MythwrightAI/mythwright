@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { asStage, backTo, sendingBack } from './sentback.ts';
+import { asStage, backTo, outOfRounds, sendingBack } from './sentback.ts';
 import type { Sitting } from './sits.ts';
 import type { Field, Row } from './table.ts';
 
@@ -77,4 +77,20 @@ test('a fleet declared before a table could say what it sits beside is read as i
   assert.equal(backTo('check', columns, [asStage(found[0]!, stage({ title: 'check', fail: 'ready' }))]), 'ready');
   // And a project with neither has no such rows.
   assert.deepEqual(sendingBack([tableOf('board', ['title', 'status'])]), []);
+});
+
+test('a card sent back as often as its stage allows, beside what it was given, is offered one more round', () => {
+  const review = stage({ title: 'review', column: 'review', does: 'review', fail: 'doing', rounds: 2 }, 2);
+  assert.equal(outOfRounds('review', [work, review], 2, undefined), true);
+  assert.equal(outOfRounds('review', [work, review], 3, 0), true);
+  assert.equal(outOfRounds('review', [work, review], 1, undefined), false);
+  // Given one more, it has it still; spent, it is offered again.
+  assert.equal(outOfRounds('review', [work, review], 2, 1), false);
+  assert.equal(outOfRounds('review', [work, review], 3, 1), true);
+  // A count written as words is a count; anything else is none.
+  assert.equal(outOfRounds('review', [stage({ title: 'review', rounds: '1' })], '1', 'x'), true);
+  // Where no stage has the column, or its row says no count, nothing is offered.
+  assert.equal(outOfRounds('review', null, 9, 0), false);
+  assert.equal(outOfRounds('check', [work, review], 9, 0), false);
+  assert.equal(outOfRounds('review', [stage({ title: 'review', rounds: '' })], 9, 0), false);
 });

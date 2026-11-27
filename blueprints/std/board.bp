@@ -23,7 +23,7 @@
 # blueprint made and hosts, at the address given as `database`: `std/store`
 # is such a blueprint, and its `url` is that address (docs/stores.md).
 blueprint: std/board
-version: 13
+version: 15
 description: "Give a project a board: its cards, its columns, and where they are kept."
 permissions: [projects, board, blueprints]
 
@@ -53,11 +53,11 @@ steps:
       store: "${params.store}"
       at: "${params.database}"
       # A card is something the daemon itself reads: it moves one by its
-      # `status`. `card` is what it takes a card to be, and the first eight
+      # `status`. `card` is what it takes a card to be, and the first ten
       # fields below are that, written out so that this file says the whole
       # of what a board is made of. A copy of this that declares one of
       # them as something else is refused when it is applied; a field
-      # added below the eight is the copy's own.
+      # added below the ten is the copy's own.
       model: card
       fields:
         title: { type: text, required: true }
@@ -76,6 +76,11 @@ steps:
         # and that it was said to wait for it. The daemon writes it with
         # the press, and nobody else does.
         pressed: { type: list, quiet: true, hidden: true }
+        # What it was last sent back with, and how many more rounds than its
+        # stage allows it was given (`--give` of a move). The daemon writes
+        # both with the move, and nobody else does.
+        sent: { type: text, quiet: true, hidden: true }
+        given: { type: number, quiet: true, hidden: true }
         # What was asked on the card and is not yet answered; a card with
         # something here is waiting. It is this blueprint's and the cards'
         # own (`std/cards`), and nothing the daemon reads. `quiet`: that it
@@ -145,7 +150,7 @@ steps:
       history:
         board.item.created: "{actor} added it to {status}"
         board.item.created.restored: "{actor} gave it back from the Trash, to {status}"
-        board.item.moved: "{actor} moved it from {from} to {to}[, saying: {note}]"
+        board.item.moved: "{actor} moved it from {from} to {to}[, saying: {note}][, giving it more rounds: {given}]"
         board.item.updated: "{actor} changed its {changed}"
         board.item.removed: "{actor} took it away"
         # That something its column offers was pressed on it, or taken
@@ -184,7 +189,7 @@ steps:
         # That a person passed it and its branch was merged for that, where
         # the stage it was passed from says so; and that it was not, whoever
         # passed it not holding what merging takes.
-        card.merged: "its branch {branch} was merged into the project's"
+        card.merged: "its branch {branch} was merged into the project's[ as {by} passed it]"
         card.unmerged: "it was passed by hand, and its branch {branch} was not merged"
         card.approved: "{by} approved it[: {words}]"
         # What a round says of the card it took: which agent did the work,

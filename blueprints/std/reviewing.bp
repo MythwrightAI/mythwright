@@ -15,7 +15,7 @@
 # what it now says where it is; what becomes of a review in session
 # when the way of reviewing changes is the row's `in_flight`.
 blueprint: std/reviewing
-version: 13
+version: 16
 description: "What a fleet does with the cards of a column where they are reviewed: the agents of a role look each over, and it goes on, goes back or is left for a person."
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 # One thing at a time, but what a card's review or hand merge comes to, which takes its card's turn.
@@ -86,6 +86,11 @@ on_update:
   - do: drop
     when: ${ params.row.agents > 0 && was.params.row != params.row }
     with: { from: reviewing, by: person, is: true }
+  # How often a card may be sent back changed: one left for a person under
+  # the limit it had is due again, and is looked at or left by the new one.
+  - do: drop
+    when: ${ params.row.agents > 0 && was.params.row.rounds != params.row.rounds }
+    with: { from: reviewing, by: most, is: "${was.params.row.rounds}" }
   - do: set
     when: ${ params.row.agents > 0 && was.params.row != params.row }
     with: { catch_up: true }
@@ -246,6 +251,8 @@ on:
           status: "${steps.card.out.status}"
           here: "${params.row.column}"
           rounds: ${ steps.card.out.more.rounds ?? 0 }
+          # How many more times than the row allows this card alone may be sent back.
+          given: ${ steps.card.out.given ?? 0 }
           back: ${state.back}
           kept: ${ state.reviewing ?? [] }
           said: ${event.data}
@@ -287,6 +294,7 @@ on:
             card: "${event.data.card}"
             review: ""
             person: '${ steps.owed.out.came == "person" }'
+            most: ${params.row.rounds}
 
       waits:
         description: Nobody is there to look at it, or too few, and it waits for a person to review it. That is said as an event of the card's, once for each time it comes, for its history and for whoever is told what waits for a person.
@@ -301,7 +309,7 @@ on:
           why: "${steps.owed.out.said}"
 
       said:
-        description: And said as an event of the card's, once for each time it is left, for whatever counts what comes of cards.
+        description: And said as an event of the card's, once for each time it is left, for whatever counts what comes of cards, with what it was last sent back with.
         when: ${ steps.owed.out.came == "left" }
         do: emit
         with:
@@ -309,6 +317,7 @@ on:
           card: "${event.data.card}"
           project: "${params.project}"
           rounds: ${steps.owed.out.rounds}
+          words: "${ steps.card.out.sent ?? '' }"
 
       listed:
         description: "Where the project's `segments` lays something before the review for this card, the list is gone through for it: from the first of it, or from where this was said to be due for (`row`, `order`), each thing called in order until there is a review to begin or the list has ended. It keeps nothing, and is called again where the daemon was stopped in the middle of it. The card's turn is held meanwhile, so what else is said of the card waits. One that cannot be gone through has not failed this: that it could not is said on, and the card is left for a person. A card with nothing before its review has none of this: its review is begun at once."
@@ -575,22 +584,26 @@ on:
           order: ${steps.listed.out.order}
 
       counted_back:
-        description: Sent back from here, by those who looked or by something done once it was approved, it is counted, an entry for each time.
+        description: Sent back from here, by those who looked or by something done once it was approved, it is counted, an entry for each time; one sent back only to be brought up to date with the project's branch says so, and is counted apart (`review.owed`).
         when: ${ (steps.listed.out.came ?? steps.merged.out.came ?? steps.comes.out.came) == "back" }
         do: keep
         with:
           in: back
           by: at
-          what: { card: "${event.data.card}", at: "${event.seq}" }
+          what:
+            card: "${event.data.card}"
+            at: "${event.seq}"
+            behind: ${ steps.listed.out.behind ?? steps.merged.out.behind ?? false }
 
       back:
-        description: And it goes back to whoever worked it, with what was said.
+        description: And it goes back to whoever worked it, with what was said; one sent back only to be brought up to date is not counted on the card either.
         when: ${ (steps.listed.out.came ?? steps.merged.out.came ?? steps.comes.out.came) == "back" }
         do: board.move
         with:
           id: "${event.data.card}"
           to: "${params.row.fail}"
           note: "${ steps.listed.out.says ?? steps.merged.out.says ?? steps.comes.out.says }"
+          uncounted: ${ steps.listed.out.behind ?? steps.merged.out.behind ?? false }
 
       kept:
         description: Left for a person by what was done before anybody looked, it is kept as a card left is, with no review named, so that nothing is begun for it again until it is put here again.
@@ -635,17 +648,17 @@ on:
         do: drop
         with: { from: back, by: card, is: "${event.data.card}" }
 
-  # A person passed a card themselves, moving it on from here. Its branch
-  # is left as it is unless the row says `by_hand: merge`: merged for whoever
-  # moved it (`std/pass-by-hand`), in the card's turn and holding no other.
+  # A person passed a card, moving it on from here. Where the row says
+  # `by_hand: merge` (or `merge` and nothing of that), its branch is merged
+  # for them (`std/pass-by-hand`), in the card's turn and holding no other.
   handed:
     event: board.item.moved
     for: { project: "${params.project}", from: "${params.row.column}" }
-    when: ${ params.row.by_hand == "merge" }
+    when: ${ params.row.by_hand == "merge" && event.data.through == null }
     turn: "${event.data.id}"
     steps:
       pass:
-        when: ${ event.data.to == params.row.pass && event.data.through == null }
+        when: ${ event.data.to == params.row.pass }
         call: std/pass-by-hand
         as: "by-hand-${event.data.id}"
         allow_failure: true

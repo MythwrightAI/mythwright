@@ -836,6 +836,11 @@
               "help": "with `takes: each`, the scopes such a list stands for where a record leaves it empty; of a choice, the one word of `of` nothing chosen stands for, which is where nothing ranks and what a number written before the field was a choice is counted from",
               "name": "unsaid",
               "type": "any"
+            },
+            {
+              "help": "with `takes`, what giving it its value took is asked again of whoever adds the record or changes any cell of it, for as long as it says that value: for a cell that lets something with more authority do more, beside cells that say what that does",
+              "name": "stands",
+              "type": "bool"
             }
           ]
         }
@@ -1239,6 +1244,11 @@
               "help": "with `takes: each`, the scopes such a list stands for where a record leaves it empty; of a choice, the one word of `of` nothing chosen stands for, which is where nothing ranks and what a number written before the field was a choice is counted from",
               "name": "unsaid",
               "type": "any"
+            },
+            {
+              "help": "with `takes`, what giving it its value took is asked again of whoever adds the record or changes any cell of it, for as long as it says that value: for a cell that lets something with more authority do more, beside cells that say what that does",
+              "name": "stands",
+              "type": "bool"
             }
           ]
         }

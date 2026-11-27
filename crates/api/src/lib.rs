@@ -31,6 +31,8 @@ mod routes;
 mod searched;
 mod spent;
 mod state;
+mod taken;
+mod through;
 mod trash;
 mod whose;
 
@@ -185,6 +187,12 @@ pub struct Config {
     /// mostly that waiting otherwise. Never said for a factory that is
     /// run, which always waits.
     pub disk: journal::Disk,
+    /// How hard what is kept of a password is made to guess from
+    /// (`people::Hashing`): the least the hash takes, for a factory that
+    /// is its own test, whose passwords stand against nobody and which
+    /// registers its owner as each test begins. Never said for a factory
+    /// that is run, which hashes as hard as the hash makes it.
+    pub hashing: people::Hashing,
     /// The home of whoever runs the daemon, where it is not the one
     /// their profile says: for a factory that is its own test and
     /// holds walls, whose agents' packages say what their programs keep
@@ -195,6 +203,13 @@ pub struct Config {
     /// one. Unsaid, a factory with no owner is given one by whoever first
     /// registers from this machine, which is how a test's own node is.
     pub makes_owner: bool,
+    /// Whether the files a new project is started with are its first
+    /// commit (`projects::first`): said by every program that runs one.
+    /// Unsaid, a project the factory makes is a repository with no commit,
+    /// which is how a test's own node is: its tests make what a
+    /// repository holds themselves, and who git commits as there is
+    /// whoever runs them.
+    pub commits_first: bool,
 }
 
 impl Config {
@@ -223,8 +238,10 @@ impl Config {
             order: None,
             copying: None,
             disk: journal::Disk::Waited,
+            hashing: people::Hashing::Hard,
             user_home: None,
             makes_owner: false,
+            commits_first: false,
         }
     }
 }
@@ -400,6 +417,10 @@ impl Node {
             Studio::open(journal.clone(), searched, projects_dir.clone(), data.join(snapshot::ATTACHMENTS))
                 .await?;
         studio.projects.keeps_out_of(data);
+        if config.commits_first {
+            studio.projects.commit_first();
+        }
+        studio.identity.hashes(config.hashing);
         // Every write of a topic writes what goes with it, from before anything is written.
         topics::Topics::open(&journal, &studio).await?;
         let hosting = Hosting::new(journal.clone(), logs.clone(), data.join("run")).await?;

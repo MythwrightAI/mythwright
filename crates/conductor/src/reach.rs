@@ -132,7 +132,7 @@ impl Engine {
 
     /// The text alone, as it is checked whoever names it.
     pub(crate) fn check_own(&self, source: &str, project: Option<&str>) -> Checked {
-        self.checked_by(project, |known| blueprint::check(source, known))
+        self.checked_by(project, |known| texts::remembered::checked(source, known))
     }
 
     /// Whether what a compile asked of the library for another project

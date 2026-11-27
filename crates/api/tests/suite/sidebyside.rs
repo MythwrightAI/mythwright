@@ -26,6 +26,11 @@ fn counts(beside: &Value, what: &str) -> Vec<Option<u64>> {
 #[tokio::test]
 async fn one_set_of_acts_is_played_against_two_texts_each_in_a_sandbox_of_its_own_and_counted_side_by_side() {
     let rig = Rig::new().await;
+    // At rest first: what the factory does by itself as it starts (the
+    // search index's first pass, with its cursor) is no sandbox's, and
+    // was still being written as its owner was registered, once that
+    // was no longer a hash slow enough for it to be done by then.
+    crate::simulation::rested(&rig).await;
     let before = rows(&rig).await;
 
     let played = rig

@@ -204,6 +204,15 @@ pub fn needs(collection: &Collection, after: &Map<String, Value>, cells: &[Cell]
         let gives = if said.is_empty() { field.unsaid.clone() } else { said };
         needs.push(Need { of: Of::Cell(field.name.clone()), scopes: gives });
     }
+    // What a cell took, while the row as it would be still says it: asked
+    // of whoever changes anything of the row.
+    for field in collection.fields.iter().filter(|field| field.stands) {
+        let scopes: Vec<String> =
+            field.standing(after.get(&field.name)).into_iter().map(String::from).collect();
+        if !scopes.is_empty() {
+            needs.push(Need { of: Of::Standing(field.name.clone()), scopes });
+        }
+    }
     needs
 }
 

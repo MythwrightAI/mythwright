@@ -12,7 +12,7 @@
 // What is offered is read when Share is pressed, and is what there was
 // then: nothing is followed for it while the page is only being looked at.
 
-import { api } from '../api.ts';
+import { api, shown } from '../api.ts';
 import type { Collection } from '../api.ts';
 import { covers } from '../holds.ts';
 import { folderOf, pagesOf } from '../library.ts';
@@ -40,7 +40,7 @@ export async function libraryShare(project: string, library: Collection): Promis
   const running = await api.instances({ live: true, project }).catch(() => []);
   const writes = running.find((one) => one.blueprint === WRITES && String(one.params.library ?? USUAL.library) === library.name);
   const lines: Lines = [
-    { label: 'Read as pages', mark: signs.out(), act: () => unfolded(pages) },
+    { label: 'Read as pages', mark: signs.out(), act: () => unfolded(shown(pages)) },
     { label: "Copy the pages' address", mark: signs.link(), act: () => void copy(`${location.origin}${pages}`, `Copied. ${READ_BY}`) },
   ];
   if (writes) {
@@ -84,7 +84,7 @@ export async function documentShare(project: string, library: Collection, record
   return [
     { label: 'Public', mark: signs.globe(), on: () => on, closed, act: mark },
     note('A public document is written out when its library is, as a page anything can serve.'),
-    { label: 'Open as a page', mark: signs.out(), apart: true, act: () => unfolded(page) },
+    { label: 'Open as a page', mark: signs.out(), apart: true, act: () => unfolded(shown(page)) },
     { label: "Copy the page's address", mark: signs.link(), act: () => void copy(`${location.origin}${page}`, `Copied. ${READ_BY}`) },
   ];
 }

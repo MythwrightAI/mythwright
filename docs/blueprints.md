@@ -2805,7 +2805,7 @@ applied. These actions act on its cards:
 | `board.move` | Moves a card to a column. It may carry a `note`. |
 | `board.update` | Changes a card's fields. |
 | `board.get` | Reads one card. |
-| `board.list` | Reads the cards. With `ids` it reads only the cards named, each found by its id, leaving out those that are gone, and outputs their `ids` beside the `items`. It always outputs the board's `columns`, with the `first` and the `last` (where cards begin and end). |
+| `board.list` | Reads the cards, each with its `id`, `title`, `status` and the rest of what its row says (`more`). With `ids` it reads only the cards named, each found by its id, leaving out those that are gone, and outputs their `ids` beside the `items`. It always outputs the board's `columns`, with the `first` and the `last` (where cards begin and end). |
 
 A move's `note` is what is said as the card is moved. It goes with the
 `board.item.moved` event as `note`, into the card's history, and onto the
@@ -2916,7 +2916,9 @@ lasts as long as its agent is at work:
 1. When the card's turn has come, the card is taken (moved to `doing`).
 2. It is given a git worktree and a branch of its own (`.lanes/<card>`,
    `lane/<card>`) when the project is a repository with history to branch
-   from. A `.gitignore` in that folder tells the repository that `.lanes`
+   from. A project the factory made a folder for has that from the start:
+   the files it was started with are its first commit, where git knows who
+   to commit as. A `.gitignore` in that folder tells the repository that `.lanes`
    is not the project's files, and ignores itself too. The place is made
    now and not when the card became ready: a card that waits has none, and
    a card that waited on other cards begins from what they left.
@@ -4155,12 +4157,13 @@ row:
 | `needed` | how many of those must approve; more than half, with 0 or nothing |
 | `next` | which waiting card in the column is taken next when there is room: `first` (default), the first to arrive; `last`, the last; `priority`, the one whose `priority` stands highest, and among equals the first to arrive. See *Priority*, below this table |
 | `at_once` | how many cards are taken at once: as many as the role's agents can take (the default, or with 0), and never more. So `1` with two agents is one at a time |
+| `next_after` | where cards are worked, when the next card is taken: `handed` (default), as soon as the last is handed on; `merged`, only once no card worked from here waits unmerged, in `doing` or in the column it was handed on to (`pass`, or `review` where that says none). A card's branch is cut from the project's as it is when the card is taken, so with `handed` a card taken while the one before it is in review has nothing of that one's work. `merged` is one card at a time whatever `at_once` says; a card that waits says so (`waiting`: *no work is being started here for now: shop-1, worked from here, is not merged yet*) and is taken once that card is done, sent back to the column, put aside or taken off the board. A card left for a person in review or in `doing` holds the next back until somebody moves it |
 | `review` | for a review, the blueprint that reviews one card here: the fleet's `review` (`std/review`) by default. One of the project's own takes the params `std/review` takes and says `review.passed`, `review.failed` or `review.undecided`. It runs only as it was vouched for: saved by somebody who holds what the fleet was applied with, as for a blueprint `does` names |
 | `proposal` | for a planning stage, the blueprint that plans one card here: the fleet's `proposal` (`std/proposal`) by default, held to the same rule as `review` |
-| `rounds` | how many times a card may be sent back from here before it is left for a person: 2 by default. The stage counts it wherever it sends the card, so workers and reviewers never go round forever. A card left that way is reported where the stage reports and as an event, `card.left` (`card`, `project`, `rounds`), once each time it is left; that is also a line of the card's history |
+| `rounds` | how many times a card may be sent back from here before it is left for a person: 2 by default. The stage counts it wherever it sends the card, so workers and reviewers never go round forever. A card left that way is reported where the stage reports and as an event, `card.left` (`card`, `project`, `rounds`, and `words`, what it was last sent back with), once each time it is left; that is also a line of the card's history. Raised, a card left under the limit it had is looked at again. One card alone is given more with a move that says so (`give`), as *Sent back* below says |
 | `most` | the most things done with a card here in one pass through its list (*How many things at most*, under *Writing a segment*): 6 where cards are worked and 5 otherwise, by default; with 0, no bound but the list's own length. A card whose list holds more is left for a person, and the message gives the command that raises it on this row |
 | `merge` | whether a card's branch is merged into the project's when it passes here |
-| `by_hand` | what happens to a card's branch when a person passes the card themselves, moving it on from here: `leave` (default), the branch is left as it is; `merge`, it is merged as an agent-approved one is, if whoever moved the card holds `projects:write` |
+| `by_hand` | what happens to a card's branch when a person passes the card themselves, moving it on from here: `merge` (the default where the row says `merge`), it is merged as an agent-approved one is, if whoever moved the card holds `projects:write`; `leave` (the default otherwise), the branch is left as it is |
 | `in_flight` | what happens to a review in session when the row is changed: `finish` (default) or `restart` |
 | `reports` | what the stage says where the fleet reports, beyond what goes wrong: `trouble` (default), nothing more; `verdicts`, also what each review of a card came to, with who looked and what each said |
 | `after_restart` | what happens to what an agent had in hand here when the daemon is stopped and started again: `again` (default), it carries on; `leave`, it is left for a person, and the channel is told why. Work whose program kept going by itself but was killed together with what kept it is cut off after all, and is begun again or left as this says |
@@ -4335,6 +4338,14 @@ card was sent back is counted on it (`rounds`, by `std/cards`): when it
 is put where cards are in hand, or from `review` into any column the
 board has before that, by anyone. After the stage's `rounds`, nobody is
 asked and the card is left there for a person, and the channel is told.
+That one card can be given more without changing the row for every
+other: a move that gives it more rounds (`mw board move <card> doing
+--give 1`, `give` of `board.move`, *One more round* on the card in the
+client) sends it back to whoever worked it, told what the mover said and
+what it was last sent back with, and it may then be sent back that many
+more times before it is left again. Such a move is not counted as a
+sending back; what was given is kept on the card (`given`) and said in
+its history.
 A review that did not pass with nobody saying what is wrong
 (`review.undecided`) is left for a person too.
 
@@ -4343,18 +4354,31 @@ A review that did not pass with nobody saying what is wrong
 its branch is merged into the branch the project's folder has checked
 out, as a commit that names the card. Then it moves to the stage's
 `pass`. A branch that no longer merges is not forced: the merge is
-called off and the card goes back to whoever worked it, who is told to
-bring the branch up to date. Anything else blocking a merge is said in
-the channel and left to a person.
+called off, and the project's branch is merged into the card's where it
+was worked instead. Where nothing conflicts that way, that merge is made
+and the card's branch goes in, with nobody asked anything. Otherwise the
+merge is left under way, with what conflicts marked in each file, and
+the card goes back to whoever worked it, told which files to put right
+and to change files and nothing else: an agent behind a wall cannot
+write git's own files, and the commit that keeps what it leaves ends the
+merge. A commit with git's markers still in it is not made, and the card
+is given back again. Going back for that is no verdict on the work, and
+is not counted against the stage's `rounds`; a card brought up to date
+three times and approved each time is left to a person. Anything else
+blocking a merge is said in the channel and left to a person.
 
 **Passed by a person**, who moves the card on from the stage's column
 themselves. The card is where they put it, and what happens to its
 branch is the row's `by_hand`:
 
-- By default the branch is left as it is, for that person to merge.
-- With `merge` it is merged for them (`std/pass-by-hand`), as an
-  agent-approved card is, and the card's history says so
-  (`card.merged`).
+- With `merge`, which is what a row that says `merge` and nothing of
+  `by_hand` comes to, it is merged for them (`std/pass-by-hand`) by what
+  merges an agent-approved card (`std/merge`), and the card's history
+  says so and who passed it (`card.merged`). A branch that no longer
+  merges has the project's branch merged into it for its worker and the
+  card goes back to them, uncounted, as an approved one does.
+- With `leave`, which is what a row that does not merge comes to, the
+  branch is left as it is, for that person to merge.
 
 The merge is done by the fleet, with what whoever applied the fleet
 holds, so the person who moved the card is checked first: the block
@@ -4997,6 +5021,16 @@ changed listens for either: for what was written, or for the fleet
 having taken it. The tables are read whole each time, so a change is
 taken by the arrangement it asked for or by a later one, which says a
 greater number. Two changes made together may be taken by one.
+
+A change made from outside (the client, `mw record`, a program with a
+key) is answered once the fleet has taken it: a card moved in the very
+next command goes the new way. That holds for a row of any table that
+steers another (`steers`) or that another steers, and whatever hears
+it: the write is answered once each handler that hears it has done with
+it, and with each such row those wrote in turn. A hearer still at it
+after 10 seconds does not hold the answer up any longer: the row is
+written, and the answer says which had not taken it yet (`untaken`;
+`mw record` prints it under what it did).
 
 ```yaml
 on:
@@ -5745,6 +5779,7 @@ How to read the table:
 | `collection.ensure` | `fields.*.icon` | string | the name of the icon its column is drawn with, until somebody who looks at the table chooses another |
 | `collection.ensure` | `fields.*.takes` | any | what giving it a value takes beside what changing the record does: a scope, or a list of scopes every one of which is asked, or for a choice or a flag the scopes of each value that takes any, or `each` for a list of scopes that the record gives somebody, where adding the record or changing anything of it takes holding each scope it then says |
 | `collection.ensure` | `fields.*.unsaid` | any | with `takes: each`, the scopes such a list stands for where a record leaves it empty; of a choice, the one word of `of` nothing chosen stands for, which is where nothing ranks and what a number written before the field was a choice is counted from |
+| `collection.ensure` | `fields.*.stands` | bool | with `takes`, what giving it its value took is asked again of whoever adds the record or changes any cell of it, for as long as it says that value: for a cell that lets something with more authority do more, beside cells that say what that does |
 | `collection.ensure` | `fields.*.takes.*` | each | a value of the field as it is written, with the scope, or the list of scopes, giving the field that value takes |
 | `collection.ensure` | `views.*` | each | a way of looking at the collection, by its name |
 | `collection.ensure` | `views.*.kind` | string | how its records are laid out: `table` where it is not said |
@@ -5799,6 +5834,7 @@ How to read the table:
 | `record.add` | `declaring.*.icon` | string | the name of the icon its column is drawn with, until somebody who looks at the table chooses another |
 | `record.add` | `declaring.*.takes` | any | what giving it a value takes beside what changing the record does: a scope, or a list of scopes every one of which is asked, or for a choice or a flag the scopes of each value that takes any, or `each` for a list of scopes that the record gives somebody, where adding the record or changing anything of it takes holding each scope it then says |
 | `record.add` | `declaring.*.unsaid` | any | with `takes: each`, the scopes such a list stands for where a record leaves it empty; of a choice, the one word of `of` nothing chosen stands for, which is where nothing ranks and what a number written before the field was a choice is counted from |
+| `record.add` | `declaring.*.stands` | bool | with `takes`, what giving it its value took is asked again of whoever adds the record or changes any cell of it, for as long as it says that value: for a cell that lets something with more authority do more, beside cells that say what that does |
 | `record.add` | `declaring.*.takes.*` | each | a value of the field as it is written, with the scope, or the list of scopes, giving the field that value takes |
 | `compare.start` | `ways.name` | string | what the way is called: a word, such as `otter`, which a start names as its `way` |
 | `compare.start` | `ways.share` | int | its part of the things where they are shared out; a start that names its way is given it whatever the shares (default 1) |
@@ -6488,7 +6524,7 @@ descriptions.)
 | `agent.turn.started` | An agent began a turn. | `slot`, `turn`, `project`?, `kind`, `channel`?, `thread`?, `again`?, `taken_up`? |
 | `board.columns` | A board's columns were set. | `project`, `columns` |
 | `board.item.created` | A card was added to a board. | `id`, `project`, `fields`?, `title`, `status`, `by`?, `late`?, `restored`?, `through`?, `wrote`?, `doing`? |
-| `board.item.moved` | A card was moved to another column. | `id`, `project`, `fields`?, `title`, `from`, `to`, `by`, `note`?, `decided`?, `late`?, `through`? |
+| `board.item.moved` | A card was moved to another column. | `id`, `project`, `fields`?, `title`, `from`, `to`, `by`, `note`?, `decided`?, `uncounted`?, `given`?, `late`?, `through`? |
 | `board.item.removed` | A card was taken off its board. | `id`, `project`, `fields`? |
 | `board.item.pressed` | Something a card's column offers was pressed on it, or a press was taken back. | `id`, `project`, `fields`?, `status`, `action`, `title`, `by`, `name`, `coming`, `back`, `did`, `released`, `waits`, `through`? |
 | `board.item.held` | A card waits where it is for something its column offers to be pressed: said once each time it comes there. | `id`, `project`, `fields`?, `card`, `status`, `coming`, `waits`, `who`, `says`, `through`? |
@@ -6586,7 +6622,7 @@ descriptions.)
 | `instance.updated` | An instance came to run another text, or other params. Nothing said after this is handled by the text from before. | `blueprint`, `revision`, `from`, `in_place`?, `carried`? |
 | `log.line` | A line something printed. Passed on, not kept. | `stream`, `text`, `service`? |
 | `poll.failed` | What a handler asks on a timer could not be asked. | `handler`, `error` |
-| `project.created` | A project was made, or a folder was taken up as one. | `project`, `name`, `path`, `brownfield`, `restored`? |
+| `project.created` | A project was made, or a folder was taken up as one. | `project`, `name`, `path`, `brownfield`, `committed`?, `restored`? |
 | `project.file.changed` | A file of a project was added, changed or removed. | `project`, `path`, `folders`, `kind`, `change` |
 | `project.folder.made` | A folder was made in a project, empty, through the factory. | `project`, `path`, `folders` |
 | `project.removed` | A project was taken away. | `project` |

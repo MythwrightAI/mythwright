@@ -230,7 +230,7 @@ impl Identity {
             (true, Some(email)) => crate::identity::normalise_email(email)?,
             (false, _) => account.email.clone(),
         };
-        let hash = crate::identity::hash_password(password.to_string()).await?;
+        let hash = crate::hashing::hash_password(password.to_string(), self.hashing()).await?;
         let (id, written_email, actor) = (account.id.clone(), email.clone(), who.actor());
         let written = self.journal.write(move |writing| {
             writing.transaction().execute(

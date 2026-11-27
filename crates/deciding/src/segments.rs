@@ -607,6 +607,7 @@ pub fn register(registry: &mut Registry) {
         .output("at", "where the item is in the list: the row and the order of the one that is run, or that said the word")
         .output("journey", "what is so of this going through the list from here, with what the segment that ended handed on")
         .output("back", "for `back`: it goes back for what a segment said of it, and not because what was done could not be kept")
+        .output("behind", "for `back`: the segment said it goes back only to be brought up to date (`behind`), which is no verdict on it")
         .output("usual", "for one that is begun by whoever asks: only what is usual comes after it")
         .output("asked", "with `through`: all that was asked, for the next asking to be handed as part of `was`")
         .output("nth", "which thing of this going through the list this asking calls, or would have, from 1")
@@ -813,6 +814,7 @@ pub fn register(registry: &mut Registry) {
                 "with": with, "moves": asked.moved, "says": says, "asker": asker, "question": question,
                 "why": if asked.why.is_empty() { says.clone() } else { asked.why.clone() }, "at": at,
                 "back": matches!(came, Came::Back { .. }) && journey.get("unkept") != Some(&Value::Bool(true)),
+                "behind": matches!(came, Came::Back { .. }) && journey.get("behind") == Some(&Value::Bool(true)),
                 "journey": journey, "asked": through, "usual": usual, "nth": asked.nth,
             }))
         },

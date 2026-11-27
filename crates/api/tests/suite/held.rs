@@ -807,8 +807,9 @@ async fn a_card_passed_by_hand_is_merged_where_its_stage_says_so_for_one_who_hol
     let on_the_projects_branch =
         |id: &str| git(&dir, &["log", "--format=%s"]).lines().any(|line| line.starts_with(&format!("{id}:")));
 
-    // As a fleet is unless its row says otherwise: a card a person passes
-    // is done, and its work is left on its branch.
+    // Where the row says `leave`: a card a person passes is done, and its
+    // work is left on its branch.
+    change(&rig, "stages", "review", json!({ "by_hand": "leave" })).await;
     let first = worked("Add a cart").await;
     let now = rig.mark();
     move_card(&rig, &first, "done", None).await;
@@ -816,8 +817,9 @@ async fn a_card_passed_by_hand_is_merged_where_its_stage_says_so_for_one_who_hol
     assert!(!on_the_projects_branch(&first));
     assert_eq!(git(&dir, &["branch", "--list", &format!("lane/{first}")]).trim(), format!("lane/{first}"));
 
-    // The row of the stage that reviews says a card passed by hand is merged.
-    change(&rig, "stages", "review", json!({ "by_hand": "merge" })).await;
+    // The row of the stage that reviews says a card passed by hand is
+    // merged, as it is where it merges and says nothing of this.
+    change(&rig, "stages", "review", json!({ "by_hand": "" })).await;
 
     // Passed with a key that may move cards and holds nothing of the
     // project's files: the card is where the key put it, nothing is
@@ -866,5 +868,6 @@ async fn a_card_passed_by_hand_is_merged_where_its_stage_says_so_for_one_who_hol
     assert_eq!(git(&dir, &["log", "-1", "--format=%s"]), format!("{third}: Add a shelf"));
     assert!(!dir.join(".lanes").join(&third).exists());
     assert_eq!(git(&dir, &["branch", "--list", &format!("lane/{third}")]), "");
-    history(&rig, &third, &format!("its branch lane/{third} was merged into the project's")).await;
+    history(&rig, &third, &format!("its branch lane/{third} was merged into the project's as Ada passed it"))
+        .await;
 }

@@ -94,3 +94,24 @@ pub fn parts(folder: &str) -> Option<Vec<String>> {
     }
     Some(parts)
 }
+
+/// A link of a page with `said` (`name=value`) in its address as well,
+/// before any `#`: for the links of a page that lead somewhere on the
+/// host the page came from, so that a browser following one is who it
+/// was on the page. A link elsewhere (one with a scheme, or `//`), one
+/// within the page (`#`) and one to nothing are as they were, as is every
+/// link where nothing is said.
+pub fn saying(dest: &str, said: &str) -> String {
+    let elsewhere = dest.starts_with("//") || scheme(dest).is_some();
+    if said.is_empty() || dest.is_empty() || dest.starts_with('#') || elsewhere {
+        return dest.to_string();
+    }
+    let (address, part) = dest.split_once('#').map_or((dest, None), |(address, part)| (address, Some(part)));
+    let joined = match address.split_once('?') {
+        Some((_, "")) => "",
+        Some(_) => "&",
+        None => "?",
+    };
+    let part = part.map(|part| format!("#{part}")).unwrap_or_default();
+    format!("{address}{joined}{said}{part}")
+}

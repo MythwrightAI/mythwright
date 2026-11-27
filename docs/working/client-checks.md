@@ -189,7 +189,7 @@ part of itself; that one is not run alone.
 - `nested.mjs`: notes by period, each table naming the one above; private days.
 - `slid.mjs`: a card moved from a terminal slides to its column; when nothing slides.
 - `review.mjs`: a card sent back from review; who said each thing with their picture; the drawer
-  edge.
+  edge; one sent back as often as its stage allows given one more round.
 - `cardcost.mjs`: what a card cost by round, in its drawer.
 - `chained.mjs`: a card waiting on people in turn, each told once by the fleet.
 - `pressed.mjs`: a button a column offers on a card, holding it until pressed.
@@ -202,11 +202,14 @@ part of itself; that one is not run alone.
 
 - `writing.mjs`: writing a document as blocks, and seeing it as a page.
 - `handled.mjs`: the handle beside a document block: `+`, grip, menu, carry, keyboard.
-- `library.mjs`: a project's library, its layouts, and comments in the panel beside a document.
+- `library.mjs`: a project's library, its layouts, and comments in the panel beside a document;
+  its pages opened at a bare address and sent on through the client with `by`, and somebody not
+  signed in brought to sign-in and then to the page.
 - `selected.mjs`: comments on selected words of a document, marks, margin cards.
 - `site.mjs`: a library written out as pages and opened from the disk, with contents beside each
   page.
-- `mockups.mjs`: a project's mockups gallery and what a mockup's script can reach.
+- `mockups.mjs`: a project's mockups gallery and what a mockup's script can reach; a mockup's
+  address opened bare is sent through the client to a way in.
 - `files.mjs`: browsing a project's Repo, and making files and folders.
 - `pathlinks.mjs`: a project's file named in somebody's words becoming a link.
 - `copied.mjs`: code blocks in messages and their Copy button.

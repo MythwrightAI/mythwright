@@ -7,8 +7,8 @@
 
 use serde_json::{Map, Value, json};
 use studio::cards::{
-    After, Awaited, Came, Columns, Kept, Row, Said, after, came, held, said, turn, waiting_for,
-    waits_on_others,
+    After, Awaited, Came, Columns, Kept, Row, SENT, Said, Sending, after, came, held, said, sending, turn,
+    waiting_for, waits_on_others,
 };
 
 /// What a row keeps, from the cells as a record holds them.
@@ -225,7 +225,7 @@ fn a_move_is_a_card_taken_sent_back_or_finished_by_its_row_and_the_columns_it_is
     ];
     let mut reached = Vec::new();
     for (from, to, by_hand, row, columns, word, settles, rounds, rests) in cases {
-        let arrived = came(from, to, by_hand, &kept(to, row.clone()), columns);
+        let arrived = came(from, to, by_hand, (false, false), &kept(to, row.clone()), columns);
         assert_eq!(
             (arrived.came, arrived.settles, arrived.rounds, arrived.rests),
             (word, settles, rounds, rests),
@@ -235,6 +235,68 @@ fn a_move_is_a_card_taken_sent_back_or_finished_by_its_row_and_the_columns_it_is
     }
     for word in Came::ALL {
         assert!(reached.contains(word), "no case reaches `{}`", word.word());
+    }
+    // Sent back by a blueprint that says it is no verdict on the work (to
+    // be brought up to date): nothing is counted, nor kept. Said of a
+    // person's move, it is not heeded; and a card finished is finished.
+    let row = json!({ "taken": "ready", "rounds": 1 });
+    let uncounted = |from: &str, to: &str, by_hand: bool| {
+        came(from, to, by_hand, (true, false), &kept(to, row.clone()), USUAL)
+    };
+    assert_eq!(
+        (uncounted("review", "doing", false).came, uncounted("review", "doing", false).rounds),
+        (Came::Elsewhere, None)
+    );
+    assert_eq!(uncounted("review", "doing", true).rounds, Some(2));
+    assert_eq!(uncounted("review", "done", false).came, Came::Finished);
+    // A move that gives it more rounds than its stage allows is none
+    // spent, whoever makes it; and a card finished is finished.
+    let given =
+        |to: &str, by_hand: bool| came("review", to, by_hand, (false, true), &kept(to, row.clone()), USUAL);
+    assert_eq!((given("doing", true).came, given("doing", true).rounds), (Came::Elsewhere, None));
+    assert_eq!(given("doing", false).rounds, None);
+    assert_eq!(given("done", true).came, Came::Finished);
+}
+
+#[test]
+fn a_card_sent_back_keeps_what_was_said_and_one_given_more_rounds_is_told_it_again() {
+    let columns: Vec<String> = ["backlog", "ready", "doing", "review", "done"].map(String::from).to_vec();
+    let kept = |sent: &str, given: u64| Sending { note: String::new(), sent: sent.into(), given };
+    let it = |from: &str, to: &str, note: &str, give: u64, was: Sending| {
+        sending(&columns, (from, to), note, give, was)
+    };
+    let last = "shop-reviewer-1: The total is wrong.";
+    let (told, alone) = (format!("Check the empty cart.\n\n{SENT}{last}"), format!("{SENT}{last}"));
+    let pasted = format!("As they said: {last}");
+    let cases = [
+        // Sent back with words: they are kept, and said.
+        (
+            ("review", "doing", "The total is wrong.", 0),
+            kept("", 0),
+            ("The total is wrong.", "The total is wrong.", 0),
+        ),
+        (("review", "ready", " Again. ", 0), kept(last, 0), ("Again.", "Again.", 0)),
+        // Sent back saying nothing, or moved on, or put where it is: the words are as they were.
+        (("review", "doing", "", 0), kept(last, 0), ("", last, 0)),
+        (("doing", "review", "Done.", 0), kept(last, 0), ("Done.", last, 0)),
+        (("review", "review", "", 2), kept(last, 1), ("", last, 1)),
+        // A column the board has not got is no sending back.
+        (("review", "elsewhere", "Gone.", 0), kept(last, 0), ("Gone.", last, 0)),
+        // Given more rounds: added to what it had, and told what it was last sent back with.
+        (("review", "doing", "Check the empty cart.", 1), kept(last, 0), (told.as_str(), last, 1)),
+        (("review", "doing", "", 2), kept(last, 1), (alone.as_str(), last, 3)),
+        // Said already by whoever gave it, or never sent back with anything: said once, or not at all.
+        (("review", "doing", pasted.as_str(), 1), kept(last, 0), (pasted.as_str(), last, 1)),
+        (("review", "doing", "", 1), kept("", 0), ("", "", 1)),
+        (("ready", "doing", "Go.", 1), kept("", 0), ("Go.", "", 1)),
+    ];
+    for ((from, to, note, give), was, (said, sent, given)) in cases {
+        let now = it(from, to, note, give, was.clone());
+        assert_eq!(
+            (now.note.as_str(), now.sent.as_str(), now.given),
+            (said, sent, given),
+            "{from} to {to}, {note:?}, {give}, {was:?}"
+        );
     }
 }
 

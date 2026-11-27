@@ -64,6 +64,11 @@ pub const PROGRAM: &str = "FACTORY_CLI";
 pub const WHO: &[&str] =
     &["GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"];
 
+/// What a person is told to do where git does not know who to commit as,
+/// in the same words by whatever met it: the fleet keeping a card's work,
+/// and a new project its first commit.
+pub const TELL_WHO: &str = "tell it in the project (git config user.name, and git config user.email)";
+
 /// Git, asked about the repository in `dir`, with nothing said yet of
 /// what is asked: the caller adds that.
 pub fn git(dir: &Path) -> Command {

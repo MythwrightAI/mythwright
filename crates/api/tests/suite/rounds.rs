@@ -391,6 +391,8 @@ async fn a_done_cards_lane_removes_its_branch_when_the_work_is_in_the_projects_o
 async fn a_done_cards_lane_keeps_a_branch_whose_work_is_nowhere_else_and_says_why() {
     let rig = rig().await;
     let (dir, _) = shop(&rig, json!({})).await;
+    // Passed by hand with its branch left as it is, and not merged.
+    crate::fleets::change(&rig, "stages", "review", json!({ "by_hand": "leave" })).await;
     let id = worked(&rig, "Add a cart").await;
     let branch = format!("lane/{id}");
 

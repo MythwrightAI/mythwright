@@ -786,8 +786,8 @@ async fn a_projects_board_is_what_comes_of_applying_the_blueprint_that_ships_for
     );
     let fields: Vec<&str> =
         made["fields"].as_array().unwrap().iter().map(|f| f["name"].as_str().unwrap()).collect();
-    let declared = "after again asker assignee at body due fixes labels moved part_of plan pressed priority \
-                    question rounds rung status taken title waiting";
+    let declared = "after again asker assignee at body due fixes given labels moved part_of plan pressed \
+                    priority question rounds rung sent status taken title waiting";
     assert_eq!(fields.join(" "), declared);
     // What is asked on a card is the board's own to keep, beyond a card's
     // six, and a change to it alone is no line of the card's history.

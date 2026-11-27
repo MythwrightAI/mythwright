@@ -26,7 +26,7 @@
 # changed only what that row is: a role that is as it was is not brought
 # up again, and a stage takes what is new where it is.
 blueprint: std/arrangement
-version: 17
+version: 19
 description: "Bring a project's fleet to what its tables say: the agents of each row of `agents`, and a stage for each row of `stages`."
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 
@@ -148,12 +148,13 @@ steps:
         rounds: { by: does, plan: 8, otherwise: 2 }
         most: { by: does, work: 6, otherwise: 5 }
         in_flight: finish
-        by_hand: leave
+        by_hand: { by: merge, "true": merge, otherwise: leave }
         reports: trouble
         after_restart: again
         restarts: 3
         refused_means: note
         moved_away: stop
+        next_after: handed
         # How a card is finished, and how long a turn may take: nothing said, and no bound.
         finish: []
         later: []
@@ -172,6 +173,8 @@ steps:
           least:
             - { like: at_once }
             - { share: { like: agents }, each: { by: does, work: 1, otherwise: { like: seats } } }
+            # One at a time where the next is taken only once the last is merged.
+            - { by: next_after, merged: 1, otherwise: 0 }
         # Every one of the role looks, where the row says no number.
         seats: { like: seats, else: { like: agents } }
         # The text that has the column, by what is done there, and what its instance is called; and the other two, which are stopped should the row have said one of them before.
@@ -179,6 +182,8 @@ steps:
         called: { by: does, work: working, review: reviewing, otherwise: planning }
         not: { by: does, work: reviewing, otherwise: working }
         nor: { by: does, review: planning, work: planning, otherwise: reviewing }
+        # Where a card worked here goes on to: review, where the row says nowhere.
+        hands_to: { like: pass, else: review }
         # A review that ships is told what becomes of what its agents had in hand at a restart; one of a project's own is given what it always was.
         restarting: { by: review, std/review: true, otherwise: false }
         # What is begun for a card where one is planned, or where the row names a blueprint.

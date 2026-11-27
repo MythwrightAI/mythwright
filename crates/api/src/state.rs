@@ -194,30 +194,27 @@ fn asked_at(parts: &Parts) -> &str {
     path.strip_prefix("/api").unwrap_or(path)
 }
 
-/// Whether a request is a page a browser opened, whose own links it then
-/// follows by itself: a page of a library, a mockup. Such a request can
-/// carry nothing but the cookie, and is answered for it.
-fn by_itself(parts: &Parts) -> bool {
-    let path = asked_at(parts);
-    parts.method == axum::http::Method::GET
-        && (path.starts_with("/library/") || path.starts_with("/mockups/"))
-}
-
 /// What says, in the address, which page asks: `by`.
 pub const SHOWN: &str = "by";
 
 /// What a request the client's page has its browser make says in its
 /// address beside the cookie (`by`), where it is one that only reads and
 /// cannot carry the page's key: a file or a picture shown, something
-/// attached, the stream of events. Said anywhere else, it is not heard:
+/// attached, the stream of events, a page of a library and what its links
+/// lead to, a mockup's own address. Said anywhere else, it is not heard:
 /// an address is no way to ask for anything that changes something.
 fn shown(parts: &Parts) -> Option<String> {
-    // The three kinds of address, each exactly: a project's file as it
-    // is, something attached, the stream. Not anything that begins or ends
-    // as one of them does (a project that is called `raw`, an attachment
-    // shown as a page, which the page asks for with its key).
+    // The kinds of address, each exactly: a project's file as it is,
+    // something attached, the stream, a library's pages, a mockup's
+    // address. Not anything that begins or ends as one of them does (a
+    // project that is called `raw`, an attachment shown as a page, which
+    // the page asks for with its key). What is under a mockup's way in
+    // asks for no one at all (`served::mockups`).
     let parts_of: Vec<&str> = asked_at(parts).split('/').filter(|part| !part.is_empty()).collect();
-    let fetched = matches!(parts_of.as_slice(), ["projects", _, "raw"] | ["attachments", _] | ["events"]);
+    let fetched = matches!(
+        parts_of.as_slice(),
+        ["projects", _, "raw"] | ["attachments", _] | ["events"] | ["library", _, _, ..] | ["mockups", _]
+    );
     if parts.method != axum::http::Method::GET || !fetched {
         return None;
     }
@@ -238,7 +235,6 @@ pub struct Bearing {
     cookie: bool,
     page: Option<String>,
     shown: Option<String>,
-    by_itself: bool,
 }
 
 impl Bearing {
@@ -246,18 +242,20 @@ impl Bearing {
     pub fn of(parts: &Parts, app: &App) -> Option<Bearing> {
         let (token, cookie) = carried(parts, &app.place.cookie)?;
         let page = parts.headers.get(PAGE_KEY).and_then(|key| key.to_str().ok()).map(str::to_string);
-        Some(Bearing { token, cookie, page, shown: shown(parts), by_itself: by_itself(parts) })
+        Some(Bearing { token, cookie, page, shown: shown(parts) })
+    }
+
+    /// What the address said beside the cookie (`by`), where the token
+    /// came in one: what a page asked this way says again in its links.
+    pub fn shown(&self) -> Option<&str> {
+        self.shown.as_deref().filter(|_| self.cookie)
     }
 
     /// Who it is, as things stand now.
     pub async fn who(&self, app: &App) -> Result<Principal, Error> {
         let came = match self.cookie {
             false => studio::Came::Said,
-            true => studio::Came::Cookie {
-                page: self.page.as_deref(),
-                shown: self.shown.as_deref(),
-                by_itself: self.by_itself,
-            },
+            true => studio::Came::Cookie { page: self.page.as_deref(), shown: self.shown.as_deref() },
         };
         app.studio.identity.authenticate_as(&self.token, came).await
     }

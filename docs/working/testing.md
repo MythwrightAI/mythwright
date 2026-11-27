@@ -29,7 +29,8 @@ the test program in `crates/hosting/standin`.
 - A test's project is a folder under `target/`, inside this repository,
   so git run there with no repository of its own finds this one. A test
   of lanes runs `git init` in the project first, even to test one with no
-  history.
+  history. A test's own node makes no first commit of a new project's files
+  (`Config::commits_first`): what a repository holds is the test's to make.
 - A repository a test makes says how its lines end and who commits
   (`lanes::git` in the API suite, after `init`), or git on Windows
   changes line endings on checkout.
@@ -56,6 +57,12 @@ the test program in `crates/hosting/standin`.
   (the journal suite), and only a waiting database counts a commit as on
   the disk (`Db::kept_to_the_disk`). A new rig that opens a journal's
   file, or makes a node, says the same.
+- A node a test makes hashes the passwords registered with it with the
+  least the hash takes (`Config::hashing`, `people::Hashing::Least`, in
+  the API suite's rig): its owner is registered as each test begins,
+  and hashed as hard as a run factory hashes, that was a twentieth of
+  the suite. A test of how a password is kept says `Hard` itself
+  (`access.rs`). A daemon that is run is never told.
 - Something that decides by what was measured says what it does when
   nothing was measured: absent is never quietly a pass (a canary stage
   that saw no connection emits `slot.unwatched` in `std/slot`).

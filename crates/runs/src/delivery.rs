@@ -25,11 +25,18 @@
 //! events on a topic, the handlers waiting there with nothing in hand are
 //! brought up to the event just handed out, in one write.
 //!
+//! Whoever wrote something may wait until the handlers it is for have
+//! done with it ([`Delivery::done_with`]): each handler says, as it
+//! comes back for more, the last event it has done with (its run for it
+//! has ended, or begun where it takes turns by a key; or it passed it
+//! over). Nothing of that is kept: after a restart nobody is waiting.
+//!
 //! It came out of the runner, which offers it under the names it always
 //! gave (`conductor::PLACES_KEPT`, and `crate::delivery` there), and hands
 //! it what begins a task and where the rows are ([`Hands`]).
 
 use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use blueprint::address::{self, Address};
@@ -93,6 +100,12 @@ impl Deliveries {
         let made = || Delivery { index: Arc::default(), journal: journal.clone() };
         each.entry(journal.name().to_string()).or_insert_with(made).clone()
     }
+
+    /// What hands out the events of the journal called `journal`, where
+    /// anything here has listened to it.
+    pub fn found(&self, journal: &str) -> Option<Delivery> {
+        self.each.lock().expect("delivery lock").get(journal).cloned()
+    }
 }
 
 /// Every handler that is waiting, by what it waits for.
@@ -127,6 +140,11 @@ struct Waiter {
     address: Address,
     tray: Mutex<Tray>,
     told: Notify,
+    /// The last event it has done with: everything before it that was for
+    /// it, it has done with too. All of them, once it has stopped listening.
+    done: AtomicU64,
+    /// Told each time `done` moves.
+    passed: Notify,
 }
 
 /// What has been handed to a handler and not yet taken by it.
@@ -163,6 +181,9 @@ impl Delivery {
             address: wanted.address,
             tray: Mutex::default(),
             told: Notify::new(),
+            // What is at or before its place is done with, or not its.
+            done: AtomicU64::new(wanted.after),
+            passed: Notify::new(),
         });
         index.waiting(&wanted.pattern).add(waiter.clone());
         Inbox {
@@ -175,6 +196,7 @@ impl Delivery {
             backlog: VecDeque::new(),
             catching_up: Some(0),
             held: false,
+            given: 0,
         }
     }
 
@@ -237,6 +259,26 @@ impl Delivery {
         }
     }
 
+    /// Waits until each handler listening now that `event` is for has done
+    /// with it: its run for it has ended (been begun, for one that takes
+    /// turns by a key), or it passed it over. One that stops listening
+    /// first is not waited for; one that takes its place is. Never waits
+    /// for one whose place was already past it.
+    pub async fn done_with(&self, event: &Event) {
+        loop {
+            let owed = self.index.lock().expect("delivery lock").owing(event);
+            let Some(waiter) = owed.first() else { return };
+            waiter.past(event.seq).await;
+        }
+    }
+
+    /// Which handlers have not yet done with `event`, each an instance and
+    /// a handler's name.
+    pub fn owing(&self, event: &Event) -> Vec<(String, String)> {
+        let owed = self.index.lock().expect("delivery lock").owing(event);
+        owed.iter().map(|waiter| (waiter.instance.clone(), waiter.handler.clone())).collect()
+    }
+
     fn forget(&self, pattern: &str, waiter: &Waiter) {
         let mut index = self.index.lock().expect("delivery lock");
         if is_pattern(pattern) {
@@ -256,6 +298,16 @@ impl Delivery {
 }
 
 impl Index {
+    /// The handlers `event` is for, of those listening, that have not yet
+    /// done with it: the same it is handed to ([`Index::hand`]).
+    fn owing(&self, event: &Event) -> Vec<Arc<Waiter>> {
+        let topic = self.topics.get(&event.topic).into_iter();
+        let patterns = self.patterns.iter().filter(|(pattern, _)| topic_matches(pattern, &event.topic));
+        let waiting = topic.chain(patterns.map(|(_, waiting)| waiting));
+        let for_it = waiting.flat_map(|waiting| waiting.for_event(event));
+        for_it.filter(|waiter| waiter.done.load(Ordering::SeqCst) < event.seq).collect()
+    }
+
     fn waiting(&mut self, pattern: &str) -> &mut Waiting {
         if !is_pattern(pattern) {
             return self.topics.entry(pattern.to_string()).or_default();
@@ -336,21 +388,22 @@ impl Waiting {
     /// Hands an event on this topic to those of the handlers here that it
     /// is for, and says how many that was.
     fn hand(&self, event: &Arc<Event>) -> usize {
-        for waiter in &self.unaddressed {
-            waiter.hand(event);
-        }
-        let mut to = self.unaddressed.len();
+        let to = self.for_event(event);
+        to.iter().for_each(|waiter| waiter.hand(event));
+        to.len()
+    }
+
+    /// The handlers here that an event on this topic is for.
+    fn for_event(&self, event: &Event) -> Vec<Arc<Waiter>> {
+        let mut to = self.unaddressed.clone();
         // One look per field that anyone here is addressed by, which is one
         // or two, and not one per handler.
         for (field, values) in &self.addressed {
             let found = address::at(&event.data, field).and_then(|value| values.get(&address::key(value)));
             // The field it was found under is one of those it asked for;
             // the others have to hold too.
-            for waiter in found.into_iter().flatten().filter(|waiter| waiter.address.carried_by(&event.data))
-            {
-                waiter.hand(event);
-                to += 1;
-            }
+            let carried = found.into_iter().flatten().filter(|waiter| waiter.address.carried_by(&event.data));
+            to.extend(carried.cloned());
         }
         to
     }
@@ -369,6 +422,24 @@ impl Waiting {
 }
 
 impl Waiter {
+    /// Says it has done with everything up to `seq` that was for it.
+    fn done_with(&self, seq: u64) {
+        self.done.fetch_max(seq, Ordering::SeqCst);
+        self.passed.notify_waiters();
+    }
+
+    /// Waits until it has done with everything up to `seq` that was for it.
+    async fn past(&self, seq: u64) {
+        loop {
+            let mut passed = std::pin::pin!(self.passed.notified());
+            passed.as_mut().enable();
+            if self.done.load(Ordering::SeqCst) >= seq {
+                return;
+            }
+            passed.await;
+        }
+    }
+
     fn hand(&self, event: &Arc<Event>) {
         let mut tray = self.tray.lock().expect("tray lock");
         if tray.events.len() >= TRAY_HOLDS {
@@ -415,6 +486,8 @@ pub struct Inbox<H: Hands> {
     /// The handler has been given an event and has not said it is done
     /// with it ([`Inbox::rest`]).
     held: bool,
+    /// The event it was last given.
+    given: u64,
 }
 
 impl<H: Hands> Inbox<H> {
@@ -424,7 +497,7 @@ impl<H: Hands> Inbox<H> {
     /// ([`Inbox::reads`]).
     fn take(&mut self) -> Option<Arc<Event>> {
         if let Some(event) = self.backlog.pop_front() {
-            self.held = true;
+            (self.held, self.given) = (true, event.seq);
             return Some(event);
         }
         if self.catching_up.is_some() {
@@ -442,7 +515,7 @@ impl<H: Hands> Inbox<H> {
             if event.seq > self.read_to {
                 tray.idle = false;
                 self.read_to = event.seq;
-                self.held = true;
+                (self.held, self.given) = (true, event.seq);
                 return Some(event);
             }
         }
@@ -464,6 +537,9 @@ impl<H: Hands> Inbox<H> {
     /// run was recorded for it, or it was passed over. Until then the
     /// handler's place is its own to move.
     pub fn rest(&mut self) {
+        if self.held {
+            self.waiter.done_with(self.given);
+        }
         self.held = false;
     }
 
@@ -533,6 +609,8 @@ impl<H: Hands> Inbox<H> {
 impl<H: Hands> Drop for Inbox<H> {
     fn drop(&mut self) {
         self.delivery.forget(&self.pattern, &self.waiter);
+        // Nobody waits for it any more; whatever takes its place is waited for.
+        self.waiter.done_with(u64::MAX);
     }
 }
 

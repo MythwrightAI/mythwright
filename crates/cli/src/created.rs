@@ -9,6 +9,17 @@ use crate::work::{list, text};
 /// What a project that was just added was given beside its files, and
 /// what it was not, as lines to go under where it is.
 pub fn given(project: &Value, bare: bool) -> String {
+    // Whether what it was started with is its first commit, said first:
+    // without one a card's work has no branch of its own.
+    let first = match text(&project["first_commit"], "says") {
+        "" => String::new(),
+        says => format!("\n{says}"),
+    };
+    format!("{first}{}", beside(project, bare))
+}
+
+/// What it was given beside its files.
+fn beside(project: &Value, bare: bool) -> String {
     let (id, cli) = (text(project, "id"), brand::CLI);
     if bare {
         return format!(

@@ -42,6 +42,7 @@ pub mod listed;
 pub mod pinned;
 pub mod ran;
 pub mod reach;
+pub mod remembered;
 pub mod taking;
 pub mod vouched;
 

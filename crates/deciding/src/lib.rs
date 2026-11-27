@@ -29,6 +29,7 @@
 //! added to a registry by whatever adds the agents' own
 //! (`Agents::register`), in the order they always were.
 
+pub mod ahead;
 pub mod begun;
 pub mod chain;
 pub mod column;
@@ -94,6 +95,8 @@ pub fn register(registry: &mut Registry, between: impl FnOnce(&mut Registry)) {
     sides::register(registry);
     // Which of a project's feature flags are past their day.
     flagsdue::register(registry);
+    // Whether an item waits behind others worked before it and not merged.
+    ahead::register(registry);
 }
 
 /// Adds one action to what a blueprint can do: handed what its step was

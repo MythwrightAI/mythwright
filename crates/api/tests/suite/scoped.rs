@@ -533,20 +533,20 @@ async fn a_stage_gives_no_agent_work_on_the_say_of_somebody_who_could_not_give_i
 async fn a_stage_moves_no_card_and_merges_nothing_for_a_key_that_holds_less_than_the_agents_it_steers() {
     let (rig, _at) = fleet_rig().await;
     shop(&rig, json!({})).await;
-    // May change agents and write records; may not move a card, nor
-    // change the project's files. The fleet's agents may do both.
-    let narrow = key(&rig, &["projects:read", "board:read", "records", "agents", "fleet:read"]).await;
-    let (status, refused) = rig
-        .call(Method::PATCH, "/api/board/items/shop-1", Some(&narrow), Some(json!({ "status": "done" })))
-        .await;
-    assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
+    // May change agents, write records and move cards; may not change
+    // the project's files. The fleet's agents hold more than that.
+    let narrow = key(&rig, &["projects:read", "board", "records", "agents", "fleet:read"]).await;
     let gives = "a record of `agents` that says nothing of `holds` gives `projects`, and is added or changed only \
                  by whoever holds `projects`, which narrow does not";
-    for (title, fields) in [
+    // What passes the review merges, as the owner has it: a stage that
+    // says so is not theirs to change, before anything of the agents.
+    let merges = "a record of `stages` whose `merge` says `true` is changed only by whoever holds \
+                  `projects:write`, which narrow does not";
+    for (title, fields, why) in [
         // Every card that waits is worked, and what is worked is done.
-        ("work", json!({ "column": "draft", "pass": "done" })),
+        ("work", json!({ "column": "draft", "pass": "done" }), gives),
         // One approval passes a card, and what passes is merged.
-        ("review", json!({ "seats": 1, "needed": 1, "merge": true })),
+        ("review", json!({ "seats": 1, "needed": 1 }), merges),
     ] {
         let id = row(&rig, "stages", title).await;
         let (status, refused) = rig
@@ -558,7 +558,7 @@ async fn a_stage_moves_no_card_and_merges_nothing_for_a_key_that_holds_less_than
             )
             .await;
         assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
-        assert!(said(&refused).contains(gives), "{refused}");
+        assert!(said(&refused).contains(why), "{refused}");
     }
 }
 

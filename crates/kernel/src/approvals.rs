@@ -85,6 +85,9 @@ pub enum Of {
     Steered(String),
     /// Reading the record a cell names, by the cell.
     Named(String),
+    /// What a cell the change leaves as it is took, while it says so
+    /// (`stands`), by the cell: asked of changing anything of the row.
+    Standing(String),
 }
 
 impl Of {
@@ -96,6 +99,7 @@ impl Of {
             Of::Cell(name) => format!("setting `{name}`"),
             Of::Steered(table) => format!("writing the rows of `{table}`, which this table steers"),
             Of::Named(name) => format!("reading what `{name}` names"),
+            Of::Standing(name) => format!("changing anything of a row whose `{name}` says what it does"),
         }
     }
 }

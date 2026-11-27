@@ -176,6 +176,17 @@ happens when the daemon stops in the middle of any of this is in
   what it has begun for each card is its own `had` list). Not built: giving a
   handler whose `for:` changed a fresh place, written with the text
   (`Taken::places`); `crates/api/tests/suite/comings.rs` says when it is.
+- **Whoever wrote something may wait for its hearers** (`Engine::handled`,
+  `delivery::Delivery::done_with`): each handler's waiter says, as it
+  comes back for more (`Inbox::rest`), the last event it has done with
+  (its run ended; begun, where it takes turns by a key; or passed over),
+  starting from its place. A wait is for the handlers on the index that
+  the event is for, in every conductor, looked at again when one stops
+  listening, so one that takes its place is waited for too. Nothing is
+  kept; a wait ends with the daemon, and none begins while it holds new
+  work. Only the API's record routes wait, for tables that steer
+  (`fleet.md`); a step never does, since its own handler may be the one
+  that hears it.
 - A handler's run that fails does not fail its instance and does not run
   the blueprint's `on_fail`, which belongs to its steps. It emits
   `run.failed`; dealing with it is another handler's job.

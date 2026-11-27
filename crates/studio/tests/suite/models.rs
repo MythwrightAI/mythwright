@@ -26,6 +26,8 @@ fn card_fields() -> Value {
         "due": { "type": "date" },
         "moved": { "type": "list" },
         "pressed": { "type": "list" },
+        "sent": { "type": "text" },
+        "given": { "type": "number" },
     })
 }
 
@@ -54,6 +56,7 @@ fn sample(kind: &str) -> Value {
         "actor" => json!("agent:builder"),
         "list" => json!(["one", "two"]),
         "date" => json!("2026-11-30"),
+        "number" => json!(3),
         other => panic!("a card has a `{other}`, and this test does not know what one holds"),
     }
 }

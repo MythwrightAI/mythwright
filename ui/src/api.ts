@@ -170,6 +170,8 @@ export interface Item {
   due?: string | null;
   /** How it came to be where it is, as its board wrote it with the move: where from, the kind of actor, what was said, how many moves. */
   moved?: string[];
+  /** How many more rounds than its stage allows it was given, all told, where it was given any. */
+  given?: number;
   /** What else its board keeps of it: the fields its blueprint declared beyond a card's own, where the card has one. */
   more?: Record<string, unknown>;
   position: number;
@@ -657,7 +659,7 @@ function keepPageKey(key: string | null | undefined, shows?: string | null): voi
   }
 }
 
-function pageShows(): string | null {
+export function pageShows(): string | null {
   try {
     return typeof localStorage === 'undefined' ? null : localStorage.getItem(PAGE_SHOWS);
   } catch {
@@ -897,7 +899,7 @@ export const api = {
   /** `fields` is what else its board keeps of a card, each by its name; nothing after a name clears it. */
   changeItem: (
     item: string,
-    body: Partial<Pick<Item, 'title' | 'body' | 'status' | 'labels'>> & { assignee?: string | null; due?: string | null; before?: string; note?: string; fields?: Record<string, unknown> },
+    body: Partial<Pick<Item, 'title' | 'body' | 'status' | 'labels'>> & { assignee?: string | null; due?: string | null; before?: string; note?: string; give?: number; fields?: Record<string, unknown> },
   ) => call<Item>('PATCH', `/board/items/${id(item)}`, body),
   /** One record as it is kept, a card included: what it holds, each field by its name. */
   record: (record: string) => call<Row>('GET', `/records/${id(record)}`),

@@ -36,8 +36,12 @@ pub struct Owed {
     pub most: i64,
     /// How often its row says it was sent back.
     pub rounds: i64,
+    /// How many more times than `most` it may be sent back, as whoever
+    /// gave it those said: its own, and no other item's.
+    pub given: i64,
     /// The items sent back from here, once for each time, as whoever
-    /// asks keeps them: each the item, or a mapping that names it.
+    /// asks keeps them: each the item, or a mapping that names it, which
+    /// says `behind` where it went back only to be brought up to date.
     pub back: Vec<Value>,
     /// The items that have a review under way, or were left, as whoever
     /// asks keeps them: each a mapping that names the item, or the item.
@@ -98,6 +102,19 @@ pub(crate) fn of(entry: &Value, item: &str) -> bool {
     }
 }
 
+/// How many times at most an item's branch is brought up to date with the
+/// project's, having no longer merged once it was approved, before it is
+/// left for a person: a project's branch that moves on in the way of the
+/// same files each time would otherwise have it go round for ever.
+pub const BEHIND: i64 = 3;
+
+/// Whether an entry of the items sent back says it went back only to be
+/// brought up to date with the project's branch (`behind`).
+fn brought(entry: &Value) -> bool {
+    matches!(entry.get("behind"), Some(Value::Bool(true)))
+        || entry.get("behind").and_then(Value::as_str) == Some("true")
+}
+
 /// What an item said to be due a review is owed.
 ///
 /// One that has a review under way, or was left for a person when it
@@ -116,6 +133,7 @@ pub fn owed(asked: &Owed) -> Result<OwedCame, String> {
         ("needed", asked.needed),
         ("most", asked.most),
         ("rounds", asked.rounds),
+        ("given", asked.given),
     ] {
         if count < 0 {
             return Err(format!("`{name}` is a count, and is not less than none; it is {count}"));
@@ -134,15 +152,28 @@ pub fn owed(asked: &Owed) -> Result<OwedCame, String> {
     if asked.held {
         return Ok(OwedCame::Held);
     }
-    let counted = asked.back.iter().filter(|entry| of(entry, &asked.item)).count() as i64;
-    let rounds = asked.rounds.max(counted);
-    Ok(if rounds >= asked.most {
+    // Sent back only to be brought up to date with the project's branch,
+    // it was not sent back for what was done, and that is not counted
+    // with the times it was; but for as many times of its own.
+    let (behind, counted): (Vec<&Value>, Vec<&Value>) =
+        asked.back.iter().filter(|entry| of(entry, &asked.item)).partition(|entry| brought(entry));
+    let rounds = asked.rounds.max(counted.len() as i64);
+    let behind = behind.len() as i64;
+    Ok(if rounds >= asked.most + asked.given {
         let said = format!(
             "{} is in {} again after being sent back {rounds} times. Nobody was asked this time: it is left for a \
              person to look at.",
             asked.item, asked.here
         );
         OwedCame::Left { rounds, said }
+    } else if behind >= BEHIND {
+        let said = format!(
+            "{} is in {} again after its branch was brought up to date with the project's {behind} times, having \
+             no longer merged once it was approved. Nobody was asked this time: it is left for a person to look \
+             at and merge.",
+            asked.item, asked.here
+        );
+        OwedCame::Left { rounds: behind, said }
     } else if !asked.by.is_empty()
         || (asked.agents > 0 && asked.agents >= asked.seats && asked.needed <= asked.seats)
     {
@@ -191,6 +222,10 @@ pub struct Verdict {
     pub why: String,
     /// What was said of a conflict by what was asked.
     pub conflict: String,
+    /// Where it no longer merged: the project's branch is being merged
+    /// into the item's where it was worked, and these files conflict.
+    pub begun: bool,
+    pub files: Vec<String>,
     /// Who decided it, what they said, and how many of how many.
     pub by: String,
     pub words: String,
@@ -199,6 +234,10 @@ pub struct Verdict {
     pub seats: i64,
     /// What reviews come to is said where the work is reported.
     pub reports: bool,
+    /// It was passed by a person who moved it on themselves, and not
+    /// approved by those who looked: `by` is that person, and nothing is
+    /// said where the work is reported.
+    pub person: bool,
 }
 
 /// What a verdict comes to.
@@ -266,9 +305,10 @@ pub fn verdict(asked: &Verdict) -> Result<(VerdictCame, String), String> {
     let several = asked.seats > 1;
     let said = if asked.words.is_empty() { ".".to_string() } else { format!(": {}", asked.words) };
     let there = asked.status == asked.here;
+    let did = if asked.person { "passed" } else { "approved" };
     match asked.verdict.as_str() {
         "passed" => {
-            let told = if asked.reports {
+            let told = if asked.reports && !asked.person {
                 let who = if several {
                     format!(", {} of {}", asked.approved, asked.seats)
                 } else {
@@ -281,7 +321,7 @@ pub fn verdict(asked: &Verdict) -> Result<(VerdictCame, String), String> {
             let of = if several { format!(", {} of {}", asked.approved, asked.seats) } else { String::new() };
             let on = |merged: bool| {
                 let was = if merged { format!("; lane/{item} was merged") } else { String::new() };
-                VerdictCame::On(format!("approved by {}{of}{was}", asked.by))
+                VerdictCame::On(format!("{did} by {}{of}{was}", asked.by))
             };
             let came = if asked.pass.is_empty() || !there {
                 VerdictCame::Nothing
@@ -294,8 +334,10 @@ pub fn verdict(asked: &Verdict) -> Result<(VerdictCame, String), String> {
                     "" => VerdictCame::Merge,
                     "merged" => on(true),
                     "nothing" => on(false),
+                    "conflict" if asked.begun => VerdictCame::Back(behind(asked)),
+                    "conflict" if !asked.why.is_empty() => stuck(asked, ""),
                     "conflict" => VerdictCame::Back(format!(
-                        "It was approved, and its branch lane/{item} no longer merges into the project's branch as \
+                        "It was {did}, and its branch lane/{item} no longer merges into the project's branch as \
                          that is now. Merge the project's branch into yours, put right what conflicts, and hand it \
                          in again. What git said: {}",
                         asked.conflict
@@ -338,9 +380,47 @@ pub fn verdict(asked: &Verdict) -> Result<(VerdictCame, String), String> {
     }
 }
 
+/// How many files that conflict are named in what whoever works an item
+/// is told; git names the rest.
+const NAMED: usize = 20;
+
+/// What whoever works an item is told where its branch no longer merged,
+/// and the project's branch is being merged into it for them.
+fn behind(asked: &Verdict) -> String {
+    let item = &asked.item;
+    let mut files = asked.files.iter().take(NAMED).map(String::as_str).collect::<Vec<_>>().join(", ");
+    if asked.files.len() > NAMED {
+        files = format!(
+            "{files} and {} more (`git diff --name-only --diff-filter=U` lists them all)",
+            asked.files.len() - NAMED
+        );
+    }
+    let said = if asked.conflict.trim().is_empty() {
+        String::new()
+    } else {
+        format!(" What git said: {}", asked.conflict.trim())
+    };
+    let did = if asked.person { "passed" } else { "approved" };
+    format!(
+        "It was {did}, and its branch lane/{item} no longer merges into the project's branch as that is now. \
+         The project's branch is being merged into yours where you work, and that merge is under way for you: \
+         what conflicts is marked in {files}, as git marks it. Put each right, keeping what both sides meant, and \
+         leave no marker. Change files and nothing else: do not run git to commit, merge or call the merge off. \
+         What you leave is committed as the end of that merge, and it is looked at again.{said}"
+    )
+}
+
 /// The sentence for a merge something is in the way of.
 fn stuck(asked: &Verdict, otherwise: &str) -> VerdictCame {
     let why = if asked.why.is_empty() { otherwise } else { &asked.why };
+    // A person's pass has moved it on already, unmerged.
+    if asked.person {
+        return VerdictCame::Stuck(format!(
+            "{} was passed by {}, and its branch lane/{} could not be merged into the project's: {why}. It is in \
+             {}, and is not merged; when what is in the way is put right, merge it.",
+            asked.item, asked.by, asked.item, asked.pass
+        ));
+    }
     VerdictCame::Stuck(format!(
         "{} was approved by {}, and its branch lane/{} could not be merged into the project's: {why}. It stays in \
          {}; when what is in the way is put right, merge it and move it on.",
@@ -389,7 +469,8 @@ pub fn register(registry: &mut Registry) {
         .arg("needed", T::Int, "how many have to approve")
         .arg("most", T::Int, "how often at most an item is sent back before it is left")
         .arg("rounds", T::Int, "how often its row says it was sent back")
-        .arg("back", T::List, "the items sent back from here, once for each time, as whoever asks keeps them")
+        .arg("given", T::Int, "how many more times than `most` the item may be sent back, given it alone (`given` of a card)")
+        .arg("back", T::List, "the items sent back from here, once for each time, as whoever asks keeps them; one that says `behind` went back only to be brought up to date with the project's branch, and is counted apart")
         .arg("kept", T::List, "the items that have a review under way or were left, as whoever asks keeps them")
         .arg("again", T::Bool, "its review says itself that another is to begin")
         .arg("by", T::String, "one agent a rung of the project's chain names to review it, where nobody of the role is there to; only the review that ships is handed one")
@@ -433,6 +514,7 @@ pub fn register(registry: &mut Registry) {
                 needed: count("needed"),
                 most: count("most"),
                 rounds: count("rounds"),
+                given: count("given"),
                 back: list("back"),
                 kept: list("kept"),
                 again: flag("again"),
@@ -502,16 +584,20 @@ pub fn register(registry: &mut Registry) {
         .arg("failed", T::Bool, "asking that failed outright")
         .arg("why", T::String, "why it failed, or why it is stuck")
         .arg("conflict", T::String, "what was said of a conflict")
+        .arg("begun", T::Bool, "where it no longer merged: the project's branch is being merged into the item's where it was worked, for whoever works it")
+        .arg("files", T::List, "and the files that conflict there")
         .arg("by", T::String, "who decided it")
         .arg("words", T::String, "what they said")
         .arg("approved", T::Int, "how many approved")
         .arg("against", T::Int, "how many sent it back")
         .arg("seats", T::Int, "how many looked")
         .arg("reports", T::Bool, "what reviews come to is said where the work is reported")
+        .arg("person", T::Bool, "it was passed by a person who moved it on themselves (`by`), and not approved by those who looked: said so, and nothing is said where the work is reported")
         .output("came", "`merge`, `on`, `back`, `stuck`, `left` or `nothing`")
         .output("says", "for `on` and `back`: what is said as the item is moved; for `stuck` and `left`: the sentence")
         .output("told", "what is said of the verdict where the work is reported; empty where nothing is")
         .output("word", "the same as the word a thing done with an item ends with: `on`, `back`, `left` (for `stuck` too), `nothing`; empty for `merge`")
+        .output("behind", "for `back`: it goes back only to be brought up to date with the project's branch, which is no verdict on it and is not counted among the times it was sent back")
         .idempotent(),
         move |_, args| async move {
             let text = |key: &str| args.get(key).and_then(Value::as_str).unwrap_or_default().to_string();
@@ -529,16 +615,24 @@ pub fn register(registry: &mut Registry) {
                 failed: flag("failed"),
                 why: text("why"),
                 conflict: text("conflict"),
+                begun: flag("begun"),
+                files: args
+                    .get("files")
+                    .and_then(Value::as_array)
+                    .map(|files| files.iter().filter_map(Value::as_str).map(str::to_string).collect())
+                    .unwrap_or_default(),
                 by: text("by"),
                 words: text("words"),
                 approved: count("approved"),
                 against: count("against"),
                 seats: args.get("seats").and_then(Value::as_i64).unwrap_or(1),
                 reports: flag("reports"),
+                person: flag("person"),
             };
             let (came, told) = verdict(&asked).map_err(ActionError::new)?;
             let word = crate::decided::word(&came);
-            Ok(json!({ "came": came.word(), "says": came.words(), "told": told, "word": word }))
+            let behind = matches!(came, VerdictCame::Back(_)) && asked.merged == "conflict";
+            Ok(json!({ "came": came.word(), "says": came.words(), "told": told, "word": word, "behind": behind }))
         },
     );
     add(

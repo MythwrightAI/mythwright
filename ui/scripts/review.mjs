@@ -24,7 +24,8 @@
 //
 // And a board whose fleet says where a card that did not pass goes: sent
 // back, a card goes where the row of the stage that has it says, which
-// the drawer names, and when the row says somewhere else, there.
+// the drawer names, and when the row says somewhere else, there. And one
+// sent back as often as that row allows is offered one more round.
 //
 // There is no lane here to take the card up again: that is the daemon's
 // business and its own tests'. This is what a person sees and presses. The
@@ -580,6 +581,36 @@ try {
     await close();
     await page.waitForTimeout(100);
   }
+  const oneMore = drawer.getByRole('button', { name: 'One more round', exact: true });
+  expect('no One more round on a card its stage would look at again', (await oneMore.count()) === 0);
+  await close();
+
+  // ---- one card given one more round than its stage allows -------------------
+  // Sent back twice already, and the row says twice is all: sent back as
+  // it is it would be left again, so the drawer offers one more round
+  // with it, which goes where Send back goes, given and said so.
+  await cli('record', 'set', reviews.id, 'rounds=2');
+  for (let tries = 0; ; tries += 1) {
+    await parcels.click();
+    await box.waitFor();
+    if ((await oneMore.count()) === 1) break;
+    if (tries === 50) throw new Error('expected the drawer to offer one more round on a card sent back as often as its stage allows');
+    await close();
+    await page.waitForTimeout(100);
+  }
+  expect(`the drawer to say what one more round does, got "${await goes.innerText()}"`, (await goes.innerText()).includes('given one more round, it is told what it was last sent back with'));
+  await page.screenshot({ path: `${out}/review-15-one-more-round.png` });
+  await oneMore.click();
+  await column('doing').locator('.card', { hasText: 'Weigh the parcels' }).waitFor();
+  await drawer.waitFor({ state: 'detached' });
+  const gave = (await cli('board', 'history', 'depot-1')).stdout.trim().split('\n').map((line) => line.replace(/^\S+\s+/, '')).at(-1);
+  expect(`the history to say it was given one more round with what it was last sent back with, got "${gave}"`, gave === 'Ada moved it from review to doing, saying: When it was last sent back: The scale reads in pounds., giving it more rounds: 1');
+  // Back in review, it has its round still: nothing more is offered.
+  await cli('board', 'move', 'depot-1', 'review');
+  await column('review').locator('.card', { hasText: 'Weigh the parcels' }).waitFor();
+  await parcels.click();
+  await box.waitFor();
+  expect('no One more round on a card that has its round still', (await oneMore.count()) === 0);
   await close();
 
   // ---- a card left for a person says why where the person looks -------------------

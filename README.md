@@ -630,9 +630,10 @@ those tables:
 | A council on three models | three rows of the reviewer's role, each on its own model | a card passes when two approve |
 | Tested after review | a row for a role that tests | another column and its row, and review told to send cards on there |
 
-When you pass a card yourself by moving it to done, its work is left on
-its branch for you to merge, unless the stage's row says to merge it
-(`by_hand: merge`). Anything more done with a card is a row in a third
+When you pass a card yourself by moving it to done, its branch is merged
+as one an agent approves is, where the stage's row says `merge` (as the
+review stage's does); a row that says `by_hand: leave` leaves it on its
+branch for you. Anything more done with a card is a row in a third
 table, `segments`. For example, the project's tests can run before anybody
 looks at a card (`mw record add shop segments title=Tests stage=review order=5
 does=std/run command='cargo test'`), and a card that fails them goes back

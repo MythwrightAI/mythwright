@@ -70,8 +70,8 @@
 #   with `fetch` pulled down from the remote where the remote has one for
 #   it, and with `push` sent there when the worker has finished.
 # - **Worked, it goes to review.** With no reviewers it waits there for a
-#   person. With some it is reviewed by them, each for itself, and passes
-#   when more than half approve (`std/review`).
+#   person, who passes it by moving it on. With some, each looks at it
+#   for itself, and it passes when more than half approve (`std/review`).
 # - **Sent back**, the worker that did it takes it up again, in the
 #   conversation it was worked in, and is told what was said. That goes
 #   round as often as the stage's `rounds` allows; after that the card is
@@ -86,7 +86,7 @@
 # work and leaves when it has finished what it has in hand); and what
 # becomes of a review in session is its stage's to say (`in_flight`).
 blueprint: std/fleet
-version: 28
+version: 31
 description: The agents that work a project's board and the way work goes through them, kept as two tables of the project and changed by changing a row.
 permissions: [fleet, channels, board, agents, blueprints, shell, records, projects]
 
@@ -263,9 +263,9 @@ steps:
         # How much one may do unasked: `read` looks and changes nothing,
         # and `full` runs commands with nobody asked. That is letting a
         # program at this device, as the agent's own route takes it to
-        # be: saying `full` takes `shell` of whoever changes the cell,
-        # beside what changing the row takes.
-        permission: { type: choice, of: [read, edit, full], takes: { full: shell } }
+        # be: saying `full` takes `shell`, and while the row says it so
+        # does changing anything of the row (`stands`), as the route asks.
+        permission: { type: choice, of: [read, edit, full], takes: { full: shell }, stands: true }
         # What each one's credential holds, as scopes, which is what it
         # may ask of the factory: what an agent usually holds, if not said
         # (`unsaid`, which is that list). The fleet gives it as whoever
@@ -290,16 +290,16 @@ steps:
         # a home of its own and what is added below, and nothing else of
         # this device. It does unless this says `off`. Saying so, like
         # showing it more below, is letting a program at this device: it
-        # takes `shell` of whoever changes the cell, beside what changing
-        # the row takes. Saying `on` again, or nothing, takes no more
-        # than changing the row does.
-        wall: { type: choice, of: [on, off], takes: { off: shell } }
+        # takes `shell`, and while the row says so, so does changing
+        # anything of the row. Saying `on` again, or nothing, takes no
+        # more than changing the row does.
+        wall: { type: choice, of: [on, off], takes: { off: shell }, stands: true }
         # What else its program may read behind its wall, and what else it
         # may change: folders or files, written from the top or from the
         # home of whoever runs the daemon (`~/.cargo`). A toolchain it
         # builds with goes here.
-        reads: { type: list, takes: shell }
-        changes: { type: list, takes: shell }
+        reads: { type: list, takes: shell, stands: true }
+        changes: { type: list, takes: shell, stands: true }
         # What its program may do with the project's repository behind
         # its wall: nothing, read it (if not said: what it changes is
         # committed for it), commit its own work, or write to all of it.
@@ -308,9 +308,9 @@ steps:
         # The keys its program is handed: secrets the factory keeps, each
         # under a variable of the program's environment, written
         # `VARIABLE=name` (`REMOTE_TOKEN=remote-bot`). A key of another
-        # service's, which says what the agent may do there. Handing one
-        # takes `secrets:use` of whoever changes the cell.
-        secrets: { type: list, takes: "secrets:use" }
+        # service's, which says what the agent may do there. Handing one,
+        # or changing a row that hands one, takes `secrets:use`.
+        secrets: { type: list, takes: "secrets:use", stands: true }
         # Whether each one's program goes on without the daemon: started
         # so that it does not end when the daemon does, and taken up where
         # it is by the next one, still at work or finished, so that its
@@ -361,19 +361,19 @@ steps:
       project: "${params.project}"
       # And whoever changes a stage changes who looks at whose work.
       takes: agents:write
-      # A stage gives the fleet's agents their work, as whoever applied
-      # the fleet: whichever of them its row comes to, by the role it
-      # says, by what it is called where it says none, or by a blueprint
-      # of its own that it has started. So whoever adds a stage, or
-      # changes anything of one, could have written each row of `agents`
-      # as it stands, and holds what each of them gives: nobody has an
-      # agent that holds more than they do given work by saying so here.
+      # A stage gives the fleet's agents their work, and moves its cards,
+      # as whoever applied the fleet: whichever agents its row comes to,
+      # by the role it says, by what it is called where it says none, or
+      # by a blueprint of its own. So whoever adds a stage, or changes
+      # anything of one, could have written each row of `agents` as it
+      # stands, and holds what moving a card takes (`title`, which every
+      # row says): nobody has done by saying so here what they may not do.
       steers: agents
       # A row is about a column of the board, which says so at its head.
       beside: board
       about: column
       fields:
-        title: { type: text, required: true }
+        title: { type: text, required: true, takes: "board:write", stands: true }
         # The column whose cards are this stage's; the one it is called
         # after, if it is not said.
         column: { type: text }
@@ -401,6 +401,13 @@ steps:
         # (if 0 or not said), and never more than that.
         next: { type: choice, of: [first, last, priority] }
         at_once: { type: number }
+        # When the next card is taken, where cards are worked: as soon as
+        # the last is handed on (if it is not said), or only once none
+        # worked from here waits unmerged, in hand or where it was handed
+        # on to (`merged`), which is one card at a time. A card's branch is
+        # cut from the project's as it is when its card is taken, so one
+        # taken while the last is in review has nothing of that one's work.
+        next_after: { type: choice, of: [handed, merged] }
         # The blueprint that reviews one card here, where cards are
         # reviewed, and the one that plans one, where they are planned:
         # the fleet's (`review`, `proposal`), if it is not said. One of the
@@ -418,14 +425,14 @@ steps:
         # it is not said; no bound but the list's own length, for 0.
         most: { type: number }
         # Whether a card's branch is merged into the project's when it passes.
-        merge: { type: flag }
+        merge: { type: flag, takes: { "true": "projects:write" }, stands: true }
         # What becomes of a card's branch when a person passes the card
-        # themselves, moving it on from here: left as it is, unless this
-        # says `merge`. Then it is merged into the project's as one that
-        # agents approved is, where whoever moved the card holds what
-        # changing the project's files takes (`projects:write`); one who
-        # does not has passed the card and merged nothing, and the
-        # channel says so and what to do.
+        # themselves, moving it on from here: as `merge` says, if this is
+        # not said. Merged (`merge`) into the project's as one that agents
+        # approved is, where whoever moved the card holds what changing
+        # the project's files takes (`projects:write`); one who does not
+        # has passed the card and merged nothing, and the channel says so
+        # and what to do. Or left as it is (`leave`).
         by_hand: { type: choice, of: [leave, merge] }
         # What becomes of a review in session when this row is changed.
         in_flight: { type: choice, of: [finish, restart] }
@@ -528,16 +535,16 @@ steps:
         # How often it is given again at most before its card is left for
         # a person: 2, if not said.
         rounds: { type: number }
-        # A command of the project's own, for `std/run`; anything else its
-        # blueprint has a param for, each `name=value`. Either is run as
-        # whoever applied the fleet (`shell`), and a param may name a secret.
-        command: { type: text, takes: shell }
-        with: { type: list, takes: [shell, secrets:use] }
+        # A command of the project's own, for `std/run`, or a param of its
+        # blueprint (`name=value`), each run as whoever applied the fleet
+        # (`shell`, and a param may name a secret), as the whole row then is.
+        command: { type: text, takes: shell, stands: true }
+        with: { type: list, takes: [shell, secrets:use], stands: true }
         # A table each run of `command` is kept in as a row (`std/run`),
         # made the first time. What the command printed is written there
         # as whoever applied the fleet, so saying where takes what saying
         # the command does.
-        record_to: { type: text, takes: shell, suggests: [test-runs] }
+        record_to: { type: text, takes: shell, stands: true, suggests: [test-runs] }
         # How long `command` may run before whoever `tells` names for
         # `slow` is told, once (`std/run`), as `20m`. It is not stopped.
         warn_after: { type: text, suggests: [20m] }

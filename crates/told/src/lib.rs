@@ -263,7 +263,7 @@ pub async fn press(
     let did = match &done {
         Done::Moved { to, said } => {
             let said = Some(said.as_str()).filter(|said| !said.is_empty());
-            studio.board.move_said(card, to, (None, said), who, actor).await?;
+            studio.board.move_said(card, to, (None, said, 0), who, actor).await?;
             json!({ "moved": to, "said": said })
         }
         Done::Passed { then } => {
@@ -273,7 +273,7 @@ pub async fn press(
             match then {
                 Then::Nothing => json!({ "approved": true }),
                 Then::Move(to) => {
-                    studio.board.move_said(card, to, (None, None), who, actor).await?;
+                    studio.board.move_said(card, to, (None, None, 0), who, actor).await?;
                     json!({ "approved": true, "moved": to })
                 }
                 Then::Press(action) => {

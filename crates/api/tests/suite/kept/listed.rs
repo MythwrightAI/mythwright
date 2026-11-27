@@ -108,6 +108,14 @@ pub(super) const READS_AS_THE_DAEMON: &[(&str, &str, usize, &str)] = &[
 /// said of a kept channel is handed to anybody by it unasked.
 pub(super) const READS_WHAT_WAS_SAID: &[(&str, &str, usize, &str)] = &[
     (
+        "crates/api/src/taken.rs",
+        "let written = journal.read(query).await.ok()?;",
+        1,
+        "what a write of a row that steers waits for (`api::taken`): rows of tables that steer or are steered, \
+         of the project just written to, read to wait for their hearers; nothing is handed on but, where the \
+         wait runs out, the id of the row still waited for and who had not taken it",
+    ),
+    (
         "crates/api/src/followers.rs",
         "let mut heard = journal.follow_every(from, HEARD);",
         1,

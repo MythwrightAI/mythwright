@@ -291,7 +291,7 @@ function offered(marked: string): string[] {
 const TABLE = 'blueprint: b\nsteps:\n  t:\n    do: collection.ensure\n    with:\n      name: t\n';
 
 test('writing inside a field offers the keys it does not have yet, in braces and as a block', () => {
-  const all = ['type', 'required', 'of', 'quiet', 'hidden', 'said', 'indexed', 'suggests', 'zoned', 'calls', 'writer_of', 'icon', 'takes', 'unsaid'];
+  const all = ['type', 'required', 'of', 'quiet', 'hidden', 'said', 'indexed', 'suggests', 'zoned', 'calls', 'writer_of', 'icon', 'takes', 'unsaid', 'stands'];
   assert.deepEqual(offered(`${TABLE}      fields:\n        title: { | }\n`), all);
   assert.deepEqual(offered(`${TABLE}      fields:\n        title: { type: text, quiet: true, | }\n`), all.filter((key) => key !== 'type' && key !== 'quiet'));
   assert.deepEqual(offered(`${TABLE}      fields:\n        title:\n          type: text\n          |\n`), all.filter((key) => key !== 'type'));

@@ -440,7 +440,7 @@ async fn nothing_that_ships_warns_where_it_is_applied_and_what_would_for_no_proj
         ("site", &["changed", "many"]),
         ("timed", &["came", "columns", "declared"]),
         ("told", &["held"]),
-        ("working", &["added", "arrived", "away", "back", "done", "pressed"]),
+        ("working", &["added", "arrived", "away", "back", "done", "pressed", "unboarded", "unmerged"]),
     ];
     let expected: Vec<String> = only_a_projects
         .iter()

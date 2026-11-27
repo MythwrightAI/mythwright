@@ -158,7 +158,9 @@ mw record set shop-stages-2 seats=3 needed=2 reports=verdicts
 the council passes is merged into the project's branch and moved to `done`;
 one it fails goes back to the worker that did it, with what those against
 it said, as often as the stage's `rounds` allows (two, as it starts). One
-whose branch no longer merges goes back to its worker too. `reports=verdicts`
+whose branch no longer merges has the project's branch merged into it,
+and goes back to its worker only for the files that conflict, which is
+not counted against `rounds`. `reports=verdicts`
 has the stage say in the channel what each review came to and who looked.
 
 The agents need a real program to do any of this: out of the box they run

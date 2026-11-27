@@ -152,6 +152,13 @@ opt-level = 3
 # tenth of a second, and the suites apply and take up thousands.
 [profile.dev.package.blueprint]
 opt-level = 3
+# And what reads a text into its tree, which came out of `blueprint`
+# into a crate of its own and so out from under that line. Unoptimised
+# it was a tenth of what the API's suite asked of the processors: 120
+# and 123 s as it was, 111 and 110 s with this, alone in a lane of
+# eight, in alternation (2026-11-26, docs/build-times.md).
+[profile.dev.package.reader]
+opt-level = 3
 # The runner and what it stands on are where the suites spend their
 # time: a play of the runner's suite is some two hundred turns of the
 # database, there are seven thousand plays, and every node of the other

@@ -243,6 +243,20 @@ with more authority than whoever asked for it.
   the studio suite's `steered.rs`, `snapshots.rs`.
 - A cell of an agent row that gives its program more says what that value
   takes (`permission: full` says `takes: { full: shell }`).
+- A cell whose value lets something with more authority do more beside
+  cells that say what that does says `stands` (`Field::stands`,
+  `crates/studio/src/stood.rs`): while the record says that value, adding
+  it or changing any cell of it takes what the value took, checked on the
+  record as written in `fields::may_set`, so every door that writes cells
+  asks it. In `std/fleet`: an agent's `wall`, `permission`, `reads`,
+  `changes` and `secrets` (as `Agents::ensure` asks of anything said of
+  such a slot; `outlives` and `web` it asks only on turning on, so they do
+  not stand), a stage's `title` (`board:write`: a stage moves its cards as
+  whoever applied the fleet) and `merge` (`projects:write`), and a
+  segment's `command`, `with` and `record_to`. An ask shows such a scope as
+  `Of::Standing`. Declaring a field again so that it does not stand takes
+  holding what it took. Tests: API suite `deputised.rs`, `asked.rs`; the
+  studio suite's `stood.rs`.
 - A cell whose value becomes a param of a blueprint run as whoever
   applied the fleet is guarded at least as the param's own cell:
   `with` of `segments` takes `shell` and `secrets:use`, and may never set
@@ -417,13 +431,24 @@ with more authority than whoever asked for it.
 - A browser's session counts only with the key its page keeps
   (`x-page-key`, `studio::Came`). A check that calls the daemon from inside
   the page sends it (`localStorage['page-key']`). What the browser fetches
-  by itself and only reads (a picture, an attachment, the event stream)
+  by itself and only reads (a picture, an attachment, the event stream, a
+  library's pages and a mockup's address opened in a tab of their own)
   cannot send a header, and counts with what its address carries beside
   the cookie (`by`, `shown` in `ui/src/api.ts`): a new address of that kind
   is made with `shown` and added to `state::shown`, and only if it reads.
-  The cookie alone is accepted only for `state::by_itself` (the pages of a
-  library and of mockups, whose own links a browser follows); nothing is
-  added there. A cookie is sent to every port of the machine.
+  The cookie alone reads nothing. A cookie is sent to every port of the
+  machine.
+- A page the browser opens at its address and then follows the links of
+  (a library's) takes `api::through::Opened`, not `Auth`: what the address
+  said beside the cookie comes with who asked, and every link the page is
+  written with that leads somewhere on the daemon says it again
+  (`kernel::addressed::saying`; `served::library` for a page served, never
+  for one written out). Opened where it says nothing that counts (typed,
+  kept from before), it is sent to the client's page (`/?to=...`), which
+  adds what it shows and sends the browser on, signing in whoever is not
+  first (`ui/src/senton.ts`, which sends on only to such pages). Anything
+  other than a browser opening a page is told to sign in, as anywhere.
+  Tested in `crates/api/tests/suite/alone.rs`.
 - An SVG attached is handed over to be drawn (`image/svg+xml`, inline): an `<img>` runs nothing
   in it, and opened by itself it is held by the policy every attachment is sent with
   (`sandbox; default-src 'none'`). A picture in somebody's words at an address elsewhere is drawn

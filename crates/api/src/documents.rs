@@ -3,12 +3,13 @@
 //! when this crate was at its ceiling.
 
 use axum::Router;
-use axum::extract::{Path, State};
+use axum::extract::{Path, RawQuery, State};
 use axum::response::{Redirect, Response};
 use axum::routing::get;
 
 use crate::http::ApiResult;
-use crate::state::{App, Auth};
+use crate::state::App;
+use crate::through::Opened;
 
 /// Follows the folders of every library for as long as the daemon runs.
 pub async fn follow(app: App) {
@@ -23,22 +24,22 @@ pub fn routes() -> Router<App> {
 }
 
 /// A library's address is a folder's: what its pages link to is beside it.
-async fn to_front(Path((project, name)): Path<(String, String)>) -> Redirect {
-    served::library::to_front(&project, &name)
+async fn to_front(Path((project, name)): Path<(String, String)>, RawQuery(query): RawQuery) -> Redirect {
+    served::library::to_front(&project, &name, query.as_deref())
 }
 
 async fn front(
     State(app): State<App>,
-    Auth(who): Auth,
+    opened: Opened,
     Path((project, name)): Path<(String, String)>,
 ) -> ApiResult<Response> {
-    Ok(served::library::front(&app.studio, &who, &project, &name).await?)
+    Ok(served::library::front(&app.studio, &opened.who, &project, &name, &opened.said).await?)
 }
 
 async fn page(
     State(app): State<App>,
-    Auth(who): Auth,
+    opened: Opened,
     Path((project, name, path)): Path<(String, String, String)>,
 ) -> ApiResult<Response> {
-    Ok(served::library::page(&app.studio, &who, &project, &name, &path).await?)
+    Ok(served::library::page(&app.studio, &opened.who, &project, &name, &path, &opened.said).await?)
 }

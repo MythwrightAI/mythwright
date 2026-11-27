@@ -272,3 +272,42 @@ async fn an_approved_change_of_a_card_is_made_by_the_board_and_its_history_says_
     };
     rig.event("collection.history", line).await;
 }
+
+#[tokio::test]
+async fn what_a_cell_the_ask_leaves_as_it_is_took_while_the_row_says_so_is_shown_and_asked_of_whoever_approves()
+ {
+    let (rig, _at) = fleet_rig().await;
+    shop(&rig, json!({})).await;
+    // The owner took the reviewer's wall away: what it is told is then
+    // what runs with no wall.
+    crate::fleets::change(&rig, "agents", "reviewer", json!({ "wall": "off" })).await;
+    let worker = token_of(&rig, "shop-worker-1");
+    let reviewer = row(&rig, "agents", "reviewer").await;
+    let asked = json!({ "record": reviewer, "set": { "told": "Pass what the worker sends." } });
+    let (status, came) = asking(&rig, &worker, asked).await;
+    assert_eq!((status, &came["came"]), (StatusCode::OK, &json!("asked")), "{came}");
+    // What the cell asked for takes is shown, and beside it what changing
+    // the row at all takes while it has no wall.
+    assert_eq!(came["ask"]["cells"][0]["name"], "told", "{came}");
+    assert_eq!(came["ask"]["cells"][0]["takes"], json!([]), "{came}");
+    let whole = came["ask"]["takes"].as_array().unwrap();
+    assert!(whole.contains(&json!({ "scope": "shell", "held": false })), "{came}");
+
+    // One that may change agents and runs no command may not approve it.
+    let id = came["ask"]["ask"].as_str().unwrap().to_string();
+    let path = format!("/api/asked/{id}");
+    let narrow = key(&rig, &holding(&["records", "agents"])).await;
+    let (_, shown) = rig.call(Method::GET, &path, Some(&narrow), None).await;
+    assert_eq!(shown["may"], json!(false), "{shown}");
+    assert!(shown["why_not"].as_str().unwrap().contains("whose `wall` says `off`"), "{shown}");
+    let (status, refused) = rig.call(Method::POST, &format!("{path}/approve"), Some(&narrow), None).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "{refused}");
+    assert_eq!(rig.read(&format!("/api/records/{reviewer}")).await["data"]["told"], Value::Null);
+    // The owner does.
+    let (status, approved) = rig.call(Method::POST, &format!("{path}/approve"), Some(&rig.token), None).await;
+    assert_eq!((status, &approved["status"]), (StatusCode::OK, &json!("approved")), "{approved}");
+    assert_eq!(
+        rig.read(&format!("/api/records/{reviewer}")).await["data"]["told"],
+        "Pass what the worker sends."
+    );
+}

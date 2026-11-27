@@ -85,6 +85,10 @@ pub struct Through {
     /// on a record, which the step looks for by it where it is done
     /// again after a stop (`crate::left`). Nothing for no step's doing.
     pub doing: Option<String>,
+    /// It sends a card back for something other than a verdict on its
+    /// work, which whatever counts how often a card was sent back leaves
+    /// out: said with the move.
+    pub uncounted: bool,
 }
 
 /// Where an event about a card comes from, and what it says did it.
@@ -296,7 +300,10 @@ pub fn rules() -> Vec<Rule> {
     };
     vec![
         says("board.item.created", "{actor} added it to {status}"),
-        says("board.item.moved", "{actor} moved it from {from} to {to}[, saying: {note}]"),
+        says(
+            "board.item.moved",
+            "{actor} moved it from {from} to {to}[, saying: {note}][, giving it more rounds: {given}]",
+        ),
         says("board.item.updated", "{actor} changed its {changed}"),
         says("board.item.removed", "{actor} took it away"),
         // What is said on the card itself: whatever anyone says, and what
@@ -810,15 +817,17 @@ impl Board {
     /// the event says that key did it (`said`, `key:<id>`), and not the
     /// account the key is of, which may hold more than the key does.
     /// Whatever then asks what the mover holds is answered for the key.
+    /// `give` is how many more rounds than its stage allows the move
+    /// gives the card ([`crate::cards::sending`]).
     pub async fn move_said(
         &self,
         id: &str,
         status: &str,
-        (before, note): (Option<&str>, Option<&str>),
+        (before, note, give): (Option<&str>, Option<&str>, u64),
         by: &Principal,
         said: &str,
     ) -> Result<Item> {
-        self.moved(id, status, (before, note), by, None, Some(said)).await
+        self.moved(id, status, (before, note, give), by, None, Some(said)).await
     }
 
     /// The same, with what was said as it was moved (`note`: why a card in
@@ -834,14 +843,14 @@ impl Board {
         by: &Principal,
         through: Option<&Through>,
     ) -> Result<Item> {
-        self.moved(id, status, (before, note), by, through, None).await
+        self.moved(id, status, (before, note, 0), by, through, None).await
     }
 
-    async fn moved(
+    pub(crate) async fn moved(
         &self,
         id: &str,
         status: &str,
-        (before, note): (Option<&str>, Option<&str>),
+        (before, note, give): (Option<&str>, Option<&str>, u64),
         by: &Principal,
         through: Option<&Through>,
         said: Option<&str>,
@@ -875,6 +884,13 @@ impl Board {
             }
             None => lowest(highest(None).await?),
         };
+        // What it was last sent back with, and what it was given, go on
+        // the row in the same write; a move that gives says those words.
+        let was = crate::cards::Sending { note: String::new(), sent: card.sent.clone(), given: card.given };
+        let went =
+            crate::cards::sending(&columns_of(&board), (&from, status), note.unwrap_or_default(), give, was);
+        (card.sent, card.given) = (went.sent, went.given);
+        let note = Some(went.note.as_str()).filter(|note| !note.is_empty());
         card.status = status.to_string();
         let actor = said.map(str::to_string).unwrap_or_else(|| by.actor());
         // How it came to be there goes on the row in the write that puts
@@ -903,6 +919,12 @@ impl Board {
             });
             if let Some(note) = note.map(str::trim).filter(|note| !note.is_empty()) {
                 data["note"] = json!(note);
+            }
+            if through.is_some_and(|through| through.uncounted) {
+                data["uncounted"] = json!(true);
+            }
+            if give > 0 {
+                data["given"] = json!(give);
             }
             let told = match (through, said) {
                 (None, Some(said)) => (Source::actor(said), data),

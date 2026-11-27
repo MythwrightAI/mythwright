@@ -485,10 +485,16 @@ try {
   await bubble.click();
   await page.locator('.doc-tools, .doc-tools-leaving').waitFor({ state: 'detached' });
 
-  // The library as pages: its front page, a document, and the link between them.
+  // The library as pages: its front page, a document, and the link between them. Opened at its bare
+  // address (typed, kept), it is sent through the client, which says beside the browser's cookie what this
+  // page shows (`by`) and sends it on: the cookie, which a browser hands to every port, reads nothing alone.
   const pages = await context.newPage();
+  pages.on('pageerror', (err) => problems.push(err.message));
   await pages.goto(`${url}/library/shop/docs/`);
   await pages.getByRole('heading', { name: 'Shop docs', level: 1 }).waitFor();
+  const saysBy = (address, path) => new URL(address).pathname === path && /^[0-9a-f]{64}$/.test(new URL(address).searchParams.get('by') ?? '');
+  expect(`the front page to be at its address with what the page shows, got ${pages.url()}`, saysBy(pages.url(), '/library/shop/docs/'));
+  console.log(`the library's front page is at ${pages.url()}`);
   expect('the front page to list the folder', (await pages.getByRole('heading', { name: 'guides', level: 2 }).count()) === 1);
   // The contents are beside every page served, as they are beside every page written out, with the page showing marked.
   const marked = async (words) => (await pages.locator('nav.page-nav a[aria-current="page"]').innerText()) === words;
@@ -496,6 +502,8 @@ try {
   await pages.screenshot({ path: `${out}/library-3-front.png` });
   await pages.locator('main').getByRole('link', { name: 'Installing it' }).click();
   await pages.getByRole('heading', { name: 'Installing it', level: 1 }).waitFor();
+  expect(`a link followed to say it again, got ${pages.url()}`, saysBy(pages.url(), '/library/shop/docs/guides/install.md'));
+  console.log(`a document of it is at ${pages.url()}`);
   expect('a document served to be marked in the contents beside it', await marked('Installing it'));
   expect('a table in a document to be drawn as one', (await pages.locator('table td', { hasText: 'It is unpacked' }).count()) === 1);
   await pages.screenshot({ path: `${out}/library-4-page.png` });
@@ -503,10 +511,20 @@ try {
   await pages.getByRole('heading', { name: 'Welcome', level: 1 }).waitFor();
   await pages.locator('main').getByRole('link', { name: 'Shop docs' }).click();
   await pages.getByRole('heading', { name: 'Shop docs', level: 1 }).waitFor();
-  // Nothing of it is there for someone who is not signed in.
-  const stranger = await browser.newContext();
-  const refused = await (await stranger.newPage()).goto(`${url}/library/shop/docs/`);
-  expect(`the pages to be refused to someone not signed in, got ${refused.status()}`, refused.status() === 401);
+  // Nothing of it is there for someone who is not signed in: they come to where they sign in, and once
+  // they have, they are sent on to it.
+  const stranger = await browser.newContext({ viewport: { width: 1280, height: 860 }, colorScheme: process.env.SCHEME ?? 'dark' });
+  const outside = await stranger.newPage();
+  outside.on('pageerror', (err) => problems.push(err.message));
+  await outside.goto(`${url}/library/shop/docs/guides/install.md`);
+  await outside.locator('.opens-with').waitFor();
+  expect(`someone not signed in to be shown no page of it, got ${outside.url()}`, (await outside.getByRole('heading', { name: 'Installing it' }).count()) === 0);
+  await outside.screenshot({ path: `${out}/library-4-sign-in.png` });
+  await outside.getByLabel('Email').fill('ada@example.com');
+  await outside.getByLabel('Password').fill('correct horse');
+  await outside.getByRole('button', { name: 'Sign in', exact: true }).last().click();
+  await outside.getByRole('heading', { name: 'Installing it', level: 1 }).waitFor();
+  expect(`signed in, to be sent on to the page, got ${outside.url()}`, saysBy(outside.url(), '/library/shop/docs/guides/install.md'));
 
   await browser.close();
   if (problems.length) throw new Error(`errors in the page:\n${problems.join('\n')}`);

@@ -129,6 +129,9 @@ fn config(args: &Args) -> Result<Config, String> {
     // An owner before anybody is answered, where there is none: nobody
     // registers to begin (`people::opened`).
     config.makes_owner = true;
+    // And a new project's starting files are its first commit, so that
+    // its first card's work has a branch to be cut from and merged into.
+    config.commits_first = true;
     match setting("listen", "LISTEN") {
         Some(listen) => {
             config.listen = listen

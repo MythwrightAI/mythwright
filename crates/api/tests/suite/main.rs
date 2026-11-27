@@ -26,6 +26,7 @@ mod abreast {
     mod envheld;
     mod goplayed;
     mod landing;
+    mod ordering;
     mod pressing;
     mod rolling;
     mod rounded;
@@ -48,6 +49,7 @@ mod addresses;
 mod aftermath;
 mod agented;
 mod allowed;
+mod alone;
 mod anchored;
 mod apart;
 mod appearance;
@@ -73,6 +75,7 @@ mod commanded;
 mod commented;
 mod compared;
 mod concluded;
+mod conflicted;
 mod contested;
 mod contract;
 mod conversed;
@@ -82,6 +85,7 @@ mod councils;
 mod current;
 mod cut;
 mod deploys;
+mod deputised;
 mod devices;
 mod differed;
 mod discussed;
@@ -149,10 +153,12 @@ mod named;
 mod noted;
 mod observed;
 mod opened;
+mod ordered;
 mod out_of_hand;
 mod outlined;
 mod outside;
 mod ownprompt;
+mod passed;
 mod pieces;
 mod pipelined;
 mod pipelines;
@@ -446,6 +452,9 @@ fn config(dir: &std::path::Path) -> Config {
         // No test here takes the power away, and waiting for the disk
         // was most of what a node's start and stop took.
         disk: journal::Disk::Unwaited,
+        // Nor guesses a password: hashed as hard, the owner each test
+        // registers was a twentieth of what the suite took.
+        hashing: people::Hashing::Least,
         ..Config::new(dir.join("data"))
     }
 }

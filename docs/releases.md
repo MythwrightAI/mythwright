@@ -26,6 +26,21 @@ next release's notes when that is made.
   example package to copy (`examples/tracker`), is *Keeping a tracker in
   step* in the guide to extension packages.
 
+### The fleet
+
+- A stage where cards are worked can take the next card only once no card
+  it worked waits unmerged (`next_after: merged` of its row in `stages`):
+  one card at a time, through review and merge, so each card is begun
+  from the work of the one before it. As before, it takes the next as
+  soon as the last is handed on unless its row says so.
+- A card you pass yourself, moving it from review to done, is merged into
+  the project's branch as one an agent approves is, wherever the stage's
+  row says `merge` (the review stage's does), and its history says who
+  passed it. Before, its branch was left for you to merge with git unless
+  the row said `by_hand: merge`; a row can still say `by_hand: leave`. A
+  branch that no longer merges goes back to its worker to be brought up
+  to date, uncounted, as an approved one does.
+
 ## 0.1.0: a preview
 
 The first version, and a preview. Mythwright is a software factory you

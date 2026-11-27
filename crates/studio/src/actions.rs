@@ -51,6 +51,7 @@ pub(crate) fn through(cx: &ActionCx) -> crate::board::Through {
         decided: None,
         had: None,
         doing: Some(cx.doing().to_string()),
+        uncounted: false,
     }
 }
 
@@ -214,6 +215,8 @@ pub(crate) fn kept(registry: &mut Registry, studio: &Studio) {
             .arg("note", T::String, "what is said as it is moved, such as why it is sent back from review; kept in the card's history")
             .arg("decided", T::String, "the agent whose decision the move is (`agent:<name>`), said with it and in the card's history; it gives nobody anything")
             .arg("had", T::Int, "how many times the card had been moved when whoever moves it looked (`moved` of the card, its count): where it has been moved since, it is left where it is and nothing is said")
+            .arg("uncounted", T::Bool, "it is sent back for something other than a verdict on its work, such as to be brought up to date: said with the move, and not counted among the times it was sent back")
+            .arg("give", T::Int, "how many more times than its stage allows the card may be sent back, given it with this move, which is not counted as one: kept on the card, said in its history, and the card is told what it was last sent back with")
             .capability("board:write")
             .output("status", "the column it is now in")
             .idempotent(),
@@ -221,8 +224,10 @@ pub(crate) fn kept(registry: &mut Registry, studio: &Studio) {
             let (id, to) = (text(&args, "id").unwrap_or_default(), text(&args, "to").unwrap_or_default());
             let decided = text(&args, "decided").filter(|by| by.strip_prefix("agent:").is_some_and(|name| !name.is_empty()));
             let had = args.get("had").and_then(Value::as_u64);
-            let (note, through) = (text(&args, "note"), crate::board::Through { decided, had, ..through(&cx) });
-            let moved = studio.board.move_through(&id, &to, None, note.as_deref(), cx.principal(), Some(&through));
+            let uncounted = args.get("uncounted").and_then(Value::as_bool).unwrap_or(false);
+            let (note, through) = (text(&args, "note"), crate::board::Through { decided, had, uncounted, ..through(&cx) });
+            let give = args.get("give").and_then(Value::as_u64).unwrap_or(0);
+            let moved = studio.board.moved(&id, &to, (None, note.as_deref(), give), cx.principal(), Some(&through), None);
             Ok(item_value(&moved.await?))
         },
     );
@@ -299,7 +304,7 @@ pub(crate) fn kept(registry: &mut Registry, studio: &Studio) {
                  one that names no card of the project is left out",
             )
             .capability("board:read")
-            .output("items", "the cards, each with its `id`, `title` and `status`, in the order of the board")
+            .output("items", "the cards, each with its `id`, `title`, `status` and the rest of what its row says (`more`), in the order of the board")
             .output("ids", "their ids, in the same order")
             .output("count", "how many there are")
             .output("columns", "the board's columns, left to right, whatever was asked for")
@@ -334,7 +339,7 @@ pub(crate) fn kept(registry: &mut Registry, studio: &Studio) {
                 .iter()
                 .filter(|item| only.as_deref().is_none_or(|column| item.status == column))
                 .filter(|item| except.as_deref().is_none_or(|column| item.status != column))
-                .map(|item| json!({ "id": item.id, "title": item.title, "status": item.status }))
+                .map(|item| json!({ "id": item.id, "title": item.title, "status": item.status, "more": item.more }))
                 .collect();
             let ids: Vec<&Value> = items.iter().map(|item| &item["id"]).collect();
             let columns = studio.board.columns(&project).await?;
@@ -367,6 +372,8 @@ pub(crate) fn kept(registry: &mut Registry, studio: &Studio) {
                  card never moved",
             )
             .output("pressed", "what was pressed on it of what its column offers, as its row keeps it; empty where nothing was")
+            .output("sent", "what it was last sent back with; empty where nothing was said")
+            .output("given", "how many more rounds than its stage allows it was given, all told (`give` of a move)")
             .output("more", "what else its board keeps of it: the fields its blueprint declared, by name")
             .output(
                 "ranked",

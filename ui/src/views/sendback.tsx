@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { api } from '../api.ts';
 import type { Item } from '../api.ts';
 import { coalesce } from '../events.ts';
-import { asStage, backTo, sendingBack } from '../sentback.ts';
+import { asStage, backTo, outOfRounds, sendingBack } from '../sentback.ts';
 import { attempt, draftOf, keepDraft } from '../store.ts';
 import { RENAMING, renames } from '../table.ts';
 import type { Row } from '../table.ts';
@@ -64,9 +64,12 @@ export function SendBack({ item, columns, stages, onSent }: { item: Item; column
     setWrong(text);
     keepDraft(unsent, text.trim() ? { text, base: '' } : null);
   };
-  const send = async () => {
+  // Sent back as often as its stage allows, sending it back as it is would
+  // have it left again as it came back: one more round is offered with it.
+  const spent = outOfRounds(item.status, stages, item.more?.rounds, item.given);
+  const send = async (give: number) => {
     const note = wrong.trim();
-    if (await attempt(() => api.changeItem(item.id, { status: to, ...(note ? { note } : {}) }))) {
+    if (await attempt(() => api.changeItem(item.id, { status: to, ...(note ? { note } : {}), ...(give ? { give } : {}) }))) {
       keepDraft(unsent, null);
       onSent();
     }
@@ -83,8 +86,16 @@ export function SendBack({ item, columns, stages, onSent }: { item: Item; column
         />
       </label>
       <div class="row">
-        <span class="faint grow">It goes back to {to}, where it is taken up again.</span>
-        <button type="button" onClick={send}>
+        <span class="faint grow">
+          It goes back to {to}, where it is taken up again.
+          {spent && ' It has been sent back as often as its stage allows: given one more round, it is told what it was last sent back with and looked at once more.'}
+        </span>
+        {spent && (
+          <button type="button" onClick={() => send(1)}>
+            One more round
+          </button>
+        )}
+        <button type="button" onClick={() => send(0)}>
           Send back
         </button>
       </div>

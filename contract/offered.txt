@@ -224,6 +224,8 @@ action board.came
   takes from string needed
   takes to string needed
   takes by_hand bool needed
+  takes uncounted bool
+  takes given int
   takes worked string needed
   takes looked string needed
   takes done string needed
@@ -245,6 +247,8 @@ action board.get
   gives due
   gives moved
   gives pressed
+  gives sent
+  gives given
   gives more
   gives ranked
 
@@ -281,6 +285,8 @@ action board.move
   takes note string
   takes decided string
   takes had int
+  takes uncounted bool
+  takes give int
   gives status
 
 action board.press
@@ -482,6 +488,7 @@ action collection.ensure
   within fields.*.icon string
   within fields.*.takes any
   within fields.*.unsaid any
+  within fields.*.stands bool
   within fields.*.takes.* each
   within views.* each
   within views.*.kind string
@@ -1086,9 +1093,12 @@ action place.merge
   needs shell
   takes item string needed
   takes message string
+  takes bring bool
   gives came
   gives said
   gives why
+  gives files
+  gives begun
 
 action place.send
   needs shell
@@ -1217,6 +1227,7 @@ action record.add
   within declaring.*.icon string
   within declaring.*.takes any
   within declaring.*.unsaid any
+  within declaring.*.stands bool
   within declaring.*.takes.* each
   gives id
   gives data
@@ -1366,6 +1377,7 @@ action review.owed
   takes needed int
   takes most int
   takes rounds int
+  takes given int
   takes back list
   takes kept list
   takes again bool
@@ -1419,16 +1431,20 @@ action review.verdict
   takes failed bool
   takes why string
   takes conflict string
+  takes begun bool
+  takes files list
   takes by string
   takes words string
   takes approved int
   takes against int
   takes seats int
   takes reports bool
+  takes person bool
   gives came
   gives says
   gives told
   gives word
+  gives behind
 
 action rollout.next
   takes name string needed
@@ -1596,6 +1612,7 @@ action segments.next
   gives at
   gives journey
   gives back
+  gives behind
   gives usual
   gives asked
   gives nth
@@ -1954,6 +1971,21 @@ action wait
   gives event
   gives ended
   gives gave
+
+action work.ahead
+  takes item string needed
+  takes status string
+  takes here string needed
+  takes doing string needed
+  takes hands_to string
+  takes done string
+  takes next_after string
+  takes items list
+  takes waiting string
+  gives came
+  gives behind
+  gives why
+  gives news
 
 action work.away
   takes from string needed
@@ -2317,6 +2349,8 @@ event board.item.moved
   carries by string always
   carries note string
   carries decided string
+  carries uncounted bool
+  carries given int
   carries late bool
   carries through string
 
@@ -3028,6 +3062,7 @@ event project.created
   carries name string always
   carries path string always
   carries brownfield bool always
+  carries committed string
   carries restored bool
 
 event project.environment.changed

@@ -93,7 +93,24 @@ clean_dev_s = 300
 # xtask timings` names the same longest tests as before (the A/B scenarios
 # of the simulation, 47 s). What is owed: measuring again on a quiet
 # machine, and lowering this to what that says.
-test_run_s = 240
+#
+# Lowered on 2026-11-26, from 240 to 200, at 161.7 s (the API's suite
+# 101.8 s, the runner's 29.1 s, the command line's 16.7 s), measured
+# with the machine at a load of 10 to 15, where the same measuring had
+# said 201.6 s (130.8 s the API's suite) that evening at a load of 10 to
+# 23. What came down was work: the API's suite had used 640 parts in
+# 800 of its eight processors throughout, and was not waiting on its
+# longest scenario (34 s) or on the clock. Three things, each held
+# against what it was in alternation: what reads a text built optimised
+# again, as it was before it came out of `blueprint` (a tenth of the
+# suite's processor time); a check of a text given again where its
+# catalog answers what it asked as before (`texts::remembered`); and a
+# test's own factory hashing its owner's password with the least the
+# hash takes (`people::Hashing`). No test was taken out or holds less,
+# and the simulation made 594 plays before and after
+# (docs/build-times.md, *Where the API's suite's time was on
+# 2026-11-26*). 200 is room for a busy machine and for what is added.
+test_run_s = 200
 
 # Packages in Cargo.lock. Every one is compiled by everyone on every clean
 # build, so the count is watched: the gate says it on every run. It is a

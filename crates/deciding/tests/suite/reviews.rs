@@ -19,6 +19,7 @@ fn card() -> Owed {
         needed: 1,
         most: 2,
         rounds: 0,
+        given: 0,
         back: vec![],
         kept: vec![],
         again: false,
@@ -129,6 +130,16 @@ fn what_an_item_said_to_be_due_a_review_is_owed() {
         ),
         ("sent back as often as is allowed, by its row", Owed { rounds: 2, ..card() }, left(2)),
         (
+            "sent back as often as is allowed, and given one more: it is looked at again",
+            Owed { rounds: 2, given: 1, ..card() },
+            OwedCame::Review,
+        ),
+        (
+            "given one more, and sent back that once more too",
+            Owed { rounds: 3, given: 1, back: vec![json!("shop-1"), json!("shop-1"), json!("shop-1")], ..card() },
+            left(3),
+        ),
+        (
             "sent back as often as is allowed, as whoever asks counted",
             Owed { rounds: 1, back: vec![json!("shop-1"), json!("shop-2"), json!("shop-1")], ..card() },
             left(2),
@@ -145,6 +156,35 @@ fn what_an_item_said_to_be_due_a_review_is_owed() {
             "left already when it came: it is not said again",
             Owed { rounds: 2, kept: vec![json!({ "card": "shop-1", "review": "" })], ..card() },
             OwedCame::Nothing,
+        ),
+        (
+            "sent back only to be brought up to date, which is counted apart",
+            Owed {
+                rounds: 1,
+                back: vec![
+                    json!({ "card": "shop-1", "at": "12", "behind": true }),
+                    json!({ "card": "shop-1", "at": "30", "behind": "true" }),
+                    json!({ "card": "shop-1", "at": "44", "behind": false }),
+                ],
+                ..card()
+            },
+            OwedCame::Review,
+        ),
+        (
+            "brought up to date as often as is allowed",
+            Owed {
+                back: (0..deciding::reviews::BEHIND)
+                    .map(|at| json!({ "card": "shop-1", "at": at.to_string(), "behind": true }))
+                    .collect(),
+                ..card()
+            },
+            OwedCame::Left {
+                rounds: 3,
+                said: "shop-1 is in review again after its branch was brought up to date with the project's 3 \
+                       times, having no longer merged once it was approved. Nobody was asked this time: it is left \
+                       for a person to look at and merge."
+                    .into(),
+            },
         ),
         (
             "kept as the card itself, as a text from before kept it",
@@ -242,12 +282,82 @@ fn what_a_verdict_on_an_item_comes_to_and_what_is_said_of_it() {
             "",
         ),
         (
+            "its branch no longer merges, and the project's is being merged into it for whoever worked it",
+            Verdict {
+                merged: "conflict".into(),
+                conflict: "CONFLICT in total.rs".into(),
+                begun: true,
+                files: vec!["total.rs".into(), "cart.rs".into()],
+                ..passed()
+            },
+            VerdictCame::Back(
+                "It was approved, and its branch lane/shop-1 no longer merges into the project's branch as that \
+                 is now. The project's branch is being merged into yours where you work, and that merge is under \
+                 way for you: what conflicts is marked in total.rs, cart.rs, as git marks it. Put each right, \
+                 keeping what both sides meant, and leave no marker. Change files and nothing else: do not run git \
+                 to commit, merge or call the merge off. What you leave is committed as the end of that merge, and \
+                 it is looked at again. What git said: CONFLICT in total.rs"
+                    .into(),
+            ),
+            "",
+        ),
+        (
+            "and where that could not be begun, it is a person's to put right",
+            Verdict { merged: "conflict".into(), why: "its place holds changes that were never committed".into(), ..passed() },
+            stuck("its place holds changes that were never committed"),
+            "",
+        ),
+        (
             "something is in the way of the merge",
             Verdict { merged: "stuck".into(), why: "the project's folder has changes of its own".into(), ..passed() },
             stuck("the project's folder has changes of its own"),
             "",
         ),
         ("the merge failed outright, with nothing said of why", Verdict { failed: true, ..passed() }, stuck("the merge failed"), ""),
+        (
+            "passed by a person who moved it on: merged, said as theirs, and nothing said where work is reported",
+            Verdict { person: true, merged: "merged".into(), by: "Ada".into(), reports: true, ..passed() },
+            VerdictCame::On("passed by Ada; lane/shop-1 was merged".into()),
+            "",
+        ),
+        (
+            "passed by a person, and its branch no longer merges: back to whoever worked it, as approved work is",
+            Verdict {
+                person: true,
+                by: "Ada".into(),
+                merged: "conflict".into(),
+                begun: true,
+                files: vec!["total.rs".into()],
+                ..passed()
+            },
+            VerdictCame::Back(
+                "It was passed, and its branch lane/shop-1 no longer merges into the project's branch as that is \
+                 now. The project's branch is being merged into yours where you work, and that merge is under way \
+                 for you: what conflicts is marked in total.rs, as git marks it. Put each right, keeping what both \
+                 sides meant, and leave no marker. Change files and nothing else: do not run git to commit, merge \
+                 or call the merge off. What you leave is committed as the end of that merge, and it is looked at \
+                 again."
+                    .into(),
+            ),
+            "",
+        ),
+        (
+            "passed by a person, and something is in the way: it is where they put it, unmerged",
+            Verdict {
+                person: true,
+                by: "Ada".into(),
+                merged: "stuck".into(),
+                why: "the project's folder has changes of its own".into(),
+                ..passed()
+            },
+            VerdictCame::Stuck(
+                "shop-1 was passed by Ada, and its branch lane/shop-1 could not be merged into the project's: the \
+                 project's folder has changes of its own. It is in done, and is not merged; when what is in the \
+                 way is put right, merge it."
+                    .into(),
+            ),
+            "",
+        ),
         ("approved, and nowhere to go on to", Verdict { pass: String::new(), ..passed() }, VerdictCame::Nothing, ""),
         ("approved, and moved by somebody since", Verdict { status: "draft".into(), ..passed() }, VerdictCame::Nothing, ""),
         (

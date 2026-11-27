@@ -81,6 +81,18 @@ impl crate::Collections {
         }
         Ok(())
     }
+
+    /// Whether a row of `name`, of `project`, steers something, or is
+    /// steered (`steers`): what runs takes its direction from such a row,
+    /// so a write of one is answered once what hears it has taken it. A
+    /// collection that is not there steers nothing.
+    pub async fn steering(&self, project: &str, name: &str) -> Result<bool> {
+        let name = blueprint::expr::slug(name);
+        let every = self.list(Some(project)).await?;
+        let steers = |collection: &Collection| collection.name == name && collection.steers.is_some();
+        let steered = |collection: &Collection| collection.steers.as_deref() == Some(name.as_str());
+        Ok(every.iter().any(|collection| steers(collection) || steered(collection)))
+    }
 }
 
 /// What answers whether a record is the row the agent named is brought

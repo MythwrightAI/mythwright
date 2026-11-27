@@ -46,6 +46,18 @@ the simulation, stopped at each point and restarted.
 - Nothing in Rust goes by what a stage `does`. Anything new that follows a
   row is a step of `std/arrangement`; anything that follows the fleet
   having taken a change listens for `fleet.arranged`.
+- **A row written through the API is in effect when the write answers**
+  (card 484): the route waits until each handler that hears it has done
+  with it, and with each such row their runs wrote (`api::taken`, over
+  `Engine::handled`), so a card moved in the next request goes the new
+  way. It is said of any table that `steers` or is steered, never of the
+  fleet's tables by name: `agents`, `stages`, `segments` (and `contests`,
+  `chain`) are, `actions` is not. Bounded at 10 s on the conductor's
+  clock; past it the answer carries `untaken`, naming the handlers still
+  at it. A write by a step is not waited for (a handler would wait for
+  itself). The suite's `taken.rs` plays it, a stage's cell and a segment
+  each, and a restart after. Tests may still wait for `fleet.arranged`
+  after a write (`taken::by_fleet`); it has been said by then.
 - `rows.read` returns only what the table's blueprint declares and what
   `fill` names, never a column somebody added (`added` of a field). Such a
   column says no `takes`, and a row is passed whole to what runs as
@@ -311,6 +323,43 @@ the simulation, stopped at each point and restarted.
   card has its pool place (`go` in `std/working`); a waiting card stays a
   row in `ready`. Its worktree is made by the round too, then and not
   before, so it is cut after the cards it waits on were merged.
+- **When the next card is taken** is a row cell, `next_after`
+  (card 479). `handed`, the default and what was always so: as soon as
+  the last card's round hands it on, so the next card's worktree is cut
+  from the project's branch while the last waits in review, and has
+  nothing of its work (`ordered.rs` in the API suite plays it). The
+  default is kept because `merged` idles the stage's agents while a
+  review waits for a person, and cards that build on each other can say
+  so (`after`). `merged`: a card waiting in the column is taken only once
+  no card the stage took (`taken` is its column) is in `doing` or in the
+  column it hands on to (`hands_to`, given by `std/arrangement`: `pass`,
+  or `review` where that says none). It is one card at a time
+  (`std/arrangement` makes `at_once` at most 1). What is decided is a
+  block, `work.ahead` (`deciding::ahead`, with cases), handed the board's
+  cards whole (`board.list` gives each card's `more`): asked in `begun`
+  before the card asks for a place, and again in `go` as the place is
+  given, since two cards can both be due before either is taken; a card
+  behind gives its place back (`gone`). It says why on itself through
+  `std/cards` (`pool.waiting` with `why`, said once while it says the
+  same), and `caught_up` in `go` takes that off once it is taken. Only a
+  card waiting in the column is held back: a card taken already (sent
+  back, answered, taken up again) goes on, or a stage carried over from
+  `handed` with two cards in review would leave one in `doing` behind the
+  other. What lets a card behind go is looked for, never remembered:
+  the stage looks at its column again (`std/due`) when a card goes on
+  from `hands_to` (`unmerged`), is moved out of `doing` by somebody
+  (`away`), is taken off the board (`unboarded`), or the row's
+  `next_after` changes (`on_update`). Nothing is kept of a card behind
+  but its `waiting`, so a restart finds it as it was
+  (`ordering.rs`, a play stopped about the wait).
+- **A card that comes back to be worked keeps its worktree as it was**
+  (`place.make` answers `there`): it is not brought up to date with the
+  project's branch, which may have moved on since it was cut. Only the
+  remote's own additions to the card's branch are taken in, where the row
+  says `fetch` (`--ff-only`). Under `next_after: merged` nothing moves the
+  project's branch while a card is out, beside a person's own commits.
+  What happens when such a branch no longer merges is the review stage's
+  (card 480).
 - A card somebody moves out of `doing` while its agent works has its round
   stopped where the row says `moved_away: stop` (the default): `away` in
   `std/working`, which no card turn holds up. What a move means is a block
@@ -405,6 +454,63 @@ the simulation, stopped at each point and restarted.
   gives an instance its live children with their keys and params.
 - `in_flight` (a row of `stages`, read by `std/reviewing`) decides what
   becomes of a review in session, and nothing else.
+- **An approved branch that no longer merges is brought up to date for
+  its worker**, which behind its wall reads the repository's own files
+  and cannot write them (so it can neither begin a merge nor end one).
+  `std/merge` asks `place.merge` with `bring` (`crates/places/src/
+  merged.rs`): the project's merge is called off, and the project's
+  branch is merged into the card's in its place. With nothing conflicting
+  that way it is made and the card's branch merged again, and the card
+  goes on with nobody asked. Otherwise it is left under way (`MERGE_HEAD`
+  in the place) and the card goes back, told the files and to change
+  files only (`review.verdict`, `begun`, `files`); `place.keep` ends the
+  merge with the worker's commit, even where nothing else changed, and
+  refuses one with git's markers left in (`unkept`, so the card is given
+  again as unkept work is). Asked again after a stop, a merge of the
+  project's branch as it is now, under way with files to put right, is
+  found as it was (`conflicted.rs` in the API suite, both places).
+- Going back for that is no verdict (`behind` of `review.verdict`, passed
+  on by `segments.next` and `std/segments`): the stage keeps it in `back`
+  marked `behind` and moves the card with `uncounted`, so neither the
+  stage's count nor the card's `rounds` has it. `review.owed` counts those
+  apart and leaves the card after `reviews::BEHIND` (3) of them, so a
+  project's branch that keeps moving in the way cannot loop it.
+- **A card a person passes is merged as one agents approve** (card 482).
+  `handed` of `std/reviewing` hears a person's move (`through` none) from
+  the column to the row's `pass` where the row says `by_hand: merge`,
+  which is what `std/arrangement` fills an unsaid `by_hand` with where the
+  row says `merge` (`{ by: merge, … }`), and `leave` otherwise. It calls
+  `std/pass-by-hand`, which asks whether whoever moved it holds
+  `projects:write` (`actor.holds`, which also gives their name) and then
+  calls `std/merge` with `person` and `by`: the one merge, with `bring`,
+  and the one block (`review.verdict`, whose `person` words its sentences
+  as a pass and says nothing where verdicts are reported). A branch that
+  no longer merges goes back to `fail` with `uncounted` as an approved one
+  does (the card was already in `pass`, so back is the least surprising:
+  its worker is the one who can put it right, and a person passes it
+  again); anything else in the way is said in the channel and the card
+  stays where they put it. `card.merged` carries `by`, so its history line
+  says who passed it. Any other move out of the column merges nothing,
+  and a card with no branch (`place.merge` answers `nothing`) moves as
+  ever. A stop anywhere between the move and the merge ends as one never
+  stopped (`passed.rs` in the API suite: the move, the asking, the merge
+  made, `card.merged`); `std/merge` keeps nothing and finds a merge made
+  as made. Where the stage that works says `next_after: merged`, such a
+  pass is looked past only once its place is tidied (`tidying` of
+  `std/working`, on the `stage.tidy` `std/pass-by-hand` emits after the
+  merge), not as it moves (`unmerged` skips it), so the next card is cut
+  from what it left. Not held: a daemon stopped between that move and
+  the merge has the stage look at its column as it comes up, which may
+  take the next card before the merge is made again; and a stage whose
+  `pass` is not `done` is looked past as the card moves.
+- A card left for a person having been sent back as often as allowed says
+  what it was last sent back with (`words` of `card.left`, the card's
+  `sent`), and may be given more rounds alone by a move (`board.md`,
+  *Sending a card back*; `sentback.rs`).
+- A card left for a person having been sent back as often as allowed is
+  kept with the limit it was left under (`most`); a row whose `rounds`
+  changes drops those entries (`on_update` of `std/reviewing`), and its
+  look at the column has each looked at, or left, by the new limit.
 
 ## Blocks a stage calls to decide
 

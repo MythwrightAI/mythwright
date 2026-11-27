@@ -1,4 +1,4 @@
-date,rust_lines,test_lines,packages,rebuild_bottom_ms,rebuild_top_ms,test_binaries_ms,clean_dev_s,jobs,tests_ms,tests_by_crate_ms
+date,rust_lines,test_lines,packages,rebuild_bottom_ms,rebuild_top_ms,test_binaries_ms,clean_dev_s,jobs,tests_ms,tests_by_crate_ms,rebuild_runner_ms
 2026-11-11,27353,11067,357,1406,593,979,45,8
 2026-11-11,30188,13813,357,2124,838,1399,,8
 2026-11-11,34251,18537,357,2255,810,1371,,8
@@ -27,3 +27,4 @@ date,rust_lines,test_lines,packages,rebuild_bottom_ms,rebuild_top_ms,test_binari
 2026-11-23,165342,166412,399,7666,1574,8413,,8,179617,api:112701 conductor:35884 cli:16889 agents:3157 journal:1610 gateway:1537 people:1155 others:5711
 2026-11-24,182438,178457,413,14533,3254,16686,,all,255505,api:170655 conductor:40728 cli:22973 agents:6124 journal:2901 gateway:1855 studio:1665 people:1252 others:5793
 2026-11-24,182494,178348,414,7404,1437,7623,,8,237788,api:158756 conductor:39936 cli:21427 agents:4426 journal:1917 gateway:1780 studio:1418 others:6418
+2026-11-26,196569,188905,418,6334,1415,8185,,all,161737,api:101817 conductor:29077 cli:16713 agents:2853 studio:2156 journal:1606 gateway:1435 others:5329,678
