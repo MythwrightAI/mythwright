@@ -42,6 +42,7 @@ async fn an_instance_a_program_from_before_wrote_as_active_and_never_said_to_be_
     rig.journal
         .db()
         .call(|db| {
+            db.execute_batch(crate::ordered::BEFORE_TEXTS_WERE_HELD)?;
             db.execute_batch(crate::ordered::BEFORE_ASKERS_WERE_KEPT)?;
             db.execute_batch(crate::ordered::BEFORE_ENVIRONMENTS)?;
             db.execute_batch(crate::ordered::BEFORE_BEGINNINGS_WERE_WRITTEN)?;

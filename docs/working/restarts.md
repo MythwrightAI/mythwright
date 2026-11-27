@@ -229,6 +229,17 @@ started again*); the runner itself is in [runner.md](runner.md).
   cancelled. Steps inside a task are not read this way; they may be cancelled
   by a sibling failing.
 
+- A node answers before it takes up (`Node::start`, `api::resuming`):
+  reads at once, and every request but a read held at the door
+  (`resuming::holds`) until `system.started` has been emitted, so what
+  the plays hold is unchanged: nothing a request changes meets a start
+  half done. Something new done as a node starts that a write may meet
+  goes inside `take_up` in `crates/api/src/lib.rs`, before the door
+  opens; something new that says how a daemon stands reads what is
+  written and waits for no conductor (`Engine::instances_written`,
+  `Engine::how_far`). Checked by the API suite's `rising.rs`, which
+  holds a start there (`Config::held`).
+
 ## Stops
 
 - A stop that has begun is owed. It is recorded for the top of what is

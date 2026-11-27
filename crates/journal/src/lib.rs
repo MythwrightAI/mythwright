@@ -26,6 +26,7 @@ pub mod moment;
 pub mod moved;
 pub mod numbered;
 mod order;
+pub mod prepared;
 pub mod rewrite;
 mod set;
 mod shut;
@@ -48,6 +49,7 @@ pub use giver::Giver;
 pub use logs::{LogLine, Logs};
 pub use metrics::{MetricQuery, MetricSeries, MetricStats};
 pub use order::{Following, Order};
+pub use prepared::Prepared;
 pub use set::{Held, Listed, apart, keeps, listed};
 pub use together::Writing;
 pub use told::Members;
@@ -371,7 +373,7 @@ impl Journal {
         // opening that makes the index of when anew, and how long it took.
         let before: i64 = db
             .call(|connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     "SELECT version FROM schema_versions WHERE namespace = 'journal'",
                     [],
                     |row| row.get(0),
@@ -384,7 +386,7 @@ impl Journal {
         if before > 0 && before as usize <= REINDEXES {
             let took = serde_json::json!({ "took_ms": began.elapsed().as_millis() as u64 }).to_string();
             db.call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE kv SET value = ?3 WHERE namespace = ?1 AND key = ?2 AND value = '{}'",
                     [REINDEXED.0, REINDEXED.1, &took],
                 )
@@ -525,7 +527,7 @@ impl Journal {
             .inner
             .db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     "SELECT value FROM kv WHERE namespace = ?1 AND key = ?2",
                     [&namespace, &key],
                     |row| row.get::<_, String>(0),
@@ -542,14 +544,13 @@ impl Journal {
         self.inner
             .db
             .call(move |connection| match text {
-                Some(text) => connection.execute(
+                Some(text) => connection.execute_kept(
                     "INSERT INTO kv (namespace, key, value) VALUES (?1, ?2, ?3)
                      ON CONFLICT (namespace, key) DO UPDATE SET value = excluded.value",
                     [&namespace, &key, &text],
                 ),
-                None => {
-                    connection.execute("DELETE FROM kv WHERE namespace = ?1 AND key = ?2", [&namespace, &key])
-                }
+                None => connection
+                    .execute_kept("DELETE FROM kv WHERE namespace = ?1 AND key = ?2", [&namespace, &key]),
             })
             .await
             .map(|_| ())
@@ -562,8 +563,8 @@ impl Journal {
             .inner
             .db
             .call(move |connection| {
-                let mut statement =
-                    connection.prepare("SELECT key, value FROM kv WHERE namespace = ?1 ORDER BY key")?;
+                let mut statement = connection
+                    .prepare_cached("SELECT key, value FROM kv WHERE namespace = ?1 ORDER BY key")?;
                 let rows = statement.query_map([&namespace], |row| {
                     Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
                 })?;

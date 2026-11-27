@@ -277,6 +277,7 @@ async fn a_journal_that_had_something_alive_before_this_notes_it_and_one_that_ha
     rig.engine.halt();
     rig.engine.halted().await;
     let undone = rig.journal.db().call(|db| {
+        db.execute_batch(crate::ordered::BEFORE_TEXTS_WERE_HELD)?;
         db.execute_batch(crate::ordered::BEFORE_ASKERS_WERE_KEPT)?;
         db.execute_batch(crate::ordered::BEFORE_ENVIRONMENTS)?;
         db.execute_batch(crate::ordered::BEFORE_BEGINNINGS_WERE_WRITTEN)?;

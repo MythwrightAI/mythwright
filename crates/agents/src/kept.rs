@@ -104,6 +104,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::RwLock;
 
+use journal::Prepared;
 use kernel::{Error, Principal, Result};
 use rusqlite::params;
 
@@ -499,8 +500,8 @@ impl Agents {
     pub(crate) async fn forget_said(&self, slot: &str, kept: &str) {
         let (lookup, of) = (slot.to_string(), kept.to_string());
         let asked = move |connection: &mut rusqlite::Connection| {
-            let mut statement =
-                connection.prepare("SELECT DISTINCT thread FROM turns WHERE slot = ?1 AND kept = ?2")?;
+            let mut statement = connection
+                .prepare_cached("SELECT DISTINCT thread FROM turns WHERE slot = ?1 AND kept = ?2")?;
             let rows = statement.query_map([&lookup, &of], |row| row.get::<_, String>(0))?;
             rows.collect::<rusqlite::Result<Vec<String>>>()
         };
@@ -513,7 +514,7 @@ impl Agents {
         let forgotten = self.inner.journal.db().call(move |connection| {
             for thread in threads {
                 let key = format!("{name}/{thread}");
-                connection.execute(
+                connection.execute_kept(
                     "DELETE FROM kv WHERE namespace = ?1 AND (key = ?2 OR (key >= ?3 AND key < ?4))",
                     params![crate::removed::SESSIONS, key, format!("{key}@"), format!("{key}A")],
                 )?;
@@ -566,10 +567,11 @@ impl Agents {
     pub(crate) async fn forget_kept(&self, channel: &str) -> Result<()> {
         let of = channel.to_string();
         let asked = move |connection: &mut rusqlite::Connection| {
-            let mut statement = connection.prepare("SELECT DISTINCT slot FROM turns WHERE kept = ?1")?;
+            let mut statement =
+                connection.prepare_cached("SELECT DISTINCT slot FROM turns WHERE kept = ?1")?;
             let slots = statement.query_map([&of], |row| row.get::<_, String>(0))?;
             let slots = slots.collect::<rusqlite::Result<Vec<String>>>()?;
-            connection.execute(
+            connection.execute_kept(
                 "UPDATE turns SET prompt = '', reply = '', error = NULL, decision = NULL, options = '[]'
                  WHERE kept = ?1 AND status NOT IN ('running', 'answered')",
                 [&of],
@@ -703,7 +705,7 @@ impl Agents {
             let (whole, seats, after) =
                 (conversation.clone(), format!("{conversation}:"), format!("{conversation};"));
             let asked = move |connection: &mut rusqlite::Connection| {
-                let mut statement = connection.prepare(&format!(
+                let mut statement = connection.prepare_cached(&format!(
                     "SELECT {} FROM turns WHERE thread = ?1 OR (thread > ?2 AND thread < ?3)",
                     crate::turns::TURN
                 ))?;

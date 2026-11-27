@@ -196,6 +196,7 @@ mod restarted;
 mod restarting;
 mod retitled;
 mod reviewed;
+mod rising;
 mod roles;
 mod rolledout;
 mod rounds;

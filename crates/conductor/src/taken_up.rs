@@ -26,7 +26,32 @@ impl Drop for Up<'_> {
     }
 }
 
+/// How far the start of a factory's conductors has come
+/// ([`Engine::how_far`]).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct HowFar {
+    /// The conductors there are: the factory's own, and one for each
+    /// project whose journal keeps what is run for it.
+    pub conductors: usize,
+    /// How many of them have taken up what they keep.
+    pub up: usize,
+    /// How many instances have been taken up so far, of all of them.
+    pub instances: usize,
+}
+
 impl Engine {
+    /// How far the start of the factory's conductors has come
+    /// ([`Engine::resume`]): for a daemon that answers while it takes up
+    /// what it was doing, to say so. Asks nothing of a database.
+    pub fn how_far(&self) -> HowFar {
+        let every = self.every();
+        HowFar {
+            conductors: every.len(),
+            up: every.iter().filter(|one| one.stands() == standing::UP).count(),
+            instances: self.inner.set.taken.load(Ordering::SeqCst),
+        }
+    }
+
     /// Fails an instance whose kept text no longer checks against this
     /// device's actions and events, as a conductor starts: the actions
     /// changed under a stored blueprint, and it is said so and not
@@ -242,6 +267,7 @@ impl Engine {
             }
             self.reached(&live);
             resumed += 1;
+            self.inner.set.taken.fetch_add(1, Ordering::SeqCst);
         }
         // Once everything is in hand: what is looked at is among it.
         for live in looks {

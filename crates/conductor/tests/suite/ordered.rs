@@ -40,10 +40,25 @@ pub const BEFORE_TEXTS_WERE_KEPT_BY_VERSION: &str = "
     UPDATE schema_versions SET version = version - 1 WHERE namespace = 'conductor';
 ";
 
-/// Undoes the last step of the runner's tables, by which a run that
-/// carries its instance over says which step asked: the column goes, and
+/// Undoes the last step of the runner's tables, by which a version keeps
+/// no text that a version of its project keeps already and names that
+/// one: each is given its text back, the columns go, and
 /// the tables are a version back. Said first by what plays a journal from
-/// further back, before [`BEFORE_ENVIRONMENTS`].
+/// further back, before [`BEFORE_ASKERS_WERE_KEPT`].
+pub const BEFORE_TEXTS_WERE_HELD: &str = "
+    UPDATE instance_versions SET source = (SELECT held.source FROM instance_versions held
+                                           WHERE held.instance = instance_versions.held_by
+                                             AND held.version = instance_versions.held_at)
+    WHERE held_by IS NOT NULL;
+    ALTER TABLE instance_versions DROP COLUMN held_at;
+    ALTER TABLE instance_versions DROP COLUMN held_by;
+    UPDATE schema_versions SET version = version - 1 WHERE namespace = 'conductor';
+";
+
+/// Undoes the step of the runner's tables by which a run that carries
+/// its instance over says which step asked: the column goes, and the
+/// tables are a version back. Said after [`BEFORE_TEXTS_WERE_HELD`] by
+/// what plays a journal from further back, before [`BEFORE_ENVIRONMENTS`].
 pub const BEFORE_ASKERS_WERE_KEPT: &str = "
     ALTER TABLE runs DROP COLUMN asked_by;
     UPDATE schema_versions SET version = version - 1 WHERE namespace = 'conductor';
@@ -303,7 +318,7 @@ steps:
     rig.engine.halt();
     rig.engine.halted().await;
     let undone = format!(
-        "{BEFORE_ASKERS_WERE_KEPT}{BEFORE_ENVIRONMENTS}{BEFORE_BEGINNINGS_WERE_WRITTEN}{BEFORE_RUNS_KEPT_THEIR_PLACE}{BEFORE_TEXTS_WERE_KEPT_BY_VERSION}{BEFORE_STEPS_SAID_THEIR_PLACE}"
+        "{BEFORE_TEXTS_WERE_HELD}{BEFORE_ASKERS_WERE_KEPT}{BEFORE_ENVIRONMENTS}{BEFORE_BEGINNINGS_WERE_WRITTEN}{BEFORE_RUNS_KEPT_THEIR_PLACE}{BEFORE_TEXTS_WERE_KEPT_BY_VERSION}{BEFORE_STEPS_SAID_THEIR_PLACE}"
     );
     rig.journal.db().call(move |db| db.execute_batch(&undone)).await.unwrap();
     // This program's conductor starts on it, and its tables are brought

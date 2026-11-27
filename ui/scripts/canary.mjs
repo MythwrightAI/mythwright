@@ -7,7 +7,7 @@
 // what is running while traffic is being shifted, and the measurements
 // after. The environment variables are those of walkthrough.mjs.
 import { execFile, spawn } from 'node:child_process';
-import { mkdir, readdir, rm } from 'node:fs/promises';
+import { access, mkdir, readdir, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -31,6 +31,13 @@ const repo = resolve('..');
 const data = join(out, 'canary-data');
 const home = join(out, 'canary-home');
 
+// The cache is hosted as built, not built here: without it, the rollout would wait a minute for a program that is not there.
+const cacheProgram = join(repo, 'target/debug/kv-cache');
+if (!(await access(cacheProgram).then(() => true, () => false))) {
+  console.error(`${cacheProgram} is not built: build it first with \`cargo build -p kv-cache\`.`);
+  process.exit(1);
+}
+
 await mkdir(out, { recursive: true });
 await rm(data, { recursive: true, force: true });
 await rm(home, { recursive: true, force: true });
@@ -52,7 +59,7 @@ endsWithThis(daemon, stopsAll(binary, url, { cwd: repo, env }));
 const meta = await (await fetch(`${url}/api/meta`)).json();
 const cli = (...args) => run(binary, [...args, '--url', url], { cwd: repo, env });
 const example = join(repo, `examples/blueprints/kv-cache.${meta.blueprint_ext}`);
-const common = ['--param', 'build=false', '--param', `binary=${join(repo, 'target/debug/kv-cache')}`, '--param', 'observe=5s'];
+const common = ['--param', 'build=false', '--param', `binary=${cacheProgram}`, '--param', 'observe=5s'];
 
 let failed = null;
 try {

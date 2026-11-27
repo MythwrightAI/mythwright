@@ -25,10 +25,19 @@ pub(crate) fn object(text: String) -> Fields {
 /// went back to what it ran before an update), and is read from that
 /// version otherwise: one row found by its key.
 pub(crate) const INSTANCE_COLUMNS: &str = "id, blueprint, revision, CASE WHEN instances.text IS NULL THEN instances.source \
-                                ELSE (SELECT kept.source FROM instance_versions kept \
+                                ELSE (SELECT CASE WHEN kept.held_by IS NULL THEN kept.source \
+                                      ELSE (SELECT held.source FROM instance_versions held \
+                                            WHERE held.instance = kept.held_by AND held.version = kept.held_at) END \
+                                      FROM instance_versions kept \
                                       WHERE kept.instance = instances.id AND kept.version = instances.text) END, \
                                 params, state, status, parent, key, target, \
                                 project, principal, holds, error, created, updated, previous, labels, heard, environment";
+
+/// The text a version row called `kept` was given: its own, or the one
+/// the version it names keeps ([`crate::store::record_version`]).
+pub(crate) const KEPT_TEXT: &str = "CASE WHEN kept.held_by IS NULL THEN kept.source \
+                                    ELSE (SELECT held.source FROM instance_versions held \
+                                          WHERE held.instance = kept.held_by AND held.version = kept.held_at) END";
 
 /// The columns an instance is written with, in the order it is handed
 /// them: what it is read by, with its text left out of the row and the
@@ -113,7 +122,7 @@ pub(crate) fn collect<T>(
     params: impl rusqlite::Params,
     read: fn(&Row<'_>) -> rusqlite::Result<T>,
 ) -> rusqlite::Result<Vec<T>> {
-    let mut statement = connection.prepare(sql)?;
+    let mut statement = connection.prepare_cached(sql)?;
     let rows = statement.query_map(params, read)?;
     rows.collect()
 }

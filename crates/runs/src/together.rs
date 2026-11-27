@@ -28,7 +28,7 @@
 //! journal looks, says what was not said in the write that takes the
 //! note off, and nothing is looked for at any start after it.
 
-use journal::Writing;
+use journal::{Prepared, Writing};
 use kernel::{Result, Source};
 use rusqlite::params;
 use serde_json::Value;
@@ -187,11 +187,11 @@ impl Store {
         let wrote = self.journal.write(move |writing| {
             let transaction = writing.transaction();
             // What its loops had got through is only for going on with.
-            transaction.execute("DELETE FROM step_elements WHERE run = ?1", params![ending.run])?;
+            transaction.execute_kept("DELETE FROM step_elements WHERE run = ?1", params![ending.run])?;
             for step in &ending.steps {
                 crate::runs::put(transaction, step)?;
             }
-            transaction.execute(
+            transaction.execute_kept(
                 "UPDATE runs SET status = ?2, outputs = ?3, error = ?4, finished = ?5, carries = NULL
                  WHERE id = ?1",
                 params![
@@ -221,7 +221,7 @@ impl Store {
             if let (true, Some(status)) = (settled, becomes.status) {
                 // One that is active and owes a look at what is under it
                 // (`below`) owes it still: it is looked at from here.
-                let written = transaction.execute(
+                let written = transaction.execute_kept(
                     "UPDATE instances SET status = ?2, error = ?3, updated = ?4,
                             owes = CASE WHEN ?5 IS NOT NULL THEN ?5
                                         WHEN ?2 = 'active' AND owes = 'below' THEN owes END
@@ -344,7 +344,8 @@ impl Store {
         let id = id.to_string();
         self.db
             .call(move |connection| {
-                connection.execute("UPDATE instances SET owes = NULL WHERE id = ?1 AND owes = 'below'", [id])
+                connection
+                    .execute_kept("UPDATE instances SET owes = NULL WHERE id = ?1 AND owes = 'below'", [id])
             })
             .await
             .map(|_| ())
@@ -357,7 +358,7 @@ impl Store {
         let id = id.to_string();
         self.db
             .call(move |connection| {
-                connection.query_row(
+                connection.query_row_kept(
                     "SELECT EXISTS (SELECT 1 FROM runs WHERE instance = ?1 AND flow = ?2 AND status = 'running')",
                     params![id, flow],
                     |row| row.get(0),
@@ -370,7 +371,9 @@ impl Store {
     /// been said to be active: each was looked at, or is active no longer.
     pub async fn looked(&self) -> Result<()> {
         self.db
-            .call(|connection| connection.execute("UPDATE instances SET owes = NULL WHERE owes = 'said'", []))
+            .call(|connection| {
+                connection.execute_kept("UPDATE instances SET owes = NULL WHERE owes = 'said'", [])
+            })
             .await
             .map(|_| ())
     }
@@ -382,7 +385,7 @@ impl Store {
         let kept: Option<Option<String>> = self
             .db
             .call(move |connection| {
-                journal::optional(connection.query_row(
+                journal::optional(connection.query_row_kept(
                     "SELECT hooks FROM instances WHERE id = ?1 AND owes = 'stop'",
                     [id],
                     |row| row.get(0),
@@ -400,7 +403,7 @@ impl Store {
         let (id, kept) = (id.to_string(), kept.to_string());
         self.db
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE instances SET owes = 'stop', hooks = json_patch(coalesce(hooks, '{}'), ?2)
                      WHERE id = ?1 AND status IN ('starting', 'active')",
                     params![id, kept],
@@ -523,13 +526,13 @@ impl Store {
         let wrote = self.journal.write(move |writing| {
             for (run, finished) in runs {
                 let transaction = writing.transaction();
-                let ended = transaction.execute(
+                let ended = transaction.execute_kept(
                     "UPDATE runs SET status = 'cancelled', error = ?2, finished = ?3
                      WHERE id = ?1 AND status = 'running'",
                     params![run, note, now],
                 )?;
                 if ended == 1 {
-                    transaction.execute("DELETE FROM step_elements WHERE run = ?1", params![run])?;
+                    transaction.execute_kept("DELETE FROM step_elements WHERE run = ?1", params![run])?;
                     said(writing, vec![finished])?;
                 }
             }

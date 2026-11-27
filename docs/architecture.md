@@ -3561,6 +3561,34 @@ while the daemon drains (a `wait` for an event a handler would have
 said, or for a long time) holds the drain to its bound, and is then
 taken up by the next start as any run is.
 
+### Answering while it takes up
+
+A daemon that starts again takes up what the one before left: the
+services and commands that were running, each instance and its runs, the
+agents and the links to other devices. It listens before it does, once
+what it is and who owns it are settled (`Node::start`, `api::resuming`),
+so that whoever asks is answered within a moment of its start and not
+once everything is in hand. Until it is:
+
+- What is read is answered from what is written. `/api/meta` and
+  `/api/fleet` say that it is taking up, what it is doing and how many
+  instances it has taken up from how many journals (`taking_up`), which
+  `mw status` prints; the instances `/api/fleet` lists are read as
+  written, waiting for no conductor (`Engine::instances_written`).
+  Anything else that asks a conductor still taking up waits for it, as
+  it would for one started again by itself.
+- What changes anything (every request but a read) waits until it is
+  done, and is then answered as it would have been a moment later. Any
+  write may be heard by a handler of an instance not yet in hand, and
+  what every play of a restart holds was played against a daemon that
+  took up before it answered anybody; so a write is held at the door
+  and nothing behind it changes. Held rather than refused: a client
+  that waits a moment has nothing to do again, and before this it waited
+  the same, at an address that was bound and not yet answering.
+- `system.started` says that it is done, before anything that waited
+  is let through. A start that fails part way answers what waited with
+  why, and the daemon stops.
+
 ## How an event reaches a handler
 
 Handlers do not follow the journal. One task in the conductor does

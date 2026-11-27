@@ -163,7 +163,9 @@ async fn fleet(State(app): State<App>, Auth(who): Auth) -> ApiResult<Json<Value>
     let instances = match who.can("blueprints:read") {
         true => {
             let live = InstanceFilter { live_only: true, limit: 1000, ..InstanceFilter::default() };
-            app.engine.instances(live).await?
+            // As written, waiting for no journal still being taken up:
+            // this is what says how far that has come.
+            app.engine.instances_written(live).await?
         }
         false => Vec::new(),
     };
@@ -193,6 +195,7 @@ async fn fleet(State(app): State<App>, Auth(who): Auth) -> ApiResult<Json<Value>
         "agents": slots,
         "devices": app.gateway.devices().await?,
         "hub": app.gateway.uplink(),
+        "taking_up": app.resuming.said(&app.engine),
         "last_seq": last_seq,
         "cursor": crate::cursor::at(&now),
     })))

@@ -90,6 +90,7 @@ try {
   await page.locator('.rail').waitFor();
   await file('about.md', BEFORE);
   await file('prices.md', '# Prices\n\n| Item | Price |\n|---|---|\n| Mug | 9 |\n');
+  await file('framed.md', '# Framed\n\n<div class="frame">Held in a frame.</div>\n');
   await side(page, 'Resources');
   // A project's files are under it, folded away until they are wanted: unfolded by their arrow where Expand all did not, their folder never having been looked at.
   await unfold(page, 'Shop repo');
@@ -157,18 +158,25 @@ try {
   const html = await frame.getAttribute('srcdoc');
   expect('the page to hold what was written', html.includes('<h2>Plan</h2>') && html.includes('<strong>bold</strong>') && html.includes('<blockquote>'));
   expect('the settings not to be on the page', !html.includes('publish: true'));
-  await page.waitForTimeout(300);
+  await page.frameLocator('iframe.page-frame').locator('h2', { hasText: 'Plan' }).waitFor();
   await page.screenshot({ path: `${out}/writing-4-page.png` });
   await page.getByRole('tab', { name: 'Source' }).click();
   await page.locator('.cm-content', { hasText: '## Plan' }).waitFor();
   await page.getByRole('tab', { name: 'Write' }).click();
   await doc.locator('h2', { hasText: 'Plan' }).waitFor();
 
-  // A document with something blocks cannot keep is not opened as blocks.
+  // A table is opened as blocks, kept as the text it was written as.
   await page.locator('.nav').getByText('prices.md').click();
-  await page.locator('.doc-note', { hasText: 'a table' }).waitFor();
-  await page.locator('.cm-content', { hasText: '| Mug | 9 |' }).waitFor();
+  await doc.locator('h1', { hasText: 'Prices' }).waitFor();
+  await doc.locator('pre.writer-table', { hasText: '| Mug | 9 |' }).waitFor();
+  expect('a table not to be taken for something blocks cannot keep', (await page.locator('.doc-note').count()) === 0);
   await page.screenshot({ path: `${out}/writing-5-table.png` });
+
+  // A document with something blocks cannot keep is not opened as blocks.
+  await page.locator('.nav').getByText('framed.md').click();
+  await page.locator('.doc-note', { hasText: 'raw HTML' }).waitFor();
+  await page.locator('.cm-content', { hasText: 'Held in a frame.' }).waitFor();
+  await page.screenshot({ path: `${out}/writing-6-raw.png` });
 
   await browser.close();
   if (problems.length) throw new Error(`errors in the page:\n${problems.join('\n')}`);

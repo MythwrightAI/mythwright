@@ -89,6 +89,8 @@ try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 860 }, colorScheme: process.env.SCHEME ?? 'dark' });
   const problems = [];
   page.on('pageerror', (err) => problems.push(err.message));
+  // A request the page lost is said with why (the event stream is let go as a page closes): once, under load, sending what the drag is measured over failed to fetch.
+  page.on('requestfailed', (asked) => asked.failure()?.errorText !== 'net::ERR_ABORTED' && console.log(`lost ${asked.method()} ${asked.url().replace(/by=\w+/, 'by=…')}: ${asked.failure()?.errorText}`));
   const expect = (what, ok) => {
     if (!ok) throw new Error(`expected ${what}`);
   };

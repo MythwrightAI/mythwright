@@ -43,7 +43,7 @@ use std::sync::Arc;
 use kernel::{Event, Result, Source};
 use serde_json::Value;
 
-use crate::{Inner, Journal};
+use crate::{Inner, Journal, Prepared};
 
 /// A write under way: a transaction to write in, and a way to say events
 /// that are kept if and when everything written in it is.
@@ -173,7 +173,7 @@ impl<'a> Writing<'a> {
     /// read inside the write, so that a change worked out from it is made
     /// from what is there, whatever was written a moment before.
     pub fn kept(&self, namespace: &str, key: &str) -> rusqlite::Result<Option<Value>> {
-        let found: Option<String> = crate::optional(self.transaction.query_row(
+        let found: Option<String> = crate::optional(self.transaction.query_row_kept(
             "SELECT value FROM kv WHERE namespace = ?1 AND key = ?2",
             [namespace, key],
             |row| row.get(0),

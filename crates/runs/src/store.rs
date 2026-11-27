@@ -17,7 +17,7 @@ pub(crate) use crate::read::{
 use crate::schema::SCHEMA;
 use crate::together::{Done, Say, said};
 use blueprint::Labels;
-use journal::{Db, Journal, optional};
+use journal::{Db, Journal, Prepared, optional};
 use kernel::{Cancel, Error, Fields, Principal, Result};
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::Serialize;
@@ -199,19 +199,34 @@ fn principal_text(principal: &Principal) -> String {
 /// Writes down a definition an instance was given, after the ones before
 /// it, and says which version it is: the one that keeps the text the
 /// instance runs from now (`instances.text`), which its own row then
-/// leaves out.
+/// leaves out. `held` is an instance of the project (the one named, and
+/// the project it is to be of) that may keep the same text already, for
+/// one being made: where the version that instance runs keeps, or names,
+/// one that keeps that very text, compared whole and not by its
+/// revision alone, this version names that one and keeps none of its own.
 pub(crate) fn record_version(
     connection: &Connection,
     instance: &str,
+    held: Option<(&str, Option<&str>)>,
     definition: &Definition,
     now: i64,
 ) -> rusqlite::Result<i64> {
     let by = definition.principal.as_ref();
-    connection.query_row(
+    let (candidate, project) = held.unzip();
+    connection.query_row_kept(
         "INSERT INTO instance_versions
-             (instance, version, revision, source, params, actor, actor_name, applied, principal)
-         SELECT ?1, coalesce(max(version), 0) + 1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
-         FROM instance_versions WHERE instance = ?1
+             (instance, version, revision, source, params, actor, actor_name, applied, principal, held_by, held_at)
+         SELECT ?1, (SELECT coalesce(max(version), 0) + 1 FROM instance_versions WHERE instance = ?1), ?2,
+                CASE WHEN keeper.instance IS NULL THEN ?3 ELSE '' END, ?4, ?5, ?6, ?7, ?8,
+                keeper.instance, keeper.version
+         FROM (SELECT 1) LEFT JOIN (
+             SELECT kept.instance, kept.version
+             FROM instances whose
+             JOIN instance_versions runs ON runs.instance = whose.id AND runs.version = whose.text
+             JOIN instance_versions kept ON kept.instance = coalesce(runs.held_by, runs.instance)
+                                        AND kept.version = coalesce(runs.held_at, runs.version)
+             WHERE whose.id = ?9 AND whose.revision = ?2 AND coalesce(whose.project, '') = coalesce(?10, '')
+               AND kept.held_by IS NULL AND kept.source = ?3 AND ?3 <> '') keeper
          RETURNING version",
         params![
             instance,
@@ -222,6 +237,8 @@ pub(crate) fn record_version(
             by.map(|by| by.name.clone()).unwrap_or_default(),
             now,
             by.map(principal_text),
+            candidate,
+            project.flatten(),
         ],
         |row| row.get(0),
     )
@@ -294,7 +311,8 @@ pub async fn blueprint_kept(db: &Db, id: &str) -> Option<String> {
     let id = id.to_string();
     let read = db.call(move |connection| {
         optional(
-            connection.query_row("SELECT blueprint FROM instances WHERE id = ?1", [&id], |row| row.get(0)),
+            connection
+                .query_row_kept("SELECT blueprint FROM instances WHERE id = ?1", [&id], |row| row.get(0)),
         )
     });
     read.await.ok().flatten()
@@ -305,6 +323,8 @@ pub struct Store {
     pub(crate) db: Db,
     /// For what is written and said as one write (`together`).
     pub(crate) journal: Journal,
+    /// Which instance was last made with each text, by project.
+    holders: crate::holders::Holders,
 }
 
 impl Store {
@@ -317,7 +337,7 @@ impl Store {
         // What a journal from before still has that nothing reads, where
         // taking it away is nothing.
         db.call(|connection| crate::schema::shed(connection)).await?;
-        Ok(Store { db, journal: journal.clone() })
+        Ok(Store { db, journal: journal.clone(), holders: Default::default() })
     }
 
     /// Writes a new instance down and says that it started (`says`), as
@@ -338,6 +358,8 @@ impl Store {
         under: Option<Cancel>,
         says: Vec<Say>,
     ) -> Result<bool> {
+        let (project, revision, id) = (info.project.clone(), info.revision.clone(), info.id.clone());
+        let holder = self.holders.of(project.as_deref(), &revision);
         let wrote = self
             .journal
             .write(move |writing| {
@@ -350,7 +372,7 @@ impl Store {
                 // of the parent's own row, since everything that tells
                 // rows apart by project rests on it (`crate::apart`).
                 if let Some(parent) = &info.parent {
-                    let of: Option<String> = optional(connection.query_row(
+                    let of: Option<String> = optional(connection.query_row_kept(
                         &format!("SELECT {} WHERE EXISTS (SELECT 1 FROM instances WHERE id = ?1)", of_instance(1)),
                         [parent],
                         |row| row.get(0),
@@ -369,8 +391,9 @@ impl Store {
                     before: None,
                     heard: info.heard.clone(),
                 };
-                let text = record_version(connection, &info.id, &first, info.created)?;
-                connection.execute(
+                let held = holder.as_deref().map(|holder| (holder, info.project.as_deref()));
+                let text = record_version(connection, &info.id, held, &first, info.created)?;
+                connection.execute_kept(
                     &format!(
                         "INSERT INTO instances ({INSTANCE_WRITTEN})
                          VALUES (?1, ?2, ?3, '', ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, NULL, ?16, ?17, ?18, ?19)"
@@ -401,6 +424,9 @@ impl Store {
                 Ok(Ok(true))
             })
             .await?;
+        if matches!(wrote.0, Ok(true)) {
+            self.holders.made(project.as_deref(), &revision, &id);
+        }
         wrote.0.map_err(Error::invalid)
     }
 
@@ -408,7 +434,7 @@ impl Store {
         let id = id.to_string();
         self.db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     &format!("SELECT {INSTANCE_COLUMNS} FROM instances WHERE id = ?1"),
                     [&id],
                     read_instance,
@@ -423,7 +449,7 @@ impl Store {
         let (parent, key) = (parent.to_string(), key.to_string());
         self.db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     &format!(
                         "SELECT {INSTANCE_COLUMNS} FROM instances WHERE key = ?1 AND parent = ?2
                          ORDER BY rowid DESC LIMIT 1"
@@ -441,7 +467,7 @@ impl Store {
         let (parent, key) = (parent.to_string(), key.to_string());
         self.db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     &format!(
                         "SELECT {INSTANCE_COLUMNS} FROM instances
                          WHERE key = ?1 AND parent = ?2 AND status NOT IN ('starting', 'active')
@@ -470,7 +496,7 @@ impl Store {
         self.db
             .call(move |connection| {
                 optional(match parent {
-                    Some(parent) => connection.query_row(
+                    Some(parent) => connection.query_row_kept(
                         &format!(
                             "SELECT {INSTANCE_COLUMNS} FROM instances
                              WHERE key = ?1 AND parent = ?2 AND status IN ('starting', 'active')
@@ -479,7 +505,7 @@ impl Store {
                         params![key, parent],
                         read_instance,
                     ),
-                    None => connection.query_row(
+                    None => connection.query_row_kept(
                         &format!(
                             "SELECT {} FROM alive INDEXED BY alive_project
                              CROSS JOIN instances ON instances.id = alive.instance
@@ -501,7 +527,7 @@ impl Store {
         let id = id.to_string();
         let began = std::time::Instant::now();
         let read = self.db.call(move |connection| {
-            optional(connection.query_row("SELECT parent FROM instances WHERE id = ?1", [&id], |row| {
+            optional(connection.query_row_kept("SELECT parent FROM instances WHERE id = ?1", [&id], |row| {
                 row.get::<_, Option<String>>(0)
             }))
         });
@@ -521,7 +547,8 @@ impl Store {
     pub async fn newest_instance(&self) -> Result<i64> {
         self.db
             .call(|connection| {
-                connection.query_row("SELECT coalesce(max(rowid), 0) FROM instances", [], |row| row.get(0))
+                connection
+                    .query_row_kept("SELECT coalesce(max(rowid), 0) FROM instances", [], |row| row.get(0))
             })
             .await
     }
@@ -533,7 +560,7 @@ impl Store {
         let (parent, key) = (parent.to_string(), key.to_string());
         self.db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     &format!(
                         "SELECT {INSTANCE_COLUMNS} FROM instances
                          WHERE parent = ?1 AND key = ?2 AND rowid > ?3
@@ -552,7 +579,7 @@ impl Store {
         let parent = parent.to_string();
         self.db
             .call(move |connection| {
-                let mut statement = connection.prepare(
+                let mut statement = connection.prepare_cached(
                     "SELECT id FROM instances
                      WHERE parent = ?1 AND rowid > ?2 AND status IN ('starting', 'active')
                      ORDER BY rowid",
@@ -627,7 +654,7 @@ impl Store {
         let id = id.to_string();
         self.db
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE instances SET error = ?2, updated = ?4
                      WHERE id = ?1 AND status IN ('starting', 'active')
                        AND ((?2 IS NOT NULL AND error IS NULL) OR substr(error, 1, length(?3)) = ?3)",
@@ -657,7 +684,7 @@ impl Store {
         self.journal
             .write(move |writing| {
                 let transaction = writing.transaction();
-                transaction.execute(
+                transaction.execute_kept(
                     "UPDATE instances SET state = ?2, updated = ?3 WHERE id = ?1",
                     params![id, Value::Object(state).to_string(), now],
                 )?;
@@ -665,21 +692,21 @@ impl Store {
                     None => {}
                     Some(Done::Step { run, step, gave }) => {
                         let acted = serde_json::json!({ "ok": true, "output": gave }).to_string();
-                        transaction.execute(
+                        transaction.execute_kept(
                             "UPDATE steps SET hooks = json_set(coalesce(hooks, '{}'), '$.acted', json(?3))
                              WHERE run = ?1 AND step = ?2",
                             params![run, step, acted],
                         )?;
                     }
                     Some(Done::Element { run, step, position, gave }) => {
-                        transaction.execute(
+                        transaction.execute_kept(
                             "INSERT OR REPLACE INTO step_elements (run, step, position, output)
                              VALUES (?1, ?2, ?3, ?4)",
                             params![run, step, position as i64, gave.to_string()],
                         )?;
                     }
                     Some(Done::Stopping { instance, done }) => {
-                        transaction.execute(
+                        transaction.execute_kept(
                             "UPDATE instances SET hooks = json_set(coalesce(hooks, '{}'), '$.end', ?2)
                              WHERE id = ?1",
                             params![instance, done as i64],
@@ -689,11 +716,11 @@ impl Store {
                         let path = if start { "$.start" } else { "$.end" };
                         let set = format!("hooks = json_set(coalesce(hooks, '{{}}'), '{path}', ?2)");
                         match step {
-                            Some(step) => transaction.execute(
+                            Some(step) => transaction.execute_kept(
                                 &format!("UPDATE steps SET {set} WHERE run = ?1 AND step = ?3"),
                                 params![run, done as i64, step],
                             )?,
-                            None => transaction.execute(
+                            None => transaction.execute_kept(
                                 &format!("UPDATE runs SET {set} WHERE id = ?1"),
                                 params![run, done as i64],
                             )?,
@@ -710,7 +737,7 @@ impl Store {
         let id = id.to_string();
         self.db
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE instances SET holds = ?2, updated = ?3 WHERE id = ?1",
                     params![id, serde_json::to_string(&holds).unwrap_or_default(), now],
                 )
@@ -740,13 +767,13 @@ impl Store {
                 let transaction = writing.transaction();
                 let owed = "SELECT owes IS 'below' FROM instances WHERE id = ?1";
                 let kept: bool =
-                    transaction.query_row(owed, [&id], |row| row.get(0)).optional()?.unwrap_or(false);
+                    transaction.query_row_kept(owed, [&id], |row| row.get(0)).optional()?.unwrap_or(false);
                 // Only one that is still running takes a text: one that
                 // ended as it was being applied over has said how it
                 // ended, and something is given only where it was
                 // written. A look owed from before is owed still, and in
                 // what it would go back to.
-                let written = transaction.execute(
+                let written = transaction.execute_kept(
                     "UPDATE instances SET revision = ?2, source = ?3, text = NULL, params = ?4, state = ?5,
                             status = 'starting', error = NULL, updated = ?6,
                             previous = coalesce(json_set(?7, '$.before.below', json(?11)), previous),
@@ -771,8 +798,9 @@ impl Store {
                 )?;
                 if written == 1 {
                     crate::runs::carried(transaction, &id)?;
-                    let text = record_version(transaction, &id, &definition, now)?;
-                    transaction.execute("UPDATE instances SET text = ?2 WHERE id = ?1", params![id, text])?;
+                    let text = record_version(transaction, &id, None, &definition, now)?;
+                    transaction
+                        .execute_kept("UPDATE instances SET text = ?2 WHERE id = ?1", params![id, text])?;
                     for (handler, journal, from) in places {
                         crate::places::make(transaction, &id, &handler, &journal, from)?;
                     }
@@ -795,10 +823,11 @@ impl Store {
         self.db
             .call(move |connection| {
                 connection
-                    .prepare(
-                        "SELECT version, revision, source, params, actor, actor_name, applied, outcome, principal
-                         FROM instance_versions WHERE instance = ?1 ORDER BY version DESC LIMIT ?2",
-                    )?
+                    .prepare(&format!(
+                        "SELECT version, revision, {}, params, actor, actor_name, applied, outcome, principal
+                             FROM instance_versions kept WHERE instance = ?1 ORDER BY version DESC LIMIT ?2",
+                        crate::read::KEPT_TEXT
+                    ))?
                     .query_map(params![instance, limit as i64], |row| {
                         let params: String = row.get(3)?;
                         Ok(Version {
@@ -867,11 +896,11 @@ pub(crate) fn end_update(
     now: i64,
 ) -> rusqlite::Result<usize> {
     let Some(definition) = revert else {
-        return connection.execute("UPDATE instances SET previous = NULL WHERE id = ?1", params![id]);
+        return connection.execute_kept("UPDATE instances SET previous = NULL WHERE id = ?1", params![id]);
     };
     let kept = definition.before.as_ref().is_some_and(|before| before.below);
     // The version that was just tried did not hold.
-    connection.execute(
+    connection.execute_kept(
         "UPDATE instance_versions SET outcome = 'reverted'
          WHERE instance = ?1
            AND version = (SELECT max(version) FROM instance_versions WHERE instance = ?1)",
@@ -879,7 +908,7 @@ pub(crate) fn end_update(
     )?;
     // Only one that is still running goes back to running: stopped
     // meanwhile, it stays stopped.
-    connection.execute(
+    connection.execute_kept(
         "UPDATE instances SET revision = ?2, source = ?3, text = NULL, params = ?4, status = 'active',
                 error = ?5, updated = ?6, previous = NULL,
                 principal = coalesce(?7, principal), state = coalesce(?8, state),

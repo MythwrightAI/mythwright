@@ -25,7 +25,7 @@
 //! own journal, with them ([`crate::beside`]).
 
 use std::collections::{BTreeMap, HashMap};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 
 use kernel::{Error, Result};
@@ -91,6 +91,9 @@ pub(crate) struct Conductors {
     /// The factory is draining to stop ([`Engine::hold_new_work`]):
     /// nothing new is begun by any conductor of it.
     held: AtomicBool,
+    /// How many instances the conductors have taken up since they were
+    /// made ([`Engine::how_far`]).
+    pub taken: AtomicUsize,
 }
 
 impl Conductors {

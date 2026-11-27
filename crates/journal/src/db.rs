@@ -269,6 +269,7 @@ impl Db {
     }
 
     fn start(mut connection: Connection, file: Option<(&Path, Kept)>, disk: Disk) -> Result<Db> {
+        crate::prepared::keep_prepared(&connection).map_err(db_error)?;
         // A transaction takes its turn to write when it begins. One that
         // read first and asked to write afterwards is refused at once,
         // however long it was told to wait, if anything else wrote to the

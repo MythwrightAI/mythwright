@@ -454,6 +454,7 @@ async fn a_database_from_before_each_version_kept_its_authority_still_opens_and_
     rig.journal
         .db()
         .call(|connection| {
+            connection.execute_batch(crate::ordered::BEFORE_TEXTS_WERE_HELD)?;
             connection.execute_batch(crate::ordered::BEFORE_ASKERS_WERE_KEPT)?;
             connection.execute_batch(crate::ordered::BEFORE_ENVIRONMENTS)?;
             connection.execute_batch(crate::ordered::BEFORE_BEGINNINGS_WERE_WRITTEN)?;

@@ -12,7 +12,7 @@
 //! This module knows nothing of boards. What a board does with a collection
 //! (columns, the order of cards, what moving one means) is in `board`.
 
-use journal::{Journal, optional};
+use journal::{Journal, Prepared, optional};
 use kernel::{Error, Principal, Result, Source};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
@@ -468,7 +468,7 @@ impl Collections {
             .db()
             .call(move |connection| {
                 crate::added::carry(connection, &mut row)?;
-                connection.execute(
+                connection.execute_kept(
                     &format!("INSERT OR REPLACE INTO collections ({COLLECTION}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)"),
                     params![
                         row.project,
@@ -560,11 +560,11 @@ impl Collections {
             .rows(&collection.project)
             .db()
             .call(move |connection| {
-                connection.execute(
+                connection.execute_kept(
                     "UPDATE collections SET views = ?3, updated = ?4 WHERE project = ?1 AND name = ?2",
                     params![row.0, row.1, views, row.2],
                 )?;
-                connection.query_row(
+                connection.query_row_kept(
                     &format!("SELECT {COLLECTION} FROM collections WHERE project = ?1 AND name = ?2"),
                     [&row.0, &row.1],
                     read_collection,
@@ -581,7 +581,7 @@ impl Collections {
         self.rows(&project)
             .db()
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     &format!("SELECT {COLLECTION} FROM collections WHERE project = ?1 AND name = ?2"),
                     [&project, &name],
                     read_collection,
@@ -607,7 +607,7 @@ impl Collections {
             let listed: Vec<Collection> = journal
                 .db()
                 .call(move |connection| {
-                    let mut statement = connection.prepare(&format!(
+                    let mut statement = connection.prepare_cached(&format!(
                         "SELECT {COLLECTION} FROM collections WHERE ?1 IS NULL OR project = ?1 ORDER BY project, name"
                     ))?;
                     let rows = statement.query_map([&project], read_collection)?;
@@ -618,6 +618,38 @@ impl Collections {
         }
         found.sort_by(|one, other| (&one.project, &one.name).cmp(&(&other.project, &other.name)));
         Ok(found)
+    }
+
+    /// The tables of `project` that may own the record `id`, numbered
+    /// `number`, in the order [`Collections::list`] gives them: of every
+    /// table only its name and where it keeps its rows are read, and only
+    /// one that may own it is read whole, in the same piece of work.
+    async fn may_own(&self, project: &str, id: &str, number: i64) -> Result<Vec<Collection>> {
+        let db = self.rows(project).db().clone();
+        let (project, id) = (project.to_string(), id.to_string());
+        let read = move |connection: &mut rusqlite::Connection| {
+            let mut named = connection.prepare_cached(
+                "SELECT name, store FROM collections WHERE project = ?1 ORDER BY project, name",
+            )?;
+            let tables: Vec<(String, String)> = named
+                .query_map([&project], |row| Ok((row.get(0)?, row.get(1)?)))?
+                .collect::<rusqlite::Result<_>>()?;
+            let mut whole = connection.prepare_cached(&format!(
+                "SELECT {COLLECTION} FROM collections WHERE project = ?1 AND name = ?2"
+            ))?;
+            let mut found = Vec::new();
+            for (name, store) in tables {
+                let may = match Store::parse(&store) {
+                    Some(Store::Documents | Store::Mockups) => true,
+                    _ => record_id(&project, &name, number) == id,
+                };
+                if may {
+                    found.extend(optional(whole.query_row([&project, &name], read_collection))?);
+                }
+            }
+            Ok(found)
+        };
+        db.call(read).await
     }
 
     /// Every record of a collection, in the order they were made.
@@ -653,7 +685,7 @@ impl Collections {
                 self.rows(&project)
                     .db()
                     .call(move |connection| {
-                        let mut statement = connection.prepare(&format!(
+                        let mut statement = connection.prepare_cached(&format!(
                             "SELECT {RECORD} FROM records
                              WHERE project = ?1 AND collection = ?2 AND (updated >= ?3 OR updated = 0)
                              ORDER BY number"
@@ -711,7 +743,10 @@ impl Collections {
         let number = id.rsplit_once('-').and_then(|(_, number)| number.parse::<i64>().ok());
         let number = number.ok_or_else(missing)?;
         for (at, _) in id.rmatch_indices('-') {
-            for collection in self.list(Some(&id[..at])).await? {
+            // Only a table that may own the id is read whole: what a table
+            // says of itself is read and worked out each time, and a card
+            // is looked up at every move and every write on it.
+            for collection in self.may_own(&id[..at], id, number).await? {
                 if !collection.owns(id) {
                     continue;
                 }
@@ -738,7 +773,11 @@ impl Collections {
                 self.rows(&collection.project)
                     .db()
                     .call(move |connection| {
-                        journal::optional(connection.query_row(&by_id, [&id, &project, &name], read_record))
+                        journal::optional(connection.query_row_kept(
+                            &by_id,
+                            [&id, &project, &name],
+                            read_record,
+                        ))
                     })
                     .await?
             }
@@ -874,7 +913,7 @@ impl Collections {
         );
         self.rows(&collection.project)
             .db()
-            .call(move |connection| connection.query_row(&highest, [&project, &name], |row| row.get(0)))
+            .call(move |connection| connection.query_row_kept(&highest, [&project, &name], |row| row.get(0)))
             .await
     }
 

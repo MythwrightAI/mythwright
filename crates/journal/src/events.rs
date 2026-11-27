@@ -10,7 +10,7 @@ use rusqlite::types::Value as Sql;
 use serde_json::Value;
 use tokio::sync::broadcast::{self, error::RecvError};
 
-use crate::Journal;
+use crate::{Journal, Prepared};
 
 /// Which stored events to read.
 #[derive(Clone, Debug, Default)]
@@ -57,7 +57,7 @@ const FEW: i64 = 20_000;
 pub(crate) fn shed(connection: &rusqlite::Connection) -> rusqlite::Result<()> {
     let mut there = Vec::new();
     for name in UNKEPT {
-        let kept: bool = connection.query_row(
+        let kept: bool = connection.query_row_kept(
             "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'index' AND name = ?1)",
             [name],
             |row| row.get(0),
@@ -69,7 +69,7 @@ pub(crate) fn shed(connection: &rusqlite::Connection) -> rusqlite::Result<()> {
     if there.is_empty() {
         return Ok(());
     }
-    let held: i64 = connection.query_row(
+    let held: i64 = connection.query_row_kept(
         "SELECT count(*) FROM (SELECT 1 FROM events INDEXED BY events_topic LIMIT ?1)",
         [FEW + 1],
         |row| row.get(0),
@@ -399,7 +399,7 @@ impl Journal {
                     sql.push_str(&format!(" AND topic = ?{}", params.len()));
                 }
                 sql.push_str(if query.newest_first { " ORDER BY seq DESC" } else { " ORDER BY seq ASC" });
-                let mut statement = connection.prepare(&sql)?;
+                let mut statement = connection.prepare_cached(&sql)?;
                 let mut rows = statement.query(rusqlite::params_from_iter(params))?;
                 let mut events = Vec::new();
                 // Topic patterns are matched here rather than in SQL: they are
@@ -469,7 +469,7 @@ impl Journal {
         self.inner
             .db
             .call(move |connection| {
-                connection.query_row(
+                connection.query_row_kept(
                     "SELECT EXISTS (SELECT 1 FROM events WHERE topic = ?1 AND instr(data, ?2) > 0)",
                     [&topic, &holds],
                     |row| row.get(0),
@@ -488,7 +488,7 @@ impl Journal {
         self.inner
             .db
             .call(move |connection| {
-                let sampled: i64 = connection.query_row(
+                let sampled: i64 = connection.query_row_kept(
                     "SELECT coalesce(max(seq), 0) FROM events INDEXED BY events_when WHERE seq % 512 = 0 AND ts < ?1",
                     [ts],
                     |row| row.get(0),
@@ -523,7 +523,7 @@ impl Journal {
                     Some(floor) => floor,
                     None => crate::numbered::floor(last, keep, &crate::numbered::gaps(&transaction)?),
                 } as i64;
-                let sampled: i64 = transaction.query_row(
+                let sampled: i64 = transaction.query_row_kept(
                     "SELECT coalesce(max(seq), 0) FROM events INDEXED BY events_when
                      WHERE seq % 512 = 0 AND ts < ?1 AND seq <= ?2",
                     [before_ts, floor],
@@ -541,7 +541,7 @@ impl Journal {
                         other => Err(other),
                     })?;
                 let last = newer.map_or(floor, |seq| seq - 1);
-                let gone = transaction.execute("DELETE FROM events WHERE seq <= ?1 AND ts < ?2", [last, before_ts])?;
+                let gone = transaction.execute_kept("DELETE FROM events WHERE seq <= ?1 AND ts < ?2", [last, before_ts])?;
                 if gone > 0 {
                     crate::numbered::keep_said(&transaction, inner.given.load(Ordering::SeqCst) as i64)?;
                 }
@@ -569,7 +569,7 @@ impl Journal {
             .db
             .call(move |connection| {
                 let transaction = crate::gather::whole(connection)?;
-                let gone = transaction.execute(
+                let gone = transaction.execute_kept(
                     "DELETE FROM events WHERE topic = ?1 AND instr(data, ?2) > 0",
                     [&topic, &holds],
                 )?;
@@ -588,7 +588,7 @@ impl Journal {
 /// Writes an event down as it is, its number given: by whoever numbers
 /// it, on the database's thread.
 pub(crate) fn insert(connection: &rusqlite::Connection, event: &Event) -> rusqlite::Result<()> {
-    connection.execute(
+    connection.execute_kept(
         "INSERT INTO events (seq, ts, topic, device, instance, run, step, actor, data, takes)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         rusqlite::params![

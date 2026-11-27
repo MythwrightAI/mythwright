@@ -20,7 +20,7 @@
 //! its instance, copied from the instance's row when the place is first
 //! kept, and not written again as it moves.
 
-use journal::optional;
+use journal::{Prepared, optional};
 use kernel::Result;
 use rusqlite::{Connection, params};
 
@@ -48,7 +48,7 @@ pub(crate) fn put(
     journal: &str,
     seq: u64,
 ) -> rusqlite::Result<()> {
-    let moved = connection.execute(
+    let moved = connection.execute_kept(
         "UPDATE places SET seq = ?4 WHERE instance = ?1 AND handler = ?2 AND journal = ?3",
         params![instance, handler, journal, seq as i64],
     )?;
@@ -67,7 +67,7 @@ pub(crate) fn make(
     journal: &str,
     seq: u64,
 ) -> rusqlite::Result<usize> {
-    connection.execute(
+    connection.execute_kept(
         &format!(
             "INSERT INTO places (instance, handler, journal, seq, project)
              VALUES (?1, ?2, ?3, ?4, {})
@@ -85,7 +85,7 @@ impl Store {
         let (instance, handler, journal) = (instance.to_string(), handler.to_string(), journal.to_string());
         self.db
             .call(move |connection| {
-                optional(connection.query_row(
+                optional(connection.query_row_kept(
                     "SELECT seq FROM places WHERE instance = ?1 AND handler = ?2 AND journal = ?3",
                     [&instance, &handler, &journal],
                     |row| row.get::<_, i64>(0),
@@ -102,7 +102,7 @@ impl Store {
         let (instance, journal) = (instance.to_string(), journal.to_string());
         self.db
             .call(move |connection| {
-                connection.query_row(
+                connection.query_row_kept(
                     "SELECT min(seq) FROM places WHERE instance = ?1 AND journal = ?2",
                     [&instance, &journal],
                     |row| row.get::<_, Option<i64>>(0),
@@ -137,7 +137,7 @@ impl Store {
                 let transaction = journal::whole(connection)?;
                 let mut moved = 0;
                 {
-                    let mut advance = transaction.prepare(
+                    let mut advance = transaction.prepare_cached(
                         "UPDATE places SET seq = ?4
                          WHERE instance = ?1 AND handler = ?2 AND journal = ?3 AND seq < ?4",
                     )?;
@@ -173,11 +173,11 @@ impl Store {
         self.db
             .call(move |connection| {
                 let mut statement =
-                    connection.prepare("SELECT DISTINCT handler FROM places WHERE instance = ?1")?;
+                    connection.prepare_cached("SELECT DISTINCT handler FROM places WHERE instance = ?1")?;
                 let have: Vec<String> =
                     statement.query_map([&instance], |row| row.get(0))?.collect::<rusqlite::Result<_>>()?;
                 for gone in have.iter().filter(|name| !handlers.contains(name)) {
-                    connection.execute(
+                    connection.execute_kept(
                         "DELETE FROM places WHERE instance = ?1 AND handler = ?2",
                         params![instance, gone],
                     )?;

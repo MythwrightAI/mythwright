@@ -149,6 +149,9 @@ pub fn router(app: App) -> Router {
         .merge(crate::mockups::routes())
         .merge(outside::ways_in())
         .fallback(client)
+        // What changes anything waits while the daemon takes up what it
+        // was doing; the rest is answered at once (`resuming`).
+        .layer(middleware::from_fn_with_state(app.clone(), crate::resuming::holds))
         // Before any route, and measured like any other: whether this was
         // asked of this daemon at all (`guard`).
         .layer(middleware::from_fn_with_state(app.names.clone(), served::guard::guard))
@@ -238,6 +241,9 @@ async fn meta(State(app): State<App>, parts: axum::http::request::Parts) -> ApiR
         // When it began draining to stop and the latest it stops, where
         // it was asked to (`crate::drain`): nothing where it was not.
         "draining": app.drain.said(),
+        // While it takes up what it was doing as it starts, how far it has
+        // come (`crate::resuming`): nothing once it has.
+        "taking_up": app.resuming.said(&app.engine),
         // Which of what is not yet whole this factory turned on (Settings, Experiments).
         "experiments": if signed_in { json!(experiments::on(&app).await?) } else { json!([]) },
     })))

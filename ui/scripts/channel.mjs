@@ -902,9 +902,9 @@ try {
     const offers = page.getByRole('listbox', { name: 'What conductor takes' });
     await offers.waitFor();
     const offered = async () => (await offers.getByRole('option').locator('code').allInnerTexts()).map((one) => one.trim());
-    expect(`all it takes to be offered once it is named, got ${(await offered()).join(' | ')}`, (await offered()).length === 38 && (await offered()).includes('board move <card> <column> [--note TEXT]') && (await offered()).includes('board press <card> <action> [--back]'));
+    expect(`all it takes to be offered once it is named, got ${(await offered()).join(' | ')}`, (await offered()).length === 38 && (await offered()).includes('board move <card> <column> [--note TEXT] [--give N]') && (await offered()).includes('board press <card> <action> [--back]'));
     await page.keyboard.type('bo');
-    expect(`what is typed to narrow them, got ${(await offered()).join(' | ')}`, (await offered()).join(' | ') === 'board <project> | board columns <project> [<column>...] | board add <project> <title...> [--body TEXT] [--status COLUMN] [--label L]... [--field name=value]... | board move <card> <column> [--note TEXT] | board give <card> <agent>|<person>|nobody | board set <card> <field=value>... | board press <card> <action> [--back] | board history <card> | board cost <card>');
+    expect(`what is typed to narrow them, got ${(await offered()).join(' | ')}`, (await offered()).join(' | ') === 'board <project> | board columns <project> [<column>...] | board add <project> <title...> [--body TEXT] [--status COLUMN] [--label L]... [--field name=value]... | board move <card> <column> [--note TEXT] [--give N] | board give <card> <agent>|<person>|nobody | board set <card> <field=value>... | board press <card> <action> [--back] | board history <card> | board cost <card>');
     await page.screenshot({ path: `${out}/channel-20-conductor-offers.png` });
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('ArrowDown');

@@ -64,6 +64,8 @@ pub struct Inner {
     pub stop: tokio::sync::Notify,
     /// Its drain, once it was asked to stop when what is in hand is done.
     pub drain: crate::drain::Drain,
+    /// How far it has come in taking up what it was doing, as it starts.
+    pub resuming: crate::resuming::Resuming,
     /// What kind of factory this is, and how it is known on this device.
     pub place: Place,
     /// The sandbox tests under way (`crate::sandboxes`).
@@ -125,6 +127,7 @@ impl App {
             seen: Default::default(),
             stop,
             drain: Default::default(),
+            resuming: Default::default(),
             place,
             sandboxes,
             own,
