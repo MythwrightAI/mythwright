@@ -7,7 +7,7 @@
 // first: `cargo build -p kv-cache`. The environment variables are those of
 // walkthrough.mjs.
 import { execFile, spawn } from 'node:child_process';
-import { mkdir, readdir, rm } from 'node:fs/promises';
+import { access, mkdir, readdir, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -28,6 +28,12 @@ const run = promisify(execFile);
 const out = resolve(process.argv[2] ?? 'shots');
 const binary = resolve(process.env.DAEMON ?? '../target/debug/factory');
 const repo = resolve('..');
+// The cache is hosted as built, not built here: without it, its rollout would wait a minute for a program that is not there.
+const cacheProgram = join(repo, 'target/debug/kv-cache');
+if (!(await access(cacheProgram).then(() => true, () => false))) {
+  console.error(`${cacheProgram} is not built: build it first with \`cargo build -p kv-cache\`.`);
+  process.exit(1);
+}
 
 /** A daemon with nothing in it, and a command-line client signed in to it. */
 async function device(name) {
@@ -79,7 +85,7 @@ try {
   // The member hosts something of its own.
   const meta = await (await fetch(`${hub.url}/api/meta`)).json();
   const example = `${repo}/examples/blueprints/kv-cache.${meta.blueprint_ext}`;
-  await member.cli('apply', example, '--param', 'build=false', '--param', `binary=${repo}/target/debug/kv-cache`);
+  await member.cli('apply', example, '--param', 'build=false', '--param', `binary=${cacheProgram}`);
   // And the hub sends it a step.
   const afar = `${out}/afar.${meta.blueprint_ext}`;
   const { writeFile } = await import('node:fs/promises');
