@@ -6716,7 +6716,7 @@ descriptions.)
 | `system.repacked` | The factory's database was written out again as one is made now, while the daemon was stopped. Said by the daemon that next starts. | `before`, `after`, `events`, `took_ms` |
 | `system.restarting` | A step asked for the daemon to be stopped and started again by what keeps it running. | `at_rest` |
 | `system.snapshot` | A snapshot of the factory was written. | `snapshot`, `to`, `profile`?, `note`, `made`, `files`, `bytes`, `holds`, `left_out`, `took_ms` |
-| `system.started` | The daemon started. | `address`, `version`, `resumed`, `note`?, `profile`?, `runs_from` |
+| `system.started` | The daemon started, and took up what it was doing: it answered what was read from before, and what changes anything from here. | `address`, `version`, `resumed`, `note`?, `profile`?, `runs_from` |
 | `system.stopped` | The daemon stopped. | nothing |
 | `system.across` | What every page says across its top changed: whoever manages the factory said it may stop, or what it is to say. | `across`?, `quiet` |
 | `system.draining` | The daemon was asked to stop once what is in hand is done: it begins nothing new from now, and stops when the turns in hand and the runs under way have ended, or at the bound. | `since`, `until`, `turns`, `runs` |

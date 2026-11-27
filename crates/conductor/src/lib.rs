@@ -120,6 +120,7 @@ pub use runs::{
 };
 pub use runs::{LOOKED_UP, blueprint_kept};
 pub use sink::Forward;
+pub use taken_up::HowFar;
 pub use update::Took;
 pub use vouched::Vouched;
 pub use why::reason;

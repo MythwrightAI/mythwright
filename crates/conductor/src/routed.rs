@@ -22,9 +22,36 @@ pub(crate) async fn instances(engine: &Engine, filter: InstanceFilter) -> Result
     if let Some(parent) = &filter.parent {
         return engine.keeper(parent).await.inner.store.instances(filter).await;
     }
+    gathered(of(engine, filter.project.as_deref()).await?, filter).await
+}
+
+/// Instances by what `filter` asks, from every conductor as it has them
+/// written, waiting for none that is taking up what it keeps: for what
+/// says how a daemon stands while it starts, which is answered before
+/// its start is over. What names a parent is asked of its keeper, as in
+/// [`instances`].
+pub(crate) async fn instances_written(engine: &Engine, filter: InstanceFilter) -> Result<Vec<InstanceInfo>> {
+    if engine.inner.set.alone() || filter.parent.is_some() {
+        return instances(engine, filter).await;
+    }
+    let every = engine.every().into_iter();
+    let theirs = match filter.project.clone() {
+        // The factory's, which kept what was run for a project before it
+        // had one of its own, and the project's own.
+        Some(project) => every
+            .filter(|one| one.inner.project.is_none() || one.inner.project == Some(project.clone()))
+            .collect(),
+        None => every.collect(),
+    };
+    gathered(theirs, filter).await
+}
+
+/// What each of `conductors` has written that `filter` asks for, put
+/// together as one conductor's rows would give it.
+async fn gathered(conductors: Vec<Engine>, filter: InstanceFilter) -> Result<Vec<InstanceInfo>> {
     let limit = if filter.limit == 0 { 500 } else { filter.limit };
     let mut all = Vec::new();
-    for one in of(engine, filter.project.as_deref()).await? {
+    for one in conductors {
         all.extend(one.inner.store.instances(filter.clone()).await?);
     }
     // Each conductor's are newest first already, and stay so among

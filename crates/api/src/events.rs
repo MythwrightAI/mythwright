@@ -9,7 +9,11 @@ use blueprint::{EventSpec, ValueType::*};
 
 pub fn events() -> Vec<EventSpec> {
     let all = vec![
-        EventSpec::new("system.started", "The daemon started.")
+        EventSpec::new(
+            "system.started",
+            "The daemon started, and took up what it was doing: it answered what was read from before, and what \
+             changes anything from here.",
+        )
             .field("address", String, "where it answers")
             .field("version", String, "its version")
             .field("resumed", Int, "how many instances it took up again")

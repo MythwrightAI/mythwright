@@ -27,6 +27,7 @@ mod loaded;
 mod mockups;
 pub mod opened;
 pub mod releases;
+pub mod resuming;
 mod routes;
 mod searched;
 mod spent;
@@ -210,6 +211,10 @@ pub struct Config {
     /// repository holds themselves, and who git commits as there is
     /// whoever runs them.
     pub commits_first: bool,
+    /// A start held as it is about to take up what it was doing, already
+    /// answering (`resuming::Held`): for a test that asks it things
+    /// meanwhile. Never said for a factory that is run.
+    pub held: Option<Arc<resuming::Held>>,
 }
 
 impl Config {
@@ -242,6 +247,7 @@ impl Config {
             user_home: None,
             makes_owner: false,
             commits_first: false,
+            held: None,
         }
     }
 }
@@ -567,20 +573,6 @@ impl Node {
         // What an ask owed when the daemon stopped: lines not yet told, what came of one not yet told back.
         told::Asks::new(&journal, &studio).settle().await?;
 
-        // What was running is found before anything is resumed, so resumed
-        // steps find their services where they left them.
-        hosting.resume().await?;
-        let resumed = engine.resume().await?;
-        agents.start();
-        // An agent added by hand before agents had a text of their own
-        // is given its text, once ([`byhand::take_up`]).
-        byhand::take_up(&engine, &agents).await;
-        // What a factory from before vouched for of a folder its projects no longer read, once.
-        library::settle(&own_blueprints, &engine, &journal).await;
-        // Last: resumed steps for other devices are waiting by the time the
-        // links come back, and this device's own hub finds it ready.
-        gateway.start().await?;
-
         let app = App::new(
             journal.clone(),
             engine,
@@ -594,8 +586,30 @@ impl Node {
             names,
             place,
             sandboxes,
-            own_blueprints,
+            own_blueprints.clone(),
         );
+        // Answered from here, before what it was doing is taken up: what
+        // is read is answered at once, and what changes anything waits
+        // until that is done (`resuming`). Each request with where it came
+        // from, which is what says whether the first account is being made
+        // on this machine.
+        let router = routes::router(app.clone()).into_make_service_with_connect_info::<SocketAddr>();
+        let mut serving = Serving(Some(tokio::spawn(async move {
+            let _ = axum::serve(listener, router).await;
+        })));
+        if let Some(held) = &config.held {
+            app.resuming.tells(held.clone());
+            held.here(addr).await;
+        }
+        let taken = take_up(&app, &own_blueprints).await;
+        let resumed = match taken {
+            Ok(resumed) => resumed,
+            Err(err) => {
+                // What waited is told why, and nothing more is answered.
+                app.resuming.ends(Err(err.message.clone()));
+                return Err(err);
+            }
+        };
         commands::listen(&app);
         // What reads the tables for the index, before it reads anything.
         searched::install(&studio);
@@ -618,13 +632,9 @@ impl Node {
         tasks.push(tokio::spawn(followers::digests(app.clone())).abort_handle());
         tasks
             .push(tokio::spawn(following::follow(app.clone(), config.blueprints_dir.clone())).abort_handle());
-        // Each request with where it came from, which is what says whether
-        // the first account is being made on this machine.
-        let router = routes::router(app.clone()).into_make_service_with_connect_info::<SocketAddr>();
-        let serving = tokio::spawn(async move {
-            let _ = axum::serve(listener, router).await;
-        });
 
+        // Said once everything is taken up, and before what waited for
+        // that is let through: whatever hears it hears it first.
         let started = json!({
             "address": addr.to_string(), "version": place::version(), "resumed": resumed,
             "note": config.note, "profile": app.place.profile,
@@ -633,7 +643,9 @@ impl Node {
             "runs_from": place::runs_from(),
         });
         let _ = journal.emit("system.started", Source::actor("system"), started).await;
-        Ok(Node { app, addr, arrived, tasks, serving: Some(serving), opened, had, restarting, made })
+        app.resuming.ends(Ok(()));
+        let serving = serving.0.take();
+        Ok(Node { app, addr, arrived, tasks, serving, opened, had, restarting, made })
     }
 
     /// A link that signs the owner in once, for the program this node is in.
@@ -788,6 +800,42 @@ impl Node {
         all.extend(self.opened.iter().cloned());
         all
     }
+}
+
+/// What answers at a node's address while it starts: ended if the start
+/// fails after it began to answer, so that nothing answers there for a
+/// node that never was.
+struct Serving(Option<tokio::task::JoinHandle<()>>);
+
+impl Drop for Serving {
+    fn drop(&mut self) {
+        if let Some(serving) = &self.0 {
+            serving.abort();
+        }
+    }
+}
+
+/// Takes up what the daemon was doing when it stopped, saying how far it
+/// has come as it goes (`resuming`): how many instances it took up.
+async fn take_up(app: &App, own: &library::Own) -> Result<usize> {
+    use resuming::Doing;
+    // What was running is found before anything is resumed, so resumed
+    // steps find their services where they left them.
+    app.resuming.now(Doing::Services);
+    app.hosting.resume().await?;
+    app.resuming.now(Doing::Instances);
+    let resumed = app.engine.resume().await?;
+    app.resuming.now(Doing::Agents);
+    app.agents.start();
+    // An agent added by hand before agents had a text of their own
+    // is given its text, once ([`byhand::take_up`]).
+    byhand::take_up(&app.engine, &app.agents).await;
+    // What a factory from before vouched for of a folder its projects no longer read, once.
+    library::settle(own, &app.engine, &app.journal).await;
+    // Last: resumed steps for other devices are waiting by the time the
+    // links come back, and this device's own hub finds it ready.
+    app.gateway.start().await?;
+    Ok(resumed)
 }
 
 /// A node that is let go of gives back what it held, stopped or not: what

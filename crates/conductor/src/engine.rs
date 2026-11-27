@@ -822,6 +822,12 @@ impl Engine {
         crate::routed::instances(self, filter).await
     }
 
+    /// Instances as they are written, waiting for no conductor that is
+    /// taking up what it keeps (`routed::instances_written`).
+    pub async fn instances_written(&self, filter: InstanceFilter) -> Result<Vec<InstanceInfo>> {
+        crate::routed::instances_written(self, filter).await
+    }
+
     /// A run with its steps.
     pub async fn runs(&self, instance: &str, limit: usize) -> Result<Vec<RunInfo>> {
         self.keeper(instance).await.inner.store.runs(instance, limit).await

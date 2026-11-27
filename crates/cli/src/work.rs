@@ -122,6 +122,12 @@ fn runs_from(meta: &Value) -> Option<&'static str> {
     }
 }
 
+/// What a daemon still taking up what it was doing as it started says of
+/// how far it has come (`api::resuming`): nothing of one that is not.
+fn taking_up(meta: &Value) -> Option<String> {
+    meta["taking_up"]["says"].as_str().map(str::to_string)
+}
+
 pub async fn status(client: &Client) -> Result<(), String> {
     let meta = client.get("/api/meta").await?;
     // Which factory this is, said first, for the ones that have a name:
@@ -147,9 +153,10 @@ pub async fn status(client: &Client) -> Result<(), String> {
     if !client.signed_in() {
         show(client, &meta, || {
             format!(
-                "{}{environment} is running on {}. Sign in with `{to} login`.",
+                "{}{environment} is running on {}. Sign in with `{to} login`.{}",
                 text(&meta, "name"),
                 text(&meta, "device"),
+                taking_up(&meta).map(|said| format!("\n{said}")).unwrap_or_default(),
             )
         });
         return Ok(());
@@ -172,6 +179,8 @@ pub async fn status(client: &Client) -> Result<(), String> {
             resources["load1"].as_f64().map_or("unknown".to_string(), |load| format!("{load:.1}")),
         )];
         lines.extend(runs_from(&meta).map(str::to_string));
+        // A daemon that has just started, still taking up what it was doing.
+        lines.extend(taking_up(&meta));
         lines.extend(draining.clone());
         // What another installation sees this one prove, when the two link.
         if let Some(id) = fleet["device"]["id"].as_str() {
