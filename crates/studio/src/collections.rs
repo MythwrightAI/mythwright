@@ -620,6 +620,38 @@ impl Collections {
         Ok(found)
     }
 
+    /// The tables of `project` that may own the record `id`, numbered
+    /// `number`, in the order [`Collections::list`] gives them: of every
+    /// table only its name and where it keeps its rows are read, and only
+    /// one that may own it is read whole, in the same piece of work.
+    async fn may_own(&self, project: &str, id: &str, number: i64) -> Result<Vec<Collection>> {
+        let db = self.rows(project).db().clone();
+        let (project, id) = (project.to_string(), id.to_string());
+        let read = move |connection: &mut rusqlite::Connection| {
+            let mut named = connection.prepare_cached(
+                "SELECT name, store FROM collections WHERE project = ?1 ORDER BY project, name",
+            )?;
+            let tables: Vec<(String, String)> = named
+                .query_map([&project], |row| Ok((row.get(0)?, row.get(1)?)))?
+                .collect::<rusqlite::Result<_>>()?;
+            let mut whole = connection.prepare_cached(&format!(
+                "SELECT {COLLECTION} FROM collections WHERE project = ?1 AND name = ?2"
+            ))?;
+            let mut found = Vec::new();
+            for (name, store) in tables {
+                let may = match Store::parse(&store) {
+                    Some(Store::Documents | Store::Mockups) => true,
+                    _ => record_id(&project, &name, number) == id,
+                };
+                if may {
+                    found.extend(optional(whole.query_row([&project, &name], read_collection))?);
+                }
+            }
+            Ok(found)
+        };
+        db.call(read).await
+    }
+
     /// Every record of a collection, in the order they were made.
     pub async fn records(&self, collection: &Collection) -> Result<Vec<Record>> {
         self.written_since(collection, i64::MIN).await
@@ -711,7 +743,10 @@ impl Collections {
         let number = id.rsplit_once('-').and_then(|(_, number)| number.parse::<i64>().ok());
         let number = number.ok_or_else(missing)?;
         for (at, _) in id.rmatch_indices('-') {
-            for collection in self.list(Some(&id[..at])).await? {
+            // Only a table that may own the id is read whole: what a table
+            // says of itself is read and worked out each time, and a card
+            // is looked up at every move and every write on it.
+            for collection in self.may_own(&id[..at], id, number).await? {
                 if !collection.owns(id) {
                     continue;
                 }
