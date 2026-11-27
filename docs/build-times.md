@@ -1434,6 +1434,140 @@ conversation (`turns_thread`), so nothing is kept for it and nothing
 of the cards beside it is read. On the first day it came to 754 steps
 beside four cards and 755 beside 254.
 
+## What twenty cards cost the daemon, 2026-11-26
+
+Asked of the daemon as a whole, and not of one card in a test: twenty
+cards through a fleet of three workers and a reviewer, stand-in agents,
+the optimised program (`compare/measure.py <clone> load`, the first and
+the last measured once each, in a lane of eight processors). On release
+`a9c85db3` that was 3.94 s of the daemon's processor time and 55.8 MB
+written, where the copy with the card's path in Rust (the same
+everything else) took 1.04 s and 16.7 MB: 3.8 and 3.3 times.
+
+**How it was taken apart.** Times on this machine move by a fifth from
+one run to the next, the same program, with the machine at a load of 10
+to 20; so what was held was counted, and times were read beside it.
+
+- **Instructions.** The processor's own counters can be read here
+  (`perf_event_open`, of a program of one's own, counting what it does
+  outside the system), though no profiler is installed. A few lines of C
+  loaded beside the daemon (`LD_PRELOAD`) open a counter of instructions
+  and one of cycles for each thread as it starts (`pthread_create`
+  wrapped), and on a signal add them up into a file; the driver signals
+  as the cards are made ready and as the last is done. Twenty cards came
+  to 8.85 to 8.90 G instructions in every run of the same program, a
+  half a hundredth apart, where its processor time went from 3.0 to
+  4.7 s. A change that saves a twentieth shows in one run each.
+- **Where the time was**, by the sampler of the 2026-11-26 section above
+  (`setitimer(ITIMER_PROF)`, `backtrace()` at each tick), switched on by
+  the same signal so that only the cards are sampled, its addresses named
+  from the program's own symbols (`nm`): the system's library has none
+  here, so a frame of it is named by the nearest name it exports, and
+  what each such frame was is told by what called it (`pwrite`, `pread`
+  and `open` under a name of the system's waiting, `malloc`'s insides
+  under `__default_morecore`, `memcpy` under `_dl_mcount_wrapper`). Some
+  400 ticks a run: four runs were added together.
+- **What was written**, by thread (`/proc/<pid>/task/*/io`): each
+  database's thread writes its log and nothing else, so what each
+  database cost the disk is its thread's; and by table, from the
+  project's log kept as the last card was done, its frames' pages named
+  by `dbstat` of a copy, and its commits grouped by which tables they
+  wrote together.
+- **Alternating.** Each program a copy of its own beside a
+  `.fingerprint` folder, so that it reads the checkout as the one cargo
+  built does, run in turn with the others, three to six rounds.
+
+The driver, the sampler and the counter are under the clone's
+`target/sampler/` and are not kept here.
+
+**What the processor did** on `a9c85db3`, of the daemon's ticks: the
+database preparing statements, a tenth (three in ten of its own thread);
+the runner's steps copying the run's scope, a step's view of itself and
+dropping them, a tenth; checking texts as each child begins, reading
+every blueprint the library has from the disk each time, a tenth;
+reading every table of a project and working out what each says of
+itself to find which owns a card, as a card is looked up at every move
+and write, a thirtieth; and the system's side, two fifths of the time
+in all, mostly writing the logs' frames, reading pages the database's
+cache did not hold, and waking threads. **What was written**: the
+project's log 44 MB, its pages brought back into its file 4.5 MB, the
+search index 4.4 MB, the factory's own database 0.9 MB. The project's
+log by table: the steps a quarter, events and their index of topics a
+sixth, runs and their two indexes a sixth, the instances' versions
+(each instance made wrote its text again, pages long, though 203
+instances ran 25 texts) and the first page (written again whenever the
+file grows) an eighth, handlers' places and what is under way a tenth.
+
+**What was done**, each a commit, each measured against what came before
+it by instructions (the median of three, alternating) and then all of
+them against the release:
+
+| change | instructions | processor | written |
+|---|---:|---:|---:|
+| `a9c85db3` | 8.90 G | 3.94 s | 55.0 MB |
+| statements kept prepared (`journal::Prepared`, 512 a connection) | 8.90 to 8.56 G | | |
+| a step's view of itself worked out only where a hook reads it | 8.56 to 7.87 G | | |
+| and planned by the statement alone (`SQLITE_DBCONFIG_ENABLE_QPSG`) | 7.87 to 6.66 G | 3.63 to 3.33 s | |
+| a card looked up reads whole only the table that may own it | 6.69 to 6.15 G | 3.62 to 3.26 s | |
+| the search index written again only where what is found changed | | | 53.5 to 51.6 MB |
+| an instance's text kept once in its project | | | 51.6 to 48.9 MB |
+
+Kept prepared, a statement was planned again each time it was given
+another value: the database is built to weigh the values it is given
+against what it knows of a table (`STAT4`), and marks such a statement
+to be prepared again when a value changes, which was nearly every
+statement here. So keeping them saved a twentieth until each
+connection was told to plan by the statement alone, and then a fifth
+more. That changes no plan here: nothing has the database weigh a
+table's values (no `ANALYZE`), and every partial index is read by what
+its own condition says, written out in the statement, or by what
+implies it whatever the value (`owes = ?1`); the windows of a table say
+their project and table as text for the same reason. The card the
+budget holds asks the database 64,493 steps where it asked 67,904, and
+the same pieces of work, writes, commits and frames; the search index's
+writes are not held, and an instance's text was written on the first
+day of a project's journal as now. So no figure of `[card]` moved, and
+none was lowered.
+
+**Before and after**, the release, the last commit and the Rust copy
+(`target/rustcopy`, phase 1b at `aa1aea8`, built here) in turn, five
+rounds, the machine at a load of 10 to 20 (median, with the least):
+
+| | instructions | processor | of it the system's | written | from ready to done | at most |
+|---|---:|---:|---:|---:|---:|---:|
+| `a9c85db3` | 8.85 G | 3.18 s (3.01) | 1.39 s | 55.0 MB | 1.17 s | 88.8 MB |
+| the last commit | 6.09 G | 2.60 s (2.47) | 1.19 s | 47.9 MB | 1.00 s | 89.4 MB |
+| the Rust copy | 2.22 G | 1.14 s (1.08) | 0.55 s | 16.7 MB | 0.89 s | 73.5 MB |
+| the last against the Rust copy | 2.7 | 2.3 | 2.2 | 2.9 | 1.1 | 1.2 |
+
+At scale (`measure.py <clone> scale:20,100`, twenty workers and five
+reviewers), the last commit came to 3.98 s and 52.0 MB at 20 cards and
+21.8 s and 290.9 MB at 100, where release `effb6a27` came to 4.87 s and
+57.9 MB, and 28.4 s and 322.0 MB (`compare/SCALE-2026-11-27.md`): 1.8
+and 2.6 times the Rust copy at 100. What a card writes grows from 20
+cards to 100 by a tenth: the project's log 2.2 to 2.4 MB a card, as more
+runs are under way at once and their steps' rows fall on more pages, and
+pages brought back into the project's file 0.18 to 0.28 MB a card, as
+the file is larger and fewer of the pages a checkpoint brings back were
+brought back by the one before.
+
+**Tried and not kept.** Every file of the library looked for and read
+once in a check (a check asked the disk the same name some ten times
+over): 6.29 G instructions where the program without it took 6.12, and
+the system's time 1.38 s where it was 1.42, six rounds each; the system
+on this machine answers those asks quicker than the sampler made them
+look. And sharing commits among whatever waits on these twenty cards
+(`JOURNAL_GATHERS=all`): 52.3 MB where 54.0, and 1.13 s where 1.07, so
+`gather::DEEP` was left.
+
+**Left**, largest first: the system's side, the frames of the logs
+written two calls each, the pages a step's records rewrite, the
+threads woken; checking a text as each child begins, which asks the
+library for every blueprint there is; a run's scope built again for
+each step, every step before it copied in; the steps' rows, written as
+a step begins and again as it ends; reading an instance reads its text
+whole, pages long, wherever one is asked for.
+
 ## Tried on the old codebase, and not adopted
 
 So that nobody spends a week finding out again.
