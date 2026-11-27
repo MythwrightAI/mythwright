@@ -199,19 +199,34 @@ fn principal_text(principal: &Principal) -> String {
 /// Writes down a definition an instance was given, after the ones before
 /// it, and says which version it is: the one that keeps the text the
 /// instance runs from now (`instances.text`), which its own row then
-/// leaves out.
+/// leaves out. `held` is an instance of the project (the one named, and
+/// the project it is to be of) that may keep the same text already, for
+/// one being made: where the version that instance runs keeps, or names,
+/// one that keeps that very text, compared whole and not by its
+/// revision alone, this version names that one and keeps none of its own.
 pub(crate) fn record_version(
     connection: &Connection,
     instance: &str,
+    held: Option<(&str, Option<&str>)>,
     definition: &Definition,
     now: i64,
 ) -> rusqlite::Result<i64> {
     let by = definition.principal.as_ref();
+    let (candidate, project) = held.unzip();
     connection.query_row_kept(
         "INSERT INTO instance_versions
-             (instance, version, revision, source, params, actor, actor_name, applied, principal)
-         SELECT ?1, coalesce(max(version), 0) + 1, ?2, ?3, ?4, ?5, ?6, ?7, ?8
-         FROM instance_versions WHERE instance = ?1
+             (instance, version, revision, source, params, actor, actor_name, applied, principal, held_by, held_at)
+         SELECT ?1, (SELECT coalesce(max(version), 0) + 1 FROM instance_versions WHERE instance = ?1), ?2,
+                CASE WHEN keeper.instance IS NULL THEN ?3 ELSE '' END, ?4, ?5, ?6, ?7, ?8,
+                keeper.instance, keeper.version
+         FROM (SELECT 1) LEFT JOIN (
+             SELECT kept.instance, kept.version
+             FROM instances whose
+             JOIN instance_versions runs ON runs.instance = whose.id AND runs.version = whose.text
+             JOIN instance_versions kept ON kept.instance = coalesce(runs.held_by, runs.instance)
+                                        AND kept.version = coalesce(runs.held_at, runs.version)
+             WHERE whose.id = ?9 AND whose.revision = ?2 AND coalesce(whose.project, '') = coalesce(?10, '')
+               AND kept.held_by IS NULL AND kept.source = ?3 AND ?3 <> '') keeper
          RETURNING version",
         params![
             instance,
@@ -222,6 +237,8 @@ pub(crate) fn record_version(
             by.map(|by| by.name.clone()).unwrap_or_default(),
             now,
             by.map(principal_text),
+            candidate,
+            project.flatten(),
         ],
         |row| row.get(0),
     )
@@ -306,6 +323,8 @@ pub struct Store {
     pub(crate) db: Db,
     /// For what is written and said as one write (`together`).
     pub(crate) journal: Journal,
+    /// Which instance was last made with each text, by project.
+    holders: crate::holders::Holders,
 }
 
 impl Store {
@@ -318,7 +337,7 @@ impl Store {
         // What a journal from before still has that nothing reads, where
         // taking it away is nothing.
         db.call(|connection| crate::schema::shed(connection)).await?;
-        Ok(Store { db, journal: journal.clone() })
+        Ok(Store { db, journal: journal.clone(), holders: Default::default() })
     }
 
     /// Writes a new instance down and says that it started (`says`), as
@@ -339,6 +358,8 @@ impl Store {
         under: Option<Cancel>,
         says: Vec<Say>,
     ) -> Result<bool> {
+        let (project, revision, id) = (info.project.clone(), info.revision.clone(), info.id.clone());
+        let holder = self.holders.of(project.as_deref(), &revision);
         let wrote = self
             .journal
             .write(move |writing| {
@@ -370,7 +391,8 @@ impl Store {
                     before: None,
                     heard: info.heard.clone(),
                 };
-                let text = record_version(connection, &info.id, &first, info.created)?;
+                let held = holder.as_deref().map(|holder| (holder, info.project.as_deref()));
+                let text = record_version(connection, &info.id, held, &first, info.created)?;
                 connection.execute_kept(
                     &format!(
                         "INSERT INTO instances ({INSTANCE_WRITTEN})
@@ -402,6 +424,9 @@ impl Store {
                 Ok(Ok(true))
             })
             .await?;
+        if matches!(wrote.0, Ok(true)) {
+            self.holders.made(project.as_deref(), &revision, &id);
+        }
         wrote.0.map_err(Error::invalid)
     }
 
@@ -773,7 +798,7 @@ impl Store {
                 )?;
                 if written == 1 {
                     crate::runs::carried(transaction, &id)?;
-                    let text = record_version(transaction, &id, &definition, now)?;
+                    let text = record_version(transaction, &id, None, &definition, now)?;
                     transaction
                         .execute_kept("UPDATE instances SET text = ?2 WHERE id = ?1", params![id, text])?;
                     for (handler, journal, from) in places {
@@ -798,10 +823,11 @@ impl Store {
         self.db
             .call(move |connection| {
                 connection
-                    .prepare(
-                        "SELECT version, revision, source, params, actor, actor_name, applied, outcome, principal
-                         FROM instance_versions WHERE instance = ?1 ORDER BY version DESC LIMIT ?2",
-                    )?
+                    .prepare(&format!(
+                        "SELECT version, revision, {}, params, actor, actor_name, applied, outcome, principal
+                             FROM instance_versions kept WHERE instance = ?1 ORDER BY version DESC LIMIT ?2",
+                        crate::read::KEPT_TEXT
+                    ))?
                     .query_map(params![instance, limit as i64], |row| {
                         let params: String = row.get(3)?;
                         Ok(Version {

@@ -70,7 +70,7 @@ impl Store {
             .write(move |writing| {
                 let transaction = writing.transaction();
                 crate::runs::carried(transaction, &id)?;
-                let text = record_version(transaction, &id, &definition, now)?;
+                let text = record_version(transaction, &id, None, &definition, now)?;
                 for (handler, journal, from) in places {
                     crate::places::make(transaction, &id, &handler, &journal, from)?;
                 }

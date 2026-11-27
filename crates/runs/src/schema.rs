@@ -432,6 +432,19 @@ pub(crate) const SCHEMA: &[&str] = &[
     -- the table, which rewrites nothing and reads no row of it.
     ALTER TABLE runs ADD COLUMN asked_by TEXT;
 ",
+    "
+    -- An instance's text is kept once in its project: one made with a
+    -- text that the instance of the same project made before it with
+    -- that text already keeps keeps none of its own (`source` is empty),
+    -- and names the version that does (`held_by`, `held_at`: its
+    -- instance and its version), which goes wherever it goes, being of
+    -- the same project. Many instances run a few texts, each pages
+    -- long, and one was written for every instance made. Columns added
+    -- to the table, which rewrite nothing and read no row of it; every
+    -- row a program from before wrote keeps its own.
+    ALTER TABLE instance_versions ADD COLUMN held_by TEXT;
+    ALTER TABLE instance_versions ADD COLUMN held_at INTEGER;
+",
 ];
 
 /// What a journal from before still has that nothing reads any more:

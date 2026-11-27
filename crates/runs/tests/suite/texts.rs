@@ -4,9 +4,20 @@
 
 use journal::Journal;
 use kernel::{Fields, Principal};
-use runs::{Becomes, Definition, InstanceStatus, Store, Taken};
+use runs::{Becomes, Definition, InstanceInfo, InstanceStatus, Store, Taken};
 
-use crate::{ending, instance, kept, run, says};
+use crate::{ending, instance, kept, of_project, run, says};
+
+/// What an instance's first version keeps of its text, and which
+/// version it names as keeping it.
+async fn first_version(journal: &Journal, id: &str) -> (String, Option<String>, Option<i64>) {
+    let id = id.to_string();
+    let asked = "SELECT source, held_by, held_at FROM instance_versions WHERE instance = ?1 AND version = 1";
+    let read = move |connection: &mut rusqlite::Connection| {
+        connection.query_row(asked, [&id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+    };
+    journal.db().call(read).await.unwrap()
+}
 
 /// What the instance's own row holds of its text, and which version it
 /// says keeps it.
@@ -110,4 +121,42 @@ async fn an_instance_a_program_from_before_wrote_runs_the_text_in_its_row() {
     assert_eq!(text(&store, "one").await, "name: from before\n");
     let listed = store.instances(runs::InstanceFilter::default()).await.unwrap();
     assert_eq!(listed[0].source, "name: from before\n");
+}
+
+#[tokio::test]
+async fn an_instance_made_with_a_text_its_project_keeps_already_names_the_version_that_keeps_it() {
+    let (journal, store) = kept().await;
+    let text_of = |id: &str| of_project(id, Some("shop"), None);
+    store.insert_instance(text_of("one"), None, Vec::new()).await.unwrap();
+    store.insert_instance(text_of("two"), None, Vec::new()).await.unwrap();
+    assert_eq!(first_version(&journal, "one").await, ("name: greet\n".into(), None, None));
+    assert_eq!(first_version(&journal, "two").await, (String::new(), Some("one".into()), Some(1)));
+    // One made after it names the one that keeps it, through the one before.
+    store.insert_instance(text_of("three"), None, Vec::new()).await.unwrap();
+    assert_eq!(first_version(&journal, "three").await, (String::new(), Some("one".into()), Some(1)));
+    for id in ["one", "two", "three"] {
+        assert_eq!(text(&store, id).await, "name: greet\n");
+        let versions = store.versions(id, 10).await.unwrap();
+        assert_eq!(versions[0].source, "name: greet\n");
+    }
+
+    // Of another project, or of none, it keeps its own: a project's rows go
+    // where it goes.
+    store.insert_instance(of_project("four", Some("mill"), None), None, Vec::new()).await.unwrap();
+    store.insert_instance(instance("five"), None, Vec::new()).await.unwrap();
+    assert_eq!(first_version(&journal, "four").await, ("name: greet\n".into(), None, None));
+    assert_eq!(first_version(&journal, "five").await, ("name: greet\n".into(), None, None));
+
+    // The same revision is not the same text: another text under it is
+    // kept whole by its own version.
+    let other = InstanceInfo { source: "name: other\n".into(), ..text_of("six") };
+    store.insert_instance(other, None, Vec::new()).await.unwrap();
+    assert_eq!(first_version(&journal, "six").await, ("name: other\n".into(), None, None));
+    assert_eq!(text(&store, "six").await, "name: other\n");
+
+    // One that has since taken another text is not named for the first.
+    store.take_text("six", definition("name: greet\nsteps: []\n"), Vec::new(), 10, Vec::new()).await.unwrap();
+    store.insert_instance(text_of("seven"), None, Vec::new()).await.unwrap();
+    assert_eq!(first_version(&journal, "seven").await, ("name: greet\n".into(), None, None));
+    assert_eq!(text(&store, "seven").await, "name: greet\n");
 }
